@@ -1,0 +1,79 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version "2.0.21"
+    id "org.jetbrains.kotlin.plugin.allopen" version "2.0.21"
+    id 'io.quarkus'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+
+    maven {
+        url 'http://maven.hub/'
+        credentials {
+            username mavenUsername
+            password mavenPassword
+        }
+
+        allowInsecureProtocol = true
+    }
+}
+
+dependencies {
+    implementation("io.quarkus:quarkus-picocli")
+    implementation 'org.jline:jline:3.29.0'
+    implementation 'io.quarkiverse.loggingsentry:quarkus-logging-sentry:2.1.3'
+    implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+    implementation 'io.quarkus:quarkus-rest'
+    implementation 'io.quarkus:quarkus-rest-jackson'
+    implementation 'io.quarkus:quarkus-config-yaml'
+    implementation 'io.quarkus:quarkus-kotlin'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+    implementation 'io.quarkus:quarkus-arc'
+    implementation 'org.mapdb:mapdb:3.1.0'
+
+    implementation 'io.projectreactor:reactor-core:3.7.5'
+    implementation 'io.smallrye.reactive:mutiny-reactor:2.8.0'
+
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.18.3'
+
+    implementation 'org.exploit.threshield:gg20:0.0.5'
+    implementation 'org.exploit.threshield:frost:0.0.5'
+    implementation 'org.exploit.threshield:ed25519:0.0.5'
+    implementation 'org.exploit.threshield:core:0.0.5'
+
+    implementation 'org.exploit:jettyx:0.1.6'
+    implementation 'org.exploit:jettyx-jackson:0.1.6'
+    implementation 'org.exploit:jettyx-http2:0.1.6'
+
+    implementation 'org.exploit:signalix:0.1.3'
+
+    testImplementation 'io.quarkus:quarkus-junit5'
+}
+
+group 'org.exploit'
+version '1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+test {
+    systemProperty "java.util.logging.manager", "org.jboss.logmanager.LogManager"
+}
+allOpen {
+    annotation("jakarta.ws.rs.Path")
+    annotation("jakarta.enterprise.context.ApplicationScoped")
+    annotation("jakarta.persistence.Entity")
+    annotation("io.quarkus.test.junit.QuarkusTest")
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = JavaVersion.VERSION_17
+    kotlinOptions.javaParameters = true
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = JavaVersion.VERSION_17
+}

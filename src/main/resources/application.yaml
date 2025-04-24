@@ -1,0 +1,22 @@
+"%cli":
+  quarkus:
+    http:
+      insecure-requests: disabled
+      host-enabled: false
+      ssl-port: -1
+
+keeper:
+  idx: ${KEEPER_SERVICE_IDX}
+  threshold: ${KEEPER_SERVICE_THRESHOLD}
+  parallelism: ${KEEPER_SERVICE_PARALLELISM:4}
+  database-path: ${KEEPER_DATABASE_PATH}
+  session:
+    gg20:
+      expire: 15m
+    frost:
+      expire: 5m
+  private-key: ${KEEPER_PRIVATE_KEY}
+  peers:
+    - idx: 1
+      public-url: 'https://keeper1.example.com'
+      public-key: 'NOOP'
