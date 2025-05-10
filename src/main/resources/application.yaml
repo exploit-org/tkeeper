@@ -5,6 +5,10 @@
       host-enabled: false
       ssl-port: -1
 
+vault:
+  url: ${VAULT_URL}
+  token: ${VAULT_TOKEN}
+
 keeper:
   idx: ${KEEPER_SERVICE_IDX}
   threshold: ${KEEPER_SERVICE_THRESHOLD}
