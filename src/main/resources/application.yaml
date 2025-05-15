@@ -5,6 +5,11 @@
       host-enabled: false
       ssl-port: -1
 
+quarkus:
+  banner:
+    enabled: true
+    path: banner.txt
+
 vault:
   url: ${VAULT_URL}
   token: ${VAULT_TOKEN}

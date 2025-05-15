@@ -30,7 +30,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-kotlin'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     implementation 'io.quarkus:quarkus-arc'
-    implementation 'org.mapdb:mapdb:3.1.0'
+    implementation 'org.rocksdb:rocksdbjni:10.2.1'
     implementation 'com.github.ben-manes.caffeine:caffeine:3.2.0'
 
     implementation 'io.projectreactor:reactor-core:3.7.5'
