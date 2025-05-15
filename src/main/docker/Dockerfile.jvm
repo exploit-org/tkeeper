@@ -82,6 +82,8 @@ FROM registry.access.redhat.com/ubi9/openjdk-17:1.21
 
 ENV LANGUAGE='en_US:en'
 
+USER 0
+RUN dnf install -y libsodium && dnf clean all
 
 # We make four distinct layers so if there are application changes the library layers can be re-used
 COPY --chown=185 build/quarkus-app/lib/ /deployments/lib/
