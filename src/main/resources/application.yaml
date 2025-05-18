@@ -1,10 +1,3 @@
-"%cli":
-  quarkus:
-    http:
-      insecure-requests: disabled
-      host-enabled: false
-      ssl-port: -1
-
 quarkus:
   http:
     host: ${HTTP_HOST}
@@ -12,10 +5,6 @@ quarkus:
   banner:
     enabled: true
     path: banner.txt
-
-vault:
-  url: ${VAULT_URL}
-  token: ${VAULT_TOKEN}
 
 keeper:
   idx: ${KEEPER_SERVICE_IDX}
