@@ -1,0 +1,42 @@
+site_name: TKeeper Docs
+site_url: https://docs.exploit.org/tkeeper/
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: deep purple
+      accent: lime
+  features:
+    - navigation.instant
+    - content.code.copy
+    - search.highlight
+    - content.tabs.link
+
+nav:
+  - Overview: index.md
+  - Building: build.md
+  - Configuration: config.md
+  - Initialization: init.md
+  - Sealing & Unsealing: seal.md
+  - Authorization: auth.md
+  - Key Generation: keygen.md
+  - Signing messages: sign.md
+  - Storing own keys: store.md
+  - API Reference: api.md
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed
+  - pymdownx.emoji
+  - pymdownx.keys
+
+extra:
+  generator: false

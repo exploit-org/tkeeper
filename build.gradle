@@ -37,13 +37,13 @@ dependencies {
 
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.18.3'
 
-    implementation 'org.exploit.tss:gg20:0.0.1-patch1'
-    implementation 'org.exploit.tss:frost:0.0.1-patch1'
+    implementation 'org.exploit.tss:gg20:0.0.2.4'
+    implementation 'org.exploit.tss:frost:0.0.2.4'
 
-    implementation 'org.exploit.tss:ed25519:0.0.1-patch1'
-    implementation 'org.exploit.tss:secp256k1:0.0.1-patch1'
+    implementation 'org.exploit.tss:ed25519:0.0.2.4'
+    implementation 'org.exploit.tss:secp256k1:0.0.2.4'
 
-    implementation 'org.exploit.tss:core:0.0.1-patch1'
+    implementation 'org.exploit.tss:core:0.0.2.4'
 
     implementation 'com.nimbusds:nimbus-jose-jwt:10.2'
 
@@ -61,7 +61,7 @@ dependencies {
 }
 
 group 'org.exploit'
-version '1.0-SNAPSHOT'
+version '0.0.1-SNAPSHOT'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17

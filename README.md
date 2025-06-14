@@ -1,77 +1,24 @@
-# BitKeeper
-*Threshold Signing Vault*
+# TKeeper
 
-## Running the application
-To run an app in HTTP mode simply run:
+**TKeeper** is a threshold signature service that provides a simple REST API for distributed signing using **GG20 (Threshold ECDSA)** and **FROST (Threshold Schnorr)** protocols. The service abstracts the complexity of multiparty computation: to sign a message, a client just needs to send a single HTTP request.
 
-```bash
-java -jar <runner>.jar
-```
+It is suitable for custody systems, MPC-based wallets, and backend services that require distributed key management and signing without exposing private keys to any single participant.
 
-To enabld **CLI** mode, run:
+We avoid using high-level abstractions such as `BigInteger` for handling sensitive data. All arithmetic operations on secret shares and cryptographic material are performed through low-level bindings over **libgmp**, allowing precise memory control and zeroing. For highly sensitive values (such as private key shares), **SecretBox** from **libsodium** is used for encryption in memory. The memory encryption key is generated every time application is started. For local persistent storage, TKeeper uses **RocksDB**, with all secret data encrypted with your **seal** key before being written to disk.
 
-```bash
-java -Dquarkus.profile=cli -jar <runner>.jar 
-```
+---
 
-#### NOTE
-DON'T CHANGE `%cli` PROFILE CONFIG! HTTP SERVER SHOULD NOT BE ENABLED IN THIS MODE
+## Requirements
 
-## Configuration
-Configuration example:
+TKeeper depends on several native libraries for cryptographic operations. Make sure the following are installed on the system:
 
-```yaml
-"%cli":
-  quarkus:
-    http:
-      insecure-requests: disabled
-      host-enabled: false
-      ssl-port: -1
+- [libsodium](https://github.com/jedisct1/libsodium) – used for secure memory handling and Ed25519 point ops
+- [libgmp](https://gmplib.org/) – used for arbitrary-precision arithmetic
+- [libsecp256k1](https://github.com/bitcoin-core/secp256k1) – used for Secp256k1 point ops
 
-keeper:
-  idx: ${KEEPER_SERVICE_IDX}
-  threshold: ${KEEPER_SERVICE_THRESHOLD}
-  parallelism: ${KEEPER_SERVICE_PARALLELISM:4}
-  database-path: ${KEEPER_DATABASE_PATH}
-  session:
-    gg20:
-      expire: 15m
-    frost:
-      expire: 5m
-  private-key: ${KEEPER_PRIVATE_KEY}
-  peers:
-    - idx: 1
-      public-url: 'https://keeper1.example.com'
-      public-key: 'NOOP'
-```
+Make sure these libraries are available in your environment and linked correctly.
+___
 
-### Definitions
-- `idx` - index of the current keeper in the network
-- `threshold` - threshold defined during shamir secret sharing
-- `parallelism` - number of parallel threads for keeper while broadcasts
-- `database-path` - path to the database file (!file)
-- `session` - session settings
-  - `gg20` - settings for GG20 session
-    - `expire` - expiration time of the session
-  - `frost` - settings for FROST session
-    - `expire` - expiration time of the session
-- `private-key` - Ed25519 private key of the keeper
-- `peers` - list of peers in the network
-  - `idx` - index of the peer
-  - `public-url` - public URL of the peer
-  - `public-key` - Ed25519 public key of the peer
-
-## CLI commands
-
-### Storing private key share
-```bash
-store <publicKeyId> <privateKeyShare> <relatedFullPublicKey>
-```
-
-### Deleting key share
-```bash
-delete <publicKeyId>
-```
-
-**NOTE**:
-All key share data should be specified in **Base64**
+## Documentation
+See [docs](docs) for detailed documentation on, or visit [docs.exploit.org/tkeeper](https://docs.exploit.org/tkeeper) for
+user-friendly documentation.
