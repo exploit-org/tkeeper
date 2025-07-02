@@ -76,12 +76,3 @@ Trusted dealer mode may be useful in:
 
 However, this mode **removes the trust separation** provided by MPC.  
 Only use it when distributed key generation (DKG) is not an option.
-
----
-
-## Summary
-
-- Submit one full private key → TKeeper splits and distributes shares to all peers
-- All nodes must be online during the process
-- Each peer receives and stores only their share
-- Should be used only when DKG is not feasible

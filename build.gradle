@@ -7,16 +7,6 @@ plugins {
 repositories {
     mavenCentral()
     mavenLocal()
-
-    maven {
-        url 'http://maven.hub/'
-        credentials {
-            username mavenUsername
-            password mavenPassword
-        }
-
-        allowInsecureProtocol = true
-    }
 }
 
 dependencies {
@@ -37,13 +27,18 @@ dependencies {
 
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.18.3'
 
-    implementation 'org.exploit.tss:gg20:0.0.2.4'
-    implementation 'org.exploit.tss:frost:0.0.2.4'
+    implementation 'org.exploit:gg20:0.0.1'
+    implementation 'org.exploit:frost:0.0.1'
 
-    implementation 'org.exploit.tss:ed25519:0.0.2.4'
-    implementation 'org.exploit.tss:secp256k1:0.0.2.4'
+    implementation 'org.exploit:ed25519:0.0.1'
+    implementation 'org.exploit:secp256k1:0.0.1'
 
-    implementation 'org.exploit.tss:core:0.0.2.4'
+    implementation 'org.exploit:tss4j:0.0.1'
+    implementation 'org.exploit:crypto:1.0.0'
+
+    implementation("org.exploit:tss4j-natives:1.0.0:linux-amd64@jar")
+    implementation("org.exploit:tss4j-natives:1.0.0:macos-aarch64@jar")
+    implementation("org.exploit:tss4j-natives:1.0.0:windows-amd64@jar")
 
     implementation 'com.nimbusds:nimbus-jose-jwt:10.2'
 
@@ -61,7 +56,7 @@ dependencies {
 }
 
 group 'org.exploit'
-version '0.0.1-SNAPSHOT'
+version '1.0.0-BETA'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -82,8 +77,7 @@ configurations.configureEach {
     resolutionStrategy {
         force(
                 "net.java.dev.jna:jna:5.17.0",
-                "net.java.dev.jna:jna-platform:5.17.0",
-                "org.exploit:crypto:0.0.9-patch1",
+                "net.java.dev.jna:jna-platform:5.17.0"
         )
     }
 }

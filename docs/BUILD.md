@@ -9,6 +9,8 @@ TKeeper depends on several native libraries for cryptographic operations. Make s
 
 Make sure these libraries are available in your environment and linked correctly.
 
+> TKeeper doesn't require this libs on Windows x64, Linux x64, and macos Apple Silicon, as it includes precompiled native dependencies for these platforms.
+
 ---
 ## Build with Gradle
 
