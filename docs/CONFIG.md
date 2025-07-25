@@ -1,6 +1,7 @@
 # Configuration
 
 TKeeper is configured via environment variables or a YAML/JSON configuration file.
+YAML configuration file should be placed at `./config/application.yaml`, relatively to 
 
 ## Required
 
@@ -36,6 +37,11 @@ keeper:
     jwt:
       jwks-location: "https://auth.example.com/.well-known/jwks.json"
       refresh: 5m
+
+  ssl:
+    enabled: true
+    trust-store-path: /secure/truststore.p12
+    trust-store-password: changeit
 ```
 
 ## Session Expiration
@@ -47,8 +53,8 @@ keeper:
 
 - `peers` define the list of participants (other nodes) in the threshold signing protocol.
 - Each peer entry must include:
-    - `id`: unique index ≥ 1 assigned during key initialization (Shamir share index)
-    - `public-url`: the HTTP endpoint where this peer is reachable
+    - `id`: unique index ≥ 1 assigned during key initialization (Shamir share index).
+    - `public-url`: the HTTP endpoint where this peer is reachable.
 
 > Detailed peer setup is covered in the key generation section.
 
@@ -60,9 +66,9 @@ The `seal` block defines how the local key share is encrypted and stored on disk
 
 ### Available `type` values:
 
-- `shamir`: local sealing using Shamir Secret Sharing
-- `aws`: sealing via AWS KMS
-- `google`: sealing via Google Cloud KMS
+- `shamir`: local sealing using Shamir Secret Sharing.
+- `aws`: sealing via AWS KMS.
+- `google`: sealing via Google Cloud KMS.
 
 Depending on the selected type, the corresponding sub-section (`shamir`, `aws`, or `google`) must be present.
 
@@ -78,8 +84,8 @@ seal:
     threshold: 2
 ```
 
-- `total`: number of shares to split the key into
-- `threshold`: minimum number of shares required to reconstruct the key
+- `total`: number of shares to split the key into.
+- `threshold`: minimum number of shares required to reconstruct the key.
 
 > Manual `unseal` is required at application startup.
 
@@ -96,9 +102,9 @@ seal:
 ```
 
 - Authentication uses [default AWS Java SDK credential chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials.html), including:
-    - Environment variables
-    - IAM roles (e.g., EC2, ECS)
-    - AWS config/profile files
+    - Environment variables.
+    - IAM roles (e.g., EC2, ECS).
+    - AWS config/profile files.
 
 > Unseal is automatic at startup.
 
@@ -117,13 +123,13 @@ seal:
 ```
 
 - Authentication uses [Application Default Credentials (ADC)](https://cloud.google.com/docs/authentication/production), supporting:
-    - Service accounts
-    - GCE/GKE metadata server
-    - Local credentials file
+    - Service accounts.
+    - GCE/GKE metadata server.
+    - Local credentials file.
 
 > Unseal is automatic at startup.
 
-See [seal.md](seal.md) for more details on sealing and unsealing.
+See [SEAL.md](SEAL.md) for more details on sealing and unsealing.
 
 ---
 
@@ -142,8 +148,25 @@ keeper:
 ```
 
 - `type`: authentication provider type. Currently, only `jwt` is supported.
-- `allowAnonymous`: whether unauthenticated requests are allowed
-- `jwt.jwks-location`: URL of the JWKS endpoint for public key retrieval
-- `jwt.refresh`: optional refresh interval for reloading the JWKS
-- 
-See [auth.md](auth.md) for authentication options and JWT integration.
+- `allowAnonymous`: whether unauthenticated requests are allowed.
+- `jwt.jwks-location`: URL of the JWKS endpoint for public key retrieval.
+- `jwt.refresh`: optional refresh interval for reloading the JWKS.
+
+See [SEAL.md](AUTH.md) for authentication options and JWT integration.
+
+---
+
+## SSL
+Outgoing SSL settings are defined under the `keeper.ssl` block:
+
+```yaml
+keeper:
+  ssl:
+    enabled: true
+    trust-store-path: /secure/truststore.p12
+    trust-store-password: changeit
+```
+
+- `enabled`: whether non-default SSL truststore should be enabled.
+- `trust-store-path`: path to PKCS12\JKS truststore file.
+- `trust-store-password`: password to truststore file, previously specified in `trust-store-path`.
