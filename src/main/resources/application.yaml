@@ -1,7 +1,4 @@
 quarkus:
-  http:
-    host: ${HTTP_HOST}
-    port: ${HTTP_PORT}
   banner:
     enabled: true
     path: banner.txt
