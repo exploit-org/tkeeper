@@ -25,6 +25,7 @@ The output JAR will be located at:
 ```
 build/libs/quarkus-app
 ```
+
 To run it:
 
 ```bash
