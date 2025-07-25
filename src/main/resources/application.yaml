@@ -13,4 +13,4 @@ keeper:
     gg20:
       expire: 15m
     frost:
-      expire: 5mz
+      expire: 5m
