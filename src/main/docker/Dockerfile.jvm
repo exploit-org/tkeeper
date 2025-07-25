@@ -78,28 +78,9 @@
 #   accessed directly. (example: "foo.example.com,bar.example.com")
 #
 ###
-FROM registry.access.redhat.com/ubi9/openjdk-17:1.21 AS builder
-
-USER 0
-ADD https://download.libsodium.org/libsodium/releases/libsodium-1.0.20.tar.gz libsodium-1.0.20.tar.gz
-
-# Check with precomputed checksum(sha256sum libsodium-1.0.20.tar.gz)
-RUN echo "ebb65ef6ca439333c2bb41a0c1990587288da07f6c7fd07cb3a18cc18d30ce19 libsodium-1.0.20.tar.gz" | sha256sum -c -
-
-RUN microdnf install -y gcc make autoconf automake libtool gzip && \
-    tar -xzf libsodium-1.0.20.tar.gz && \
-    cd libsodium-1.0.20 && ./configure && make && make install
-
 FROM registry.access.redhat.com/ubi9/openjdk-17:1.21
 
 ENV LANGUAGE='en_US:en'
-
-USER 0
-COPY --from=builder /usr/local/lib/libsodium.so* /usr/local/lib/
-COPY --from=builder /usr/local/include/sodium/ /usr/local/include/sodium/
-RUN ldconfig
-
-ENV LD_LIBRARY_PATH=/usr/local/lib
 
 # We make four distinct layers so if there are application changes the library layers can be re-used
 COPY --chown=185 build/quarkus-app/lib/ /deployments/lib/
@@ -109,7 +90,7 @@ COPY --chown=185 build/quarkus-app/quarkus/ /deployments/quarkus/
 
 EXPOSE 8080
 USER 185
-ENV JAVA_OPTS_APPEND="-Djava.library.path=/usr/local/lib -Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
 
 ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]
