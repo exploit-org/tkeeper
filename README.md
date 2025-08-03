@@ -1,8 +1,10 @@
-# TKeeper
-![](assets/gitkeeper.png)
+![](assets/tkeeper-github.png)
 
-**TKeeper** is a threshold signature service that provides a simple REST API for distributed signing using **GG20 (Threshold ECDSA)** and **FROST (Threshold Schnorr)** protocols. The service abstracts the complexity of multiparty computation: to sign a message or generate a key, a client just needs to send a single HTTP request.  
-Powered by [tss4j](https://github.com/exploit-org/tss4j) - our threshold cryptography library.
+**TKeeper** is a threshold cryptographic engine that provides a simple REST API for:
+- Distributed signing using **GG20 (Threshold ECDSA)** and **FROST (Threshold Schnorr)** protocols. 
+- Distributed encryption using **ECIES** (Elliptic Curve Integrated Encryption Scheme).
+
+The service abstracts the complexity of multiparty computation: to sign a message or generate a key, a client just needs to send a single HTTP request. Powered by [tss4j](https://github.com/exploit-org/tss4j) - our threshold cryptography library.
 
 It is suitable for custody systems, MPC-based wallets, and backend services that require distributed key management and signing without exposing private keys to any single participant.
 
@@ -27,4 +29,4 @@ See [docs](docs) for detailed documentation, or visit [docs.exploit.org/tkeeper]
 user-friendly view.
 
 ## License
-Finja is licensed under the [Apache License, Version 2.0](LICENSE.md)
+TKeeper is licensed under the [Apache License, Version 2.0](LICENSE.md)

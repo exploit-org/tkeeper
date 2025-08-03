@@ -47,7 +47,6 @@ Performs a threshold signature over one or more messages.
 ```json
 {
   "keyId": "my-key-id",
-  "curve": "SECP256K1",
   "type": "GG20",
   "operations": {
     "message1": "base64-encoded data",
@@ -59,7 +58,6 @@ Performs a threshold signature over one or more messages.
 #### Fields
 
 - `keyId`: identifier of the key to sign with
-- `curve`: elliptic curve (`SECP256K1` or `ED25519`)
 - `type`: session type (`GG20` or `FROST`)
 - `operations`: map of operation ID → base64-encoded message
 
@@ -84,8 +82,6 @@ Verifies a signature against a key.
 
 ```json
 {
-  "sigType": "SCHNORR",
-  "curve": "SECP256K1",
   "keyId": "my-key-id",
   "data64": "base64-encoded message",
   "signature64": "base64-encoded signature"
@@ -94,16 +90,9 @@ Verifies a signature against a key.
 
 #### Fields
 
-- `sigType`: optional; can be `ECDSA` or `SCHNORR`
-- `curve`: elliptic curve used
 - `keyId`: key to verify against
 - `data64`: base64-encoded original message
 - `signature64`: base64-encoded signature
-
-If `sigType` is not provided, it falls back to:
-
-- `SECP256K1` → `ECDSA`
-- `ED25519` → `SCHNORR`
 
 #### Response
 

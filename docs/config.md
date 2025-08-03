@@ -129,7 +129,7 @@ seal:
 
 > Unseal is automatic at startup.
 
-See [SEAL.md](SEAL.md) for more details on sealing and unsealing.
+See [seal.md](seal.md) for more details on sealing and unsealing.
 
 ---
 
@@ -152,7 +152,7 @@ keeper:
 - `jwt.jwks-location`: URL of the JWKS endpoint for public key retrieval.
 - `jwt.refresh`: optional refresh interval for reloading the JWKS.
 
-See [SEAL.md](AUTH.md) for authentication options and JWT integration.
+See [auth.md](auth.md) for authentication options and JWT integration.
 
 ---
 

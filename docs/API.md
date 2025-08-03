@@ -158,6 +158,14 @@ Deletes the distributed key from **all peers**. The initiating node contacts eve
 
 ---
 
+## 7. ECIES (Encryption/Decryption)
+### `POST /ecies/encrypt`
+Encrypts data using ECIES with the specified key ID and cipher.
+- See: [Encryption & Decryption](ecies.md)
+### `POST /ecies/decrypt`
+Decrypts data using ECIES with the specified key ID and cipher.
+- See: [Encryption & Decryption](ecies.md)
+
 ## Permissions Overview
 
 Each endpoint requires a specific permission token.  

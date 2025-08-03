@@ -23,6 +23,7 @@ nav:
   - Authorization: auth.md
   - Key Generation: keygen.md
   - Signing messages: sign.md
+  - Encrypting/Decrypting messages: ecies.md
   - Storing own keys: store.md
   - API Reference: api.md
 

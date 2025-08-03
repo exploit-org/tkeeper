@@ -11,3 +11,7 @@ keeper:
       expire: 15m
     frost:
       expire: 5m
+  ssl:
+    enabled: false
+    trust-store-password: ''
+    trust-store-path: ''
