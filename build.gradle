@@ -59,7 +59,7 @@ dependencies {
 }
 
 group 'org.exploit'
-version '1.0.0-RC2'
+version '1.0.0-RC3'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
