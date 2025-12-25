@@ -1,0 +1,139 @@
+<div class="row row-cards justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="bg-indigo-lt avatar rounded">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 12l0 2.5" /></svg>
+                        </span>
+                        <div>
+                            <h3 class="card-title mb-1 fw-bold">Key Generation</h3>
+                            <div class="text-muted small">Distributed Key Generation (DKG) Protocol</div>
+                        </div>
+                    </div>
+                    <span id="tk-keygen-perm-badge" class="badge bg-secondary-lt">Checking...</span>
+                </div>
+
+                <div id="tk-keygen-disabled" class="alert alert-warning d-flex align-items-center gap-2 d-none" role="alert">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v2m0 4v.01" /><path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.48 0l-7.1 12.25a2 2 0 0 0 1.84 2.75z" /></svg>
+                    <div>You don’t have permissions for key generation.</div>
+                </div>
+
+                <form id="tk-keygen-form">
+                    <div class="bg-light rounded p-4 border mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted text-uppercase fw-bold ls-1">Logical Key ID</label>
+                                <div class="input-group input-group-flat bg-white rounded border">
+                                    <span class="input-group-text border-0 bg-transparent ps-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon text-muted" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 10l0 10" /><path d="M18 10l0 10" /><path d="M9 10l0 10" /><path d="M15 10l0 10" /><path d="M3 10a7 7 0 1 1 18 0l-2 0a5 5 0 1 0 -14 0l-2 0" /></svg>
+                                    </span>
+                                    <input id="tk-keygen-keyId" class="form-control border-0 ps-2" placeholder="e.g. eth-cold-storage" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted text-uppercase fw-bold ls-1">Curve</label>
+                                <select id="tk-keygen-curve" class="form-select border-1">
+                                    <option value="SECP256K1">SECP256K1</option>
+                                    <option value="ED25519">ED25519</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted text-uppercase fw-bold ls-1">Mode</label>
+                                <select id="tk-keygen-mode" class="form-select fw-bold border-1">
+                                    <option value="CREATE">CREATE</option>
+                                    <option value="ROTATE">ROTATE</option>
+                                    <option value="REFRESH">REFRESH</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 mt-1">
+                                <div class="form-hint text-end small" id="tk-keygen-mode-hint"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border mb-4">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar bg-white border text-secondary rounded">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 12l0 2.5" /></svg>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark">Access Policy</div>
+                                        <div class="text-muted small">Optional key usage limits</div>
+                                    </div>
+                                </div>
+                                <label class="form-check form-switch m-0">
+                                    <input id="tk-keygen-policy-enabled" class="form-check-input" type="checkbox" style="height: 1.5rem; width: 2.75rem;">
+                                </label>
+                            </div>
+
+                            <div id="tk-keygen-policy" class="mt-4 border-top pt-4 d-none">
+                                <div class="row g-4">
+                                    <div class="col-12">
+                                        <label class="form-check form-switch">
+                                            <input id="tk-keygen-allowHistorical" class="form-check-input" type="checkbox" checked>
+                                            <span class="form-check-label fw-medium">Allow Historical Access</span>
+                                            <span class="d-block text-muted small mt-1">
+                                                If enabled, older key generations can still be used for verify/decrypt after rotation.
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted text-uppercase ls-1">Block NEW ops after</label>
+                                        <div class="input-clearable" id="tk-keygen-apply-wrapper">
+                                            <input id="tk-keygen-apply-value" type="datetime-local" class="form-control">
+                                            <button type="button" class="input-clearable-btn" aria-label="Clear">&times;</button>
+                                        </div>
+                                        <div class="form-hint">Leave empty for no limit.</div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted text-uppercase ls-1">Block ALL ops after</label>
+                                        <div class="input-clearable" id="tk-keygen-process-wrapper">
+                                            <input id="tk-keygen-process-value" type="datetime-local" class="form-control">
+                                            <button type="button" class="input-clearable-btn" aria-label="Clear">&times;</button>
+                                        </div>
+                                        <div class="form-hint">Leave empty for no limit.</div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="alert alert-danger bg-danger-lt border-0 rounded-3 mb-0">
+                                            <div class="d-flex">
+                                                <div class="me-3">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v2m0 4v.01" /><path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.48 0l-7.1 12.25a2 2 0 0 0 1.84 2.75z" /></svg>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">Danger Zone</div>
+                                                    <div class="small opacity-75">
+                                                        Setting strict "Allowed until" times or disabling historical access can permanently lock data encrypted with this key.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-3 pt-2">
+                        <button id="tk-keygen-reset" type="button" class="btn btn-ghost-secondary">Reset Form</button>
+                        <button id="tk-keygen-submit" type="button" class="btn btn-primary px-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" /><path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" /></svg>
+                            Execute DKG
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="tk-notifications" id="tk-keygen-notifications"></div>

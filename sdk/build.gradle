@@ -1,0 +1,100 @@
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'signing'
+    id 'maven-publish'
+    id("tech.yanand.maven-central-publish") version "1.3.0"
+}
+
+group = 'org.exploit'
+version = '1.0.0'
+
+def projectName = "TKeeper SDK"
+def projectDescription = "API client for TKeeper in Java"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    api 'org.exploit:jettyx:0.1.6'
+    api 'org.exploit:jettyx-jackson:0.1.6'
+    api 'org.exploit:jettyx-http2:0.1.6'
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+jar {
+    setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+
+    from(configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }) {
+        exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = 'tkeeper-sdk'
+
+            pom {
+                name = projectName
+                description = projectDescription
+                url = 'https://github.com/exploit-org/tkeeper/sdk'
+
+                licenses {
+                    license {
+                        name = 'Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = '0'
+                        name = 'exploit-org'
+                        email = 'contact@exploit.org'
+                    }
+                }
+
+                scm {
+                    connection = 'scm:git:https://github.com/exploit-org/tkeeper.git'
+                    developerConnection = 'scm:git:git@github.com:exploit-org/tkeeper.git'
+                    url = 'https://github.com/exploit-org/tkeeper/tree/main/tkeeper/sdk'
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "Local"
+            url = file("${buildDir}/repos/bundles")
+        }
+    }
+}
+
+signing {
+    sign publishing.publications.mavenJava
+}
+
+mavenCentral {
+    repoDir = layout.buildDirectory.dir('repos/bundles')
+
+    authToken = System.getenv("CENTRAL_MAVEN_TOKEN")
+}
+
+test {
+    useJUnitPlatform()
+}

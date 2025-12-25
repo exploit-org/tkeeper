@@ -1,0 +1,32 @@
+services:
+  keeper-1:
+    image: exploit/tkeeper:dev
+    environment:
+      JAVA_TOOL_OPTIONS: >-
+        -Djava.library.path=/usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
+        -Djna.library.path=/usr/local/lib
+    volumes:
+      - ./conf/keeper-1:/etc/tkeeper:ro
+    tmpfs:
+      - /var/lib/tkeeper:rw,exec,nosuid,size=512m,uid=10001,gid=0
+
+  keeper-2:
+    image: exploit/tkeeper:dev
+    environment:
+      JAVA_TOOL_OPTIONS: >-
+        -Djava.library.path=/usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
+        -Djna.library.path=/usr/local/lib
+    volumes:
+      - ./conf/keeper-2:/etc/tkeeper:ro
+    tmpfs:
+      - /var/lib/tkeeper:rw,exec,nosuid,size=512m,uid=10001,gid=0
+  keeper-3:
+    image: exploit/tkeeper:dev
+    environment:
+      JAVA_TOOL_OPTIONS: >-
+        -Djava.library.path=/usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
+        -Djna.library.path=/usr/local/lib
+    volumes:
+      - ./conf/keeper-3:/etc/tkeeper:ro
+    tmpfs:
+      - /var/lib/tkeeper:rw,exec,nosuid,size=512m,uid=10001,gid=0

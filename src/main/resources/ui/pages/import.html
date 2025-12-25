@@ -1,0 +1,116 @@
+<div class="row row-cards justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-4">
+                    <span class="bg-purple-lt avatar rounded">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 9l5 5l5 -5" /><path d="M12 4l0 10" /></svg>
+                    </span>
+                    <div>
+                        <h3 class="card-title mb-1 fw-bold">Import Key Material</h3>
+                        <div class="text-muted small">Securely import existing keys from HSM or backups</div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-7">
+                        <label class="form-label small text-uppercase fw-bold text-muted ls-1">Logical ID</label>
+                        <div class="input-group input-group-flat">
+                            <span class="input-group-text bg-light border-end-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon text-muted" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 12l0 2.5" /></svg>
+                            </span>
+                            <input id="tk-import-keyId" class="form-control bg-light border-start-0 ps-1" placeholder="e.g. production-kms-root">
+                        </div>
+                        <div class="form-hint">Unique identifier for application reference.</div>
+                    </div>
+
+                    <div class="col-md-5">
+                        <label class="form-label small text-uppercase fw-bold text-muted ls-1">Curve Algorithm</label>
+                        <select id="tk-import-curve" class="form-select bg-light">
+                            <option value="SECP256K1">SECP256K1 (Bitcoin/Eth)</option>
+                            <option value="ED25519">ED25519 (Solana/SSH)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small text-uppercase fw-bold text-muted ls-1">Key Material (Base64)</label>
+                        <textarea id="tk-import-value64" class="form-control font-monospace bg-light border-light" rows="5"
+                                  placeholder="Paste base64 encoded private key..."></textarea>
+                        <div class="form-hint"><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline icon-sm" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v2m0 4v.01" /><path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.48 0l-7.1 12.25a2 2 0 0 0 1.84 2.75z" /></svg> Ensure the curve matches the key material source.</div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="card bg-light border-transparent">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar bg-white text-secondary rounded shadow-sm">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">Access Policy</div>
+                                            <div class="text-muted small">Configure lifecycle and expiry rules</div>
+                                        </div>
+                                    </div>
+                                    <label class="form-check form-switch m-0">
+                                        <input id="tk-import-policy-enabled" class="form-check-input" type="checkbox" style="width: 2.5rem; height: 1.5rem;">
+                                    </label>
+                                </div>
+
+                                <div id="tk-import-policy" class="mt-4 pt-3 border-top d-none">
+                                    <div class="row g-4">
+                                        <div class="col-12">
+                                            <label class="form-check form-switch">
+                                                <input id="tk-import-allow-historical" class="form-check-input" type="checkbox" checked>
+                                                <span class="form-check-label fw-semibold">Allow Historical Access</span>
+                                                <span class="form-check-description">If unchecked, rotating this key will immediately invalidate previous versions for decryption/verification.</span>
+                                            </label>
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label small">Stop NEW operations after</label>
+                                            <div class="input-clearable" id="tk-import-apply-wrapper">
+                                                <input id="tk-import-apply-notAfter" type="datetime-local" class="form-control bg-white">
+                                                <button type="button" class="input-clearable-btn" data-target="tk-import-apply-notAfter">&times;</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label small">Stop ALL operations after</label>
+                                            <div class="input-clearable" id="tk-import-process-wrapper">
+                                                <input id="tk-import-process-notAfter" type="datetime-local" class="form-control bg-white">
+                                                <button type="button" class="input-clearable-btn" data-target="tk-import-process-notAfter">&times;</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-danger bg-danger-lt border-0 mt-4 mb-0 rounded-3">
+                                        <div class="d-flex gap-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon text-danger" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v2m0 4v.01" /><path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.48 0l-7.1 12.25a2 2 0 0 0 1.84 2.75z" /></svg>
+                                            <div class="text-danger">
+                                                <strong class="d-block mb-1">Irreversible Policy Settings</strong>
+                                                Setting restrictive "allowed until" times can permanently lock data encrypted with this key once the time passes.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end gap-2 pt-2">
+                        <button id="tk-import-clear" class="btn btn-ghost-secondary" type="button">Reset Form</button>
+                        <button id="tk-import-submit" class="btn btn-primary px-4" type="button">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+                            Import Key
+                        </button>
+                    </div>
+
+                    <div class="col-12">
+                        <div id="tk-import-status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

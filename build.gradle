@@ -16,6 +16,7 @@ repositories {
 tasks.named('shadowJar') {
     archiveBaseName.set('tkeeper')
     archiveClassifier.set('')
+
     zip64 true
     manifest { attributes 'Main-Class': mainClassName }
 
@@ -27,8 +28,28 @@ tasks.named('shadowJar') {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
+tasks.register('prepareDocker', Copy) {
+    dependsOn tasks.named('shadowJar')
+
+    from(tasks.named('shadowJar').get().archiveFile)
+    into("$buildDir/docker")
+    rename { "tkeeper.jar" }
+}
+
+tasks.register('dockerBuild', Exec) {
+    dependsOn tasks.named('prepareDocker')
+
+    executable = 'docker'
+    args 'build',
+            '-f', 'Dockerfile',
+            '-t', "exploit/tkeeper:${project.version}",
+            '-t', 'exploit/tkeeper:latest',
+            '.'
+}
+
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
+
     implementation 'com.github.ben-manes.caffeine:caffeine:3.2.0'
     implementation 'com.linecorp.armeria:armeria:1.33.4'
     implementation 'com.linecorp.armeria:armeria-kotlin:1.33.4'
@@ -45,15 +66,17 @@ dependencies {
     implementation 'org.fusesource.jansi:jansi:2.4.2'
     implementation 'ch.qos.logback:logback-classic:1.5.20'
 
-    implementation 'org.exploit:bigint:0.0.3'
-    implementation 'org.exploit:ed25519:0.0.3'
-    implementation 'org.exploit:secp256k1:0.0.3'
-    implementation 'org.exploit:sodium:0.0.3'
-    implementation 'org.exploit:tss4j:0.0.3'
-    implementation 'org.exploit:frost:0.0.3'
-    implementation 'org.exploit:gg20:0.0.3'
-    implementation 'org.exploit:ecies:0.0.3'
-    implementation 'org.exploit:crypto:1.0.2.1'
+    implementation 'org.exploit:bigint:0.0.6'
+    implementation 'org.exploit:ed25519:0.0.6'
+    implementation 'org.exploit:secp256k1:0.0.6'
+    implementation 'org.exploit:sodium:0.0.6'
+    implementation 'org.exploit:tss4j:0.0.6'
+    implementation 'org.exploit:frost:0.0.6'
+    implementation 'org.exploit:gg20:0.0.6'
+    implementation 'org.exploit:ecies:0.0.6'
+    implementation 'org.exploit:frost-ed25519:0.0.6'
+    implementation 'org.exploit:frost-secp256k1:0.0.6'
+    implementation 'org.exploit:crypto:1.0.2.4'
 
     implementation("org.exploit:tss4j-natives:1.0.0:linux-amd64@jar")
     implementation("org.exploit:tss4j-natives:1.0.0:macos-aarch64@jar")
@@ -66,7 +89,7 @@ dependencies {
     implementation 'org.exploit:jettyx-http2:0.1.6'
 
     implementation 'org.exploit:signalix:0.1.3'
-    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.18.3'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.19.2'
 
     implementation 'software.amazon.awssdk:kms:2.31.33'
     implementation 'com.google.cloud:google-cloud-kms:2.63.0'
