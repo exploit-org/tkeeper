@@ -421,3 +421,61 @@ body {
   stroke-width: 2px;
   color: inherit;
 }
+
+.tk-inv-root .min-w-0 {
+  min-width: 0;
+}
+
+.tk-inv-toolbar .form-label {
+  line-height: 1.1;
+}
+
+.tk-inv-list .card {
+  border-radius: 14px;
+}
+
+.tk-inv-item-head {
+  min-width: 0;
+}
+
+.tk-inv-kid {
+  max-width: min(780px, 100%);
+}
+
+.tk-inv-kid[title] {
+  cursor: default;
+}
+
+.tk-inv-pills {
+  gap: 0.5rem;
+}
+
+.tk-inv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tk-inv-pill .badge {
+  font-weight: 600;
+}
+
+.tk-inv-refresh-icon.tk-spin {
+  animation: tkspin 0.9s linear infinite;
+}
+
+@keyframes tkspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .tk-inv-toolbar .btn {
+    width: 100%;
+  }
+
+  .tk-inv-generated {
+    text-align: left !important;
+  }
+}

@@ -166,16 +166,30 @@ els.more.addEventListener("click", async () => {
     els.clear.disabled = v;
     els.filter.disabled = v;
     els.owner.disabled = v;
+
+    const icon = els.refresh.querySelector(".tk-inv-refresh-icon");
+    if (icon) icon.classList.toggle("tk-spin", !!v);
+
+    if (v) els.refresh.setAttribute("aria-busy", "true");
+    else els.refresh.removeAttribute("aria-busy");
   }
 
   function wireCards(root) {
+    const byAttr = (attr, value) => {
+      const nodes = root.querySelectorAll(`[${attr}]`);
+      for (const n of nodes) {
+        if (n.getAttribute(attr) === value) return n;
+      }
+      return null;
+    };
+
     root.querySelectorAll("[data-inv-toggle]").forEach(btn => {
       if (btn.__wired) return;
       btn.__wired = true;
 
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-inv-toggle");
-        const body = root.querySelector(`[data-inv-body="${cssEsc(id)}"]`);
+        const body = byAttr("data-inv-body", id);
         if (!body) return;
 
         const visible = !body.classList.contains("d-none");
@@ -190,7 +204,7 @@ els.more.addEventListener("click", async () => {
 
       btn.addEventListener("click", async () => {
         const logicalId = btn.getAttribute("data-inv-hist");
-        const host = root.querySelector(`[data-inv-histbox="${cssEsc(logicalId)}"]`);
+        const host = byAttr("data-inv-histbox", logicalId);
         if (!host) return;
 
         const becameVisible = host.classList.toggle("d-none") === false;
@@ -305,7 +319,6 @@ els.more.addEventListener("click", async () => {
 
     const gen = it.currentGeneration == null ? "—" : String(it.currentGeneration);
     const pending = it.lastPendingGeneration == null ? "—" : String(it.lastPendingGeneration);
-    const hasActive = !!it.hasActiveKey;
 
     const created = fmtTime(it.createdAt);
     const updated = fmtTime(it.updatedAt);
@@ -314,93 +327,95 @@ els.more.addEventListener("click", async () => {
     const tampered = it.tampered === true;
 
     const owner = it.assetOwner != null && String(it.assetOwner).trim() !== "" ? String(it.assetOwner) : null;
-    const ownerInline = owner
-      ? `
-        <span class="mx-2">•</span>
-        Asset Owner: <span class="fw-semibold">${escapeHtml(owner)}</span>
-      `
-      : "";
 
     const tamperedBadge = tampered ? ` <span class="badge bg-danger ms-2">Meta tampered</span>` : "";
     const tamperedNote = tampered ? `
-          <div class="alert alert-danger mt-3 mb-0" role="alert">
-            <div class="d-flex">
-              <div class="fw-semibold">Meta is tampered.</div>
-              <div class="ms-2">Check system logs for integrity verification details.</div>
-            </div>
-          </div>
-        ` : "";
+      <div class="alert alert-danger mt-3 mb-0" role="alert">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <div class="fw-semibold">Meta is tampered.</div>
+          <div class="text-secondary">Check system logs for integrity verification details.</div>
+        </div>
+      </div>
+    ` : "";
+
+    const pills = `
+      <div class="d-flex flex-wrap tk-inv-pills text-secondary small mt-2">
+        <span class="tk-inv-pill"><span class="badge bg-azure-lt">Curve</span> <span class="fw-semibold">${escapeHtml(curve)}</span></span>
+        <span class="tk-inv-pill"><span class="badge bg-indigo-lt">Gen</span> <span class="fw-semibold">${escapeHtml(gen)}</span></span>
+        <span class="tk-inv-pill"><span class="badge bg-cyan-lt">Pending</span> <span class="fw-semibold">${escapeHtml(pending)}</span></span>
+        ${
+          owner
+            ? `<span class="tk-inv-pill"><span class="badge bg-teal-lt">Owner</span> <span class="fw-semibold">${escapeHtml(owner)}</span></span>`
+            : ""
+        }
+      </div>
+    `;
 
     return `
-          <div class="card mb-3 ${tampered ? "border-danger" : ""}">
-            <div class="card-body">
-              <div class="d-flex align-items-start justify-content-between gap-3">
-                <div class="min-w-0">
-                  <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <div class="fw-semibold font-monospace text-truncate">${escapeHtml(logicalId)}</div>
-                    ${status.badge}${tamperedBadge}
-                  </div>
-                    <div class="text-secondary mt-1">
-                      Curve: <span class="fw-semibold">${escapeHtml(curve)}</span>
-                      <span class="mx-2">•</span>
-                      Gen: <span class="fw-semibold">${escapeHtml(gen)}</span>
-                      <span class="mx-2">•</span>
-                      Pending: <span class="fw-semibold">${escapeHtml(pending)}</span>
-                      ${ownerInline}
-                    </div>
-                <div class="d-flex gap-2 flex-wrap">
-                  <button class="btn btn-outline-secondary btn-sm" type="button" data-inv-toggle="${escapeHtml(logicalId)}">Details</button>
-                </div>
+      <div class="card mb-3 ${tampered ? "border-danger" : ""}">
+        <div class="card-body">
+          <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+            <div class="tk-inv-item-head">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="fw-semibold font-monospace text-truncate tk-inv-kid" title="${escapeHtml(logicalId)}">${escapeHtml(logicalId)}</div>
+                ${status.badge}${tamperedBadge}
               </div>
+              ${pills}
+            </div>
 
-              <div class="mt-3 d-none" data-inv-body="${escapeHtml(logicalId)}">
-                ${tamperedNote}
-                <div class="row g-3">
-                  <div class="col-12 col-lg-6">
-                    <div class="card card-sm">
-                      <div class="card-body">
-                        <div class="text-secondary mb-1">Status</div>
-                        <div class="fw-semibold">${escapeHtml(status.label)}</div>
-                        <div class="text-secondary mt-1">${escapeHtml(status.hint)}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="col-12 col-lg-6">
-                    <div class="card card-sm">
-                      <div class="card-body">
-                        <div class="text-secondary mb-1">Timestamps</div>
-                        <div class="d-flex justify-content-between">
-                          <span class="text-secondary">Created</span>
-                          <span class="fw-semibold">${escapeHtml(created)}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mt-1">
-                          <span class="text-secondary">Updated</span>
-                          <span class="fw-semibold">${escapeHtml(updated)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="col-12">
-                    <div class="card card-sm">
-                      <div class="card-body">
-                        <div class="text-secondary mb-2">Policy</div>
-                        ${policy}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="col-12 d-flex gap-2">
-                    <button class="btn btn-outline-primary btn-sm" type="button" data-inv-hist="${escapeHtml(logicalId)}">View historical</button>
-                  </div>
-
-                  <div class="col-12 d-none" data-inv-histbox="${escapeHtml(logicalId)}"></div>
-                </div>
-              </div>
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-outline-secondary btn-sm" type="button" data-inv-toggle="${escapeHtml(logicalId)}">Details</button>
             </div>
           </div>
-        `;
+
+          <div class="mt-3 pt-3 border-top d-none" data-inv-body="${escapeHtml(logicalId)}">
+            ${tamperedNote}
+            <div class="row g-3">
+              <div class="col-12 col-xl-5">
+                <div class="card card-sm">
+                  <div class="card-body">
+                    <div class="text-secondary mb-1">Status</div>
+                    <div class="fw-semibold">${escapeHtml(status.label)}</div>
+                    <div class="text-secondary mt-1">${escapeHtml(status.hint)}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-xl-7">
+                <div class="card card-sm">
+                  <div class="card-body">
+                    <div class="text-secondary mb-2">Timestamps</div>
+                    <div class="d-flex justify-content-between">
+                      <span class="text-secondary">Created</span>
+                      <span class="fw-semibold">${escapeHtml(created)}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                      <span class="text-secondary">Updated</span>
+                      <span class="fw-semibold">${escapeHtml(updated)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="card card-sm">
+                  <div class="card-body">
+                    <div class="text-secondary mb-2">Policy</div>
+                    ${policy}
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-primary btn-sm" type="button" data-inv-hist="${escapeHtml(logicalId)}">View historical</button>
+              </div>
+
+              <div class="col-12 d-none" data-inv-histbox="${escapeHtml(logicalId)}"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function renderHistoricalRow(it) {
@@ -503,15 +518,26 @@ const curve = it.curve ? String(it.curve) : "—";
   }
 
   function emptyStateHtml(filter, owner) {
+    const hint = filter || owner ? "Nothing matched your filter." : "No items returned.";
     return `
       <div class="empty">
+        <div class="empty-img">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="64" height="64" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
+            <path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
+            <path d="M9 14l2 2l4 -4" />
+          </svg>
+        </div>
         <p class="empty-title">No inventory items</p>
-        <p class="empty-subtitle text-secondary">${filter ? "Nothing matched your filter." : "No items returned."}</p>
+        <p class="empty-subtitle text-secondary">${escapeHtml(hint)}</p>
       </div>
     `;
   }
 
   function cssEsc(s) {
-    return String(s).replaceAll('"', '\\"');
+    const v = String(s ?? "");
+    if (typeof CSS !== "undefined" && typeof CSS.escape === "function") return CSS.escape(v);
+    return v.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll("\n", "\\A ");
   }
 }
