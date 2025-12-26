@@ -10,6 +10,85 @@
   --tk-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --tk-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --tk-shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --tk-font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+                    "Segoe UI", Roboto, Helvetica, Arial,
+                    "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", sans-serif;
+}
+
+body {
+  font-family: var(--tk-font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.tk-audit-textarea {
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.tk-badge-10 {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+.tk-font-09rem { font-size: 0.9rem; }
+
+.tk-text-11 { font-size: 11px; }
+
+.tk-inv-filter-wrap { min-width: 280px; max-width: 520px; }
+.tk-inv-owner-wrap  { min-width: 240px; max-width: 420px; }
+
+.tk-inv-icon-wrap { min-width: 44px; }
+
+@keyframes tk-fade-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: tk-fade-in 0.3s ease-out forwards;
+}
+
+.tk-switch-import {
+  width: 2.5rem;
+  height: 1.5rem;
+}
+
+.tk-switch-lg {
+  height: 1.5rem;
+  width: 2.75rem;
+}
+
+.tk-minh-50vh { min-height: 50vh; }
+
+.tk-text-10 { font-size: 10px; }
+
+.tk-minh-60vh { min-height: 60vh; }
+
+.tk-brand-title {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.tk-brand-subtitle {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.tk-nav-section-label {
+  pointer-events: none;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+.tk-authhint {
+  font-size: 11px;
 }
 
 .tk-brand{

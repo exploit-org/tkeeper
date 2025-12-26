@@ -50,6 +50,23 @@
                                 </select>
                             </div>
 
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted text-uppercase fw-bold ls-1">Asset Owner (Optional)</label>
+                                <div class="input-group input-group-flat bg-white rounded border">
+                                      <span class="input-group-text bg-white border-end-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon text-muted" width="24" height="24"
+                                             viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"
+                                             stroke-linecap="round" stroke-linejoin="round">
+                                          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                          <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/>
+                                          <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+                                        </svg>
+                                      </span>
+                                    <input id="tk-keygen-assetOwner" class="form-control bg-white border-start-0 ps-2"
+                                           placeholder="e.g. customer-42" autocomplete="off">
+                                </div>
+                            </div>
+
                             <div class="col-12 mt-1">
                                 <div class="form-hint text-end small" id="tk-keygen-mode-hint"></div>
                             </div>
@@ -69,8 +86,7 @@
                                     </div>
                                 </div>
                                 <label class="form-check form-switch m-0">
-                                    <input id="tk-keygen-policy-enabled" class="form-check-input" type="checkbox" style="height: 1.5rem; width: 2.75rem;">
-                                </label>
+                                    <input id="tk-keygen-policy-enabled" class="form-check-input tk-switch-lg" type="checkbox">                                </label>
                             </div>
 
                             <div id="tk-keygen-policy" class="mt-4 border-top pt-4 d-none">

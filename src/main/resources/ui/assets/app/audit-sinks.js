@@ -3,6 +3,30 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
     clearAlerts = () => {};
   }
 
+  function requireDomPurify() {
+    const dp = (typeof window !== "undefined") ? window.DOMPurify : null;
+    if (!dp || typeof dp.sanitize !== "function") {
+      throw new Error("DOMPurify is required but not loaded (window.DOMPurify missing).");
+    }
+    return dp;
+  }
+
+  const DP = requireDomPurify();
+
+  function encodeHtml(s) {
+     return String(s)
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#039;");
+   }
+
+  function escapeHtml(x) {
+    const cleaned = DP.sanitize(String(x ?? ""), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    return encodeHtml(cleaned);
+  }
+
   if (!Auth?.subject) {
     showAlert("warning", "Unauthenticated.");
     return;
@@ -45,7 +69,7 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
     clearAlerts();
     if (res?.warning) showAlert("warning", String(res.warning));
 
-    const info = res?.data || res; // tolerate either shape
+    const info = res?.data || res;
     const enabled = !!info?.enabled;
     const sinks = Array.isArray(info?.sinks) ? info.sinks : [];
 
@@ -82,49 +106,40 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
     els["tk-sinks-foot"].textContent =
       `${available.length}/${sinks.length} sinks available.`;
   }
-}
 
-function renderTable(tbody, sinks) {
-  if (!sinks.length) {
-    tbody.innerHTML = `<tr><td colspan="2" class="text-secondary">No sinks configured.</td></tr>`;
-    return;
+  function renderTable(tbody, sinks) {
+    if (!sinks.length) {
+      tbody.innerHTML = `<tr><td colspan="2" class="text-secondary">No sinks configured.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = sinks.map(s => {
+      const id = escapeHtml(s?.id ?? "unknown");
+      const ok = !!s?.available;
+      const badge = ok
+        ? `<span class="badge bg-green-lt">Available</span>`
+        : `<span class="badge bg-red-lt">Unavailable</span>`;
+      return `
+        <tr>
+          <td class="font-monospace">${id}</td>
+          <td class="text-end">${badge}</td>
+        </tr>
+      `;
+    }).join("");
   }
 
-  tbody.innerHTML = sinks.map(s => {
-    const id = escapeHtml(s?.id ?? "unknown");
-    const ok = !!s?.available;
-    const badge = ok
-      ? `<span class="badge bg-green-lt">Available</span>`
-      : `<span class="badge bg-red-lt">Unavailable</span>`;
-    return `
-      <tr>
-        <td class="font-monospace">${id}</td>
-        <td class="text-end">${badge}</td>
-      </tr>
-    `;
-  }).join("");
-}
-
-function setBadge(node, text, cls) {
-  node.className = `badge ${cls}`;
-  node.textContent = text;
-}
-
-function escapeHtml(x) {
-  return String(x)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function ids(list) {
-  const out = {};
-  for (const id of list) {
-    const node = document.getElementById(id);
-    if (!node) throw new Error(`Missing element #${id}`);
-    out[id] = node;
+  function setBadge(node, text, cls) {
+    node.className = `badge ${cls}`;
+    node.textContent = text;
   }
-  return out;
+
+  function ids(list) {
+    const out = {};
+    for (const id of list) {
+      const node = document.getElementById(id);
+      if (!node) throw new Error(`Missing element #${id}`);
+      out[id] = node;
+    }
+    return out;
+  }
 }

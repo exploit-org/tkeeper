@@ -2,6 +2,30 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
   if (typeof setTitle === "function") setTitle("Consistency Check");
   if (typeof clearAlerts !== "function") clearAlerts = () => {};
 
+  function requireDomPurify() {
+    const dp = (typeof window !== "undefined") ? window.DOMPurify : null;
+    if (!dp || typeof dp.sanitize !== "function") {
+      throw new Error("DOMPurify is required but not loaded (window.DOMPurify missing).");
+    }
+    return dp;
+  }
+
+  const DP = requireDomPurify();
+
+  function encodeHtml(s) {
+     return String(s)
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#039;");
+   }
+
+  function escapeHtml(x) {
+    const cleaned = DP.sanitize(String(x ?? ""), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    return encodeHtml(cleaned);
+  }
+
   showAlert("warning", "Ensure all peers are UP and READY before running this check.");
 
   const keyIdEl = document.getElementById("tk-consistency-keyId");
@@ -86,12 +110,4 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
         runBtn.disabled = false;
     }
   });
-
-  function escapeHtml(text) {
-    return String(text)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;");
-  }
 }

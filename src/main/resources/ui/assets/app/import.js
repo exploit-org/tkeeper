@@ -11,19 +11,20 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
     return;
   }
 
-  const el = ids([
-    "tk-import-keyId",
-    "tk-import-curve",
-    "tk-import-value64",
-    "tk-import-submit",
-    "tk-import-clear",
-    "tk-import-status",
-    "tk-import-policy-enabled",
-    "tk-import-policy",
-    "tk-import-apply-notAfter",
-    "tk-import-process-notAfter",
-    "tk-import-allow-historical",
-  ]);
+const el = ids([
+  "tk-import-keyId",
+  "tk-import-curve",
+  "tk-import-assetOwner",
+  "tk-import-value64",
+  "tk-import-submit",
+  "tk-import-clear",
+  "tk-import-status",
+  "tk-import-policy-enabled",
+  "tk-import-policy",
+  "tk-import-apply-notAfter",
+  "tk-import-process-notAfter",
+  "tk-import-allow-historical",
+]);
 
   (function initClearable() {
     const pairs = [
@@ -68,12 +69,14 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
     el["tk-import-process-notAfter"].value = "";
     el["tk-import-allow-historical"].checked = true;
     el["tk-import-status"].textContent = "";
+    el["tk-import-assetOwner"].value = "";
   });
 
   el["tk-import-submit"].addEventListener("click", async () => {
     const keyId = (el["tk-import-keyId"].value || "").trim();
     const curve = el["tk-import-curve"].value;
     const value64 = (el["tk-import-value64"].value || "").trim();
+    const assetOwnerRaw = (el["tk-import-assetOwner"].value || "").trim();
 
     if (!keyId) return showAlert("warning", "Key ID is required.");
     if (!value64) return showAlert("warning", "Key value64 is required.");
@@ -84,6 +87,7 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
       keyId,
       curve,
       value64,
+      assetOwner: assetOwnerRaw.length ? assetOwnerRaw : null,
       ...(policy ? { policy } : {}),
     };
 

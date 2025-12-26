@@ -4,18 +4,8 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <title>TKeeper Control Plane</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="/ui/assets/vendor/tabler/css/tabler.min.css">
     <link rel="stylesheet" href="/ui/assets/app/theme.css">
-
-    <style>
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; }
-        .navbar-brand { font-feature-settings: "cv11", "ss01"; }
-    </style>
 </head>
 
 <body>
@@ -36,8 +26,8 @@
                         height="364"
                 />
                 <span class="tk-brand-text">
-      <span class="text-white fw-bold tracking-tight" style="font-size: 1.25rem; line-height: 1;">TKeeper</span>
-      <span class="text-white-50 fw-medium" style="font-size: 0.65rem; letter-spacing: 0.1em; margin-top: 4px;">CONTROL PLANE</span>
+      <span class="text-white fw-bold tracking-tight tk-brand-title">TKeeper</span>
+      <span class="text-white-50 fw-medium tk-brand-subtitle">CONTROL PLANE</span>
     </span>
             </a>
 
@@ -57,8 +47,7 @@
                 <ul class="navbar-nav pt-lg-2">
 
                     <li class="nav-item">
-                        <div class="nav-link text-white-50"
-                             style="pointer-events:none; font-size:10px; font-weight: 600; text-transform:uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">
+                        <div class="nav-link text-white-50 tk-nav-section-label">
                             Core Platform
                         </div>
                     </li>
@@ -76,8 +65,7 @@
                     </li>
 
                     <li class="nav-item mt-4">
-                        <div class="nav-link text-white-50"
-                             style="pointer-events:none; font-size:10px; font-weight: 600; text-transform:uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">
+                        <div class="nav-link text-white-50 tk-nav-section-label">
                             Cryptography
                         </div>
                     </li>
@@ -133,8 +121,7 @@
                     </li>
 
                     <li class="nav-item mt-4">
-                        <div class="nav-link text-white-50"
-                             style="pointer-events:none; font-size:10px; font-weight: 600; text-transform:uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">
+                        <div class="nav-link text-white-50 tk-nav-section-label">
                             Compliance & Audit
                         </div>
                     </li>
@@ -157,7 +144,7 @@
                            data-title="Audit Logs"
                            data-requires="tkeeper.audit.log.verify">
                           <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c1.918 0 3.52 1.35 3.91 3.151l.09 3.849h-8l.09 -3.849c.39 -1.801 1.992 -3.151 3.91 -3.151z" /><path d="M12 21c-1.918 0 -3.52 -1.35 -3.91 -3.151l-.09 -3.849h8l-.09 3.849c-.39 1.801 -1.992 3.151 -3.91 3.151z" /><path d="M3 12c0 -1.918 1.35 -3.52 3.151 -3.91l3.849 -.09v8l-3.849 -.09c-1.801 -.39 -3.151 -1.992 -3.151 -3.91z" /><path d="M21 12c0 1.918 -1.35 3.52 -3.151 3.91l-3.849 .09v-8l3.849 .09c1.801 .39 3.151 1.992 3.151 3.91z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c1.918 0 3.52 1.35 3.91 3.151l.09 3.849h-8l.09 -3.849c.39 -1.801 1.992 -3.151 3.91 -3.151z" /><path d="M12 21c-1.918 0 -3.52 -1.35 -3.91 -3.151l-.09 -3.849h8l-.09 3.849c-.39 1.801 -1.992 -3.151 -3.91 -3.151z" /><path d="M3 12c0 -1.918 1.35 -3.52 3.151 -3.91l3.849 -.09v8l-3.849 -.09c-1.801 -.39 -3.151 -1.992 -3.151 -3.91z" /><path d="M21 12c0 1.918 -1.35 3.52 -3.151 3.91l-3.849 .09v-8l3.849 .09c1.801 .39 3.151 1.992 3.151 3.91z" /></svg>
                           </span>
                             <span class="nav-link-title">Audit Trails</span>
                         </a>
@@ -205,7 +192,7 @@
                             </span>
                             <div class="d-none d-xl-block ps-2 text-start">
                                 <div id="tk-subject" class="fw-semibold small">Unauthenticated</div>
-                                <div id="tk-authhint" class="mt-0 small text-muted" style="font-size: 11px;">Enter token</div>
+                                <div id="tk-authhint" class="mt-0 small text-muted tk-authhint">Enter token</div>
                             </div>
                         </a>
 
@@ -241,6 +228,8 @@
 </div>
 
 <script src="/ui/assets/vendor/tabler/js/tabler.min.js"></script>
+<script src="/ui/assets/vendor/purify/js/purify.min.js"></script>
+
 <script type="module" src="/ui/assets/app/ui.js"></script>
 </body>
 </html>

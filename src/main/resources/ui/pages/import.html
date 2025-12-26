@@ -25,11 +25,28 @@
                     </div>
 
                     <div class="col-md-5">
-                        <label class="form-label small text-uppercase fw-bold text-muted ls-1">Curve Algorithm</label>
+                        <label class="form-label small text-uppercase fw-bold text-muted ls-1">Curve Type</label>
                         <select id="tk-import-curve" class="form-select bg-light">
-                            <option value="SECP256K1">SECP256K1 (Bitcoin/Eth)</option>
-                            <option value="ED25519">ED25519 (Solana/SSH)</option>
+                            <option value="SECP256K1">SECP256K1</option>
+                            <option value="ED25519">ED25519</option>
                         </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small text-uppercase fw-bold text-muted ls-1">Asset Owner (Optional)</label>
+                        <div class="input-group input-group-flat">
+                            <span class="input-group-text bg-light border-end-0">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="icon text-muted" width="24" height="24" viewBox="0 0 24 24"
+                                   stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/>
+                                <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+                              </svg>
+                            </span>
+                            <input id="tk-import-assetOwner" class="form-control bg-light border-start-0 ps-1"
+                                   placeholder="e.g. customer-42" autocomplete="off">
+                        </div>
+                        <div class="form-hint">Optional tag to bind this key to an owner.</div>
                     </div>
 
                     <div class="col-12">
@@ -45,7 +62,7 @@
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="avatar bg-white text-secondary rounded shadow-sm">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 12l0 2.5" /></svg>
                                         </div>
                                         <div>
                                             <div class="fw-bold text-dark">Access Policy</div>
@@ -53,8 +70,7 @@
                                         </div>
                                     </div>
                                     <label class="form-check form-switch m-0">
-                                        <input id="tk-import-policy-enabled" class="form-check-input" type="checkbox" style="width: 2.5rem; height: 1.5rem;">
-                                    </label>
+                                        <input id="tk-import-policy-enabled" class="form-check-input tk-switch-import" type="checkbox">                                    </label>
                                 </div>
 
                                 <div id="tk-import-policy" class="mt-4 pt-3 border-top d-none">

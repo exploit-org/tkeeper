@@ -4,6 +4,30 @@ import { Auth } from "../app/auth.js";
 export async function init({ showAlert, setTitle }) {
   setTitle("Authentication");
 
+  function requireDomPurify() {
+    const dp = (typeof window !== "undefined") ? window.DOMPurify : null;
+    if (!dp || typeof dp.sanitize !== "function") {
+      throw new Error("DOMPurify is required but not loaded (window.DOMPurify missing).");
+    }
+    return dp;
+  }
+
+  const DP = requireDomPurify();
+
+  function encodeHtml(s) {
+     return String(s)
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#039;");
+   }
+
+  function escapeHtml(x) {
+    const cleaned = DP.sanitize(String(x ?? ""), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    return encodeHtml(cleaned);
+  }
+
   const desc = document.getElementById("tk-auth-desc");
   const tokenBox = document.getElementById("tk-auth-token");
   const oidcBox = document.getElementById("tk-auth-oidc");
@@ -33,8 +57,7 @@ export async function init({ showAlert, setTitle }) {
   if (cfg.id === "TOKEN") {
     tokenBox.classList.remove("d-none");
     oidcBox.classList.add("d-none");
-    desc.innerHTML = `Enter token. It will be sent via <code>${escapeHtml(cfg.header || "?")}</code>.`;
-    hint.textContent = `Header: ${cfg.header || "?"}`;
+    desc.innerHTML = `Enter authentication token.`;
 
     tokenSave.addEventListener("click", async () => {
       const t = String(tokenInput?.value || "").trim();
@@ -110,13 +133,4 @@ async function startOidc(cfg) {
 function errMsg(e) {
   if (e instanceof ApiError) return e.details || e.message;
   return e?.message || String(e);
-}
-
-function escapeHtml(x) {
-  return String(x)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }

@@ -5,6 +5,30 @@ const PERMS = Object.freeze({
 });
 
 export async function init({ api, Auth, showAlert, clearAlerts }) {
+  function requireDomPurify() {
+    const dp = (typeof window !== "undefined") ? window.DOMPurify : null;
+    if (!dp || typeof dp.sanitize !== "function") {
+      throw new Error("DOMPurify is required but not loaded (window.DOMPurify missing).");
+    }
+    return dp;
+  }
+
+  const DP = requireDomPurify();
+
+  function encodeHtml(s) {
+     return String(s)
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#039;");
+   }
+
+  function escapeHtml(x) {
+    const cleaned = DP.sanitize(String(x ?? ""), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    return encodeHtml(cleaned);
+  }
+
   const badge = document.getElementById("tk-keygen-perm-badge");
   const disabled = document.getElementById("tk-keygen-disabled");
   const form = document.getElementById("tk-keygen-form");
@@ -13,6 +37,7 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
   const curveEl = document.getElementById("tk-keygen-curve");
   const modeEl = document.getElementById("tk-keygen-mode");
   const modeHint = document.getElementById("tk-keygen-mode-hint");
+  const ownerEl = document.getElementById("tk-keygen-assetOwner");
 
   const polEnabled = document.getElementById("tk-keygen-policy-enabled");
   const polBox = document.getElementById("tk-keygen-policy");
@@ -113,6 +138,7 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
     curveEl.value = "SECP256K1";
     modeEl.value = "CREATE";
 
+    ownerEl.value = "";
     polEnabled.checked = false;
     polBox.classList.add("d-none");
 
@@ -142,8 +168,9 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
     }
 
     const curve = String(curveEl.value || "").toUpperCase();
+    const assetOwnerRaw = String(ownerEl.value || "").trim();
 
-    const body = { keyId, curve, mode };
+    const body = { keyId, curve, mode, assetOwner: assetOwnerRaw.length ? assetOwnerRaw : null };
 
     if (polEnabled.checked) {
       const policy = { allowHistoricalProcess: !!allowHistEl.checked };
@@ -201,13 +228,4 @@ function buildNotAfterFromDate(dateValue) {
   if (seconds <= 0) return null;
 
   return { unit: "SECONDS", notAfter: seconds };
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }

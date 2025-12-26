@@ -116,7 +116,7 @@
                                 <select id="tk-sigs-algo" class="form-select"></select>
                             </div>
 
-                            <div class="col-md-4" id="tk-sigs-schnorr-wrap" style="display:none">
+                            <div class="col-md-4 d-none" id="tk-sigs-schnorr-wrap">
                                 <label class="form-label small">Schnorr Mode</label>
                                 <select id="tk-sigs-schnorr-mode" class="form-select">
                                     <option value="RFC" selected>Default (RFC)</option>
@@ -133,7 +133,7 @@
                             </div>
                         </div>
 
-                        <div class="mb-3" id="tk-sigs-merkle-wrap" style="display:none">
+                        <div class="mb-3 d-none" id="tk-sigs-merkle-wrap">
                             <label class="form-label small">Merkle Root (Base64)</label>
                             <input id="tk-sigs-merkleRoot64" class="form-control font-monospace" placeholder="Optional">
                         </div>
@@ -162,7 +162,7 @@
                         </div>
                     </div>
 
-                    <div id="tk-sigs-verify-block" style="display:none">
+                    <div class="d-none" id="tk-sigs-verify-block">
                         <div class="row g-3 mb-3 align-items-end">
                             <div class="col-md-4">
                                 <label class="form-label small">Signature Type</label>
@@ -173,7 +173,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-4" id="tk-sigs-verify-schnorr-wrap" style="display:none">
+                            <div class="col-md-4 d-none" id="tk-sigs-verify-schnorr-wrap">
                                 <label class="form-label small">Schnorr Mode</label>
                                 <select id="tk-sigs-verify-schnorr-mode" class="form-select">
                                     <option value="BIP340" selected>BIP340</option>
@@ -189,7 +189,7 @@
                             </div>
                         </div>
 
-                        <div class="mb-3" id="tk-sigs-verify-merkle-wrap" style="display:none">
+                        <div class="mb-3 d-none" id="tk-sigs-verify-merkle-wrap"">
                             <label class="form-label small">Merkle Root (Base64)</label>
                             <input id="tk-sigs-verify-merkleRoot64" class="form-control font-monospace" placeholder="Optional">
                         </div>

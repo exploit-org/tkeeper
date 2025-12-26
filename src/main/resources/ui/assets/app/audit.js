@@ -1,4 +1,29 @@
 export async function init({ api, Auth, showAlert, clearAlerts }) {
+
+  function requireDomPurify() {
+    const dp = (typeof window !== "undefined") ? window.DOMPurify : null;
+    if (!dp || typeof dp.sanitize !== "function") {
+      throw new Error("DOMPurify is required but not loaded (window.DOMPurify missing).");
+    }
+    return dp;
+  }
+
+  const DP = requireDomPurify();
+
+  function encodeHtml(s) {
+     return String(s)
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#039;");
+   }
+
+  function escapeHtml(x) {
+    const cleaned = DP.sanitize(String(x ?? ""), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    return encodeHtml(cleaned);
+  }
+
   const els = {
     input: document.getElementById("tk-audit-input"),
     count: document.getElementById("tk-audit-count"),
@@ -268,14 +293,5 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
     next.addEventListener("click", () => { if (state.page < pages) { state.page++; render(); } });
 
     render();
-  }
-
-  function escapeHtml(s) {
-    return String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
   }
 }

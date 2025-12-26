@@ -1,4 +1,4 @@
-=import { api, ApiError } from "../app/api.js";
+import { api, ApiError } from "../app/api.js";
 import { Auth } from "../app/auth.js";
 
 export async function init({ showAlert, setTitle }) {

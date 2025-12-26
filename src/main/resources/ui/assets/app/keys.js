@@ -6,6 +6,30 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
     return;
   }
 
+  function requireDomPurify() {
+    const dp = (typeof window !== "undefined") ? window.DOMPurify : null;
+    if (!dp || typeof dp.sanitize !== "function") {
+      throw new Error("DOMPurify is required but not loaded (window.DOMPurify missing).");
+    }
+    return dp;
+  }
+
+  const DP = requireDomPurify();
+
+  function encodeHtml(s) {
+     return String(s)
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#039;");
+   }
+
+  function escapeHtml(x) {
+    const cleaned = DP.sanitize(String(x ?? ""), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    return encodeHtml(cleaned);
+  }
+
   const tbody = document.getElementById("tk-keys-tbody");
   const footer = document.getElementById("tk-keys-footer");
   const nextBtn = document.getElementById("tk-keys-next");
@@ -279,15 +303,6 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
     return `<span class="badge ${cls}">${escapeHtml(v || "UNKNOWN")}</span>`;
   }
 
-  function escapeHtml(x) {
-    return String(x)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
   function actionsForKey(k, ctx = {}) {
     const scopes = new Set((k.scopes || []).map(s => String(s || "").toUpperCase()));
     const curve = String(k.curve || "").toUpperCase();
@@ -388,15 +403,23 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
     const backdrop = el.querySelector(".tk-modal-backdrop");
     let savedBodyOverflow = null;
 
+    const setShown = (node, show) => {
+      if (!node) return;
+      node.classList.toggle("d-none", !show);
+    };
+
     const doShow = () => {
       el.classList.add("show");
-      if (backdrop) backdrop.style.display = "block";
+      setShown(backdrop, true);
+
       savedBodyOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
     };
+
     const doHide = () => {
       el.classList.remove("show");
-      if (backdrop) backdrop.style.display = "none";
+      setShown(backdrop, false);
+
       document.body.style.overflow = savedBodyOverflow != null ? savedBodyOverflow : "";
     };
 
@@ -571,6 +594,11 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
       textPlaceholder: "Text data",
     });
 
+    const setShown = (el, show) => {
+      if (!el) return;
+      el.classList.toggle("d-none", !show);
+    };
+
     while (algoEl.firstChild) algoEl.removeChild(algoEl.firstChild);
     const algoOptions = [];
     if (curve === "SECP256K1") algoOptions.push("GG20", "FROST");
@@ -586,8 +614,8 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
 
     function applyModeUi() {
       const mode = String(modeEl.value || "sign");
-      signBlock.style.display = mode === "sign" ? "" : "none";
-      verifyBlock.style.display = mode === "verify" ? "" : "none";
+      setShown(signBlock, mode === "sign");
+      setShown(verifyBlock, mode === "verify");
 
       if (mode === "sign") {
         if (!canSign && canVerify) modeEl.value = "verify";
@@ -600,17 +628,17 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
     function updateSignContextUi() {
       const algo = String(algoEl.value || "").toUpperCase();
       const show = isSecp && algo === "FROST";
-      if (schnorrWrap) schnorrWrap.style.display = show ? "" : "none";
+      setShown(schnorrWrap, show);
 
       if (!show) {
-        if (merkleWrap) merkleWrap.style.display = "none";
+        setShown(merkleWrap, false);
         if (merkleEl) merkleEl.value = "";
         return;
       }
 
       const mode = String(schnorrModeEl?.value || "RFC").toUpperCase();
       const showMerkle = mode === "TAPROOT";
-      if (merkleWrap) merkleWrap.style.display = showMerkle ? "" : "none";
+      setShown(merkleWrap, showMerkle);
       if (!showMerkle && merkleEl) merkleEl.value = "";
     }
 
@@ -637,17 +665,17 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
     function updateVerifyContextUi() {
       const t = String(verifyTypeEl.value || "").toUpperCase();
       const show = isSecp && t === "SCHNORR";
-      if (verifySchnorrWrap) verifySchnorrWrap.style.display = show ? "" : "none";
+      setShown(verifySchnorrWrap, show);
 
       if (!show) {
-        if (verifyMerkleWrap) verifyMerkleWrap.style.display = "none";
+        setShown(verifyMerkleWrap, false);
         if (verifyMerkleEl) verifyMerkleEl.value = "";
         return;
       }
 
       const mode = String(verifySchnorrModeEl?.value || "BIP340").toUpperCase();
       const showMerkle = mode === "TAPROOT";
-      if (verifyMerkleWrap) verifyMerkleWrap.style.display = showMerkle ? "" : "none";
+      setShown(verifyMerkleWrap, showMerkle);
       if (!showMerkle && verifyMerkleEl) verifyMerkleEl.value = "";
     }
 
@@ -705,7 +733,7 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
 
           if (hashSignEl) body.hash = !!hashSignEl.checked;
 
-          if (schnorrWrap && schnorrWrap.style.display !== "none" && schnorrModeEl) {
+          if (schnorrWrap && !schnorrWrap.classList.contains("d-none") && schnorrModeEl) {
             const sm = String(schnorrModeEl.value || "RFC").toUpperCase();
             if (sm === "BIP340") {
               body.context = buildContext("BIP340");

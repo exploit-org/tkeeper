@@ -4,6 +4,30 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
     return;
   }
 
+  function requireDomPurify() {
+    const dp = (typeof window !== "undefined") ? window.DOMPurify : null;
+    if (!dp || typeof dp.sanitize !== "function") {
+      throw new Error("DOMPurify is required but not loaded (window.DOMPurify missing).");
+    }
+    return dp;
+  }
+
+  const DP = requireDomPurify();
+
+  function encodeHtml(s) {
+     return String(s)
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#039;");
+   }
+
+  function escapeHtml(x) {
+    const cleaned = DP.sanitize(String(x ?? ""), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    return encodeHtml(cleaned);
+  }
+
   const needIds = [
     "tk-inv-subtitle",
     "tk-inv-generated",
@@ -39,24 +63,35 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
   let cursor = null;
   let hasMore = false;
   let currentFilter = null;
+  let currentOwner = null;
   let loading = false;
 
   els.refresh.addEventListener("click", () => reload());
   els.apply.addEventListener("click", () => {
     const v = String(els.filter.value || "").trim();
     currentFilter = v || null;
+
+    const o = String(els.owner.value || "").trim();
+    currentOwner = o || null;
+
     reload();
   });
-  els.clear.addEventListener("click", () => {
+els.clear.addEventListener("click", () => {
     els.filter.value = "";
+    els.owner.value = "";
     currentFilter = null;
+    currentOwner = null;
     reload();
   });
-  els.filter.addEventListener("keydown", (e) => {
+els.filter.addEventListener("keydown", (e) => {
     if (e.key === "Enter") els.apply.click();
   });
 
-  els.more.addEventListener("click", async () => {
+
+  els.owner.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") els.apply.click();
+  });
+els.more.addEventListener("click", async () => {
     if (!hasMore || loading) return;
     await loadPage({ append: true });
   });
@@ -98,7 +133,12 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
 
       els.generated.textContent = inv.generatedAt ? `Generated at: ${fmtTime(inv.generatedAt)}` : "";
 
-      const items = Array.isArray(inv.items) ? inv.items : [];
+      let items = Array.isArray(inv.items) ? inv.items : [];
+
+      if (currentOwner) {
+        const q = String(currentOwner).toLowerCase();
+        items = items.filter(it => String(it?.assetOwner || "").toLowerCase().includes(q));
+      }
       const html = items.map(renderItemCard).join("");
 
       if (append) els.list.insertAdjacentHTML("beforeend", html);
@@ -125,6 +165,7 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
     els.apply.disabled = v;
     els.clear.disabled = v;
     els.filter.disabled = v;
+    els.owner.disabled = v;
   }
 
   function wireCards(root) {
@@ -185,6 +226,7 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
       const end = Math.min(total, start + state.perPage);
       const slice = state.rows.slice(start, end);
 
+      const anyTampered = state.rows.some(r => r && r.tampered === true);
       host.innerHTML = `
         <div class="card card-sm mt-3">
           <div class="card-body">
@@ -201,7 +243,7 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
             <div class="table-responsive">
               <table class="table table-vcenter">
                 <thead>
-                  <tr class="${tampered ? "table-danger" : ""}">
+                  <tr class="${anyTampered ? "table-danger" : ""}">
                     <th>Status</th>
                     <th>Generation</th>
                     <th>Curve</th>
@@ -269,12 +311,16 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
     const updated = fmtTime(it.updatedAt);
 
     const policy = it.policy ? renderPolicy(it.policy) : `<span class="text-secondary">No policy</span>`;
-
-
+    const tampered = it.tampered === true;
 
     const owner = it.assetOwner != null && String(it.assetOwner).trim() !== "" ? String(it.assetOwner) : null;
-    const tampered = it.tampered === true;
-    const ownerHtml = owner ? `<div class="text-secondary small mt-1">Owner: <span class="text-reset">${escapeHtml(owner)}</span></div>` : "";
+    const ownerInline = owner
+      ? `
+        <span class="mx-2">•</span>
+        Asset Owner: <span class="fw-semibold">${escapeHtml(owner)}</span>
+      `
+      : "";
+
     const tamperedBadge = tampered ? ` <span class="badge bg-danger ms-2">Meta tampered</span>` : "";
     const tamperedNote = tampered ? `
           <div class="alert alert-danger mt-3 mb-0" role="alert">
@@ -284,77 +330,77 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
             </div>
           </div>
         ` : "";
-return `
-      <div class="card mb-3 ${tampered ? "border-danger" : ""}">
-        <div class="card-body">
-          <div class="d-flex align-items-start justify-content-between gap-3">
-            <div class="min-w-0">
-              <div class="d-flex align-items-center gap-2 flex-wrap">
-                <div class="fw-semibold font-monospace text-truncate">${escapeHtml(logicalId)}</div>
-                ${status.badge}${tamperedBadge}
-              </div>
 
-              <div class="text-secondary mt-1">
-                Curve: <span class="fw-semibold">${escapeHtml(curve)}</span>
-                <span class="mx-2">•</span>
-                Gen: <span class="fw-semibold">${escapeHtml(gen)}</span>
-                <span class="mx-2">•</span>
-                Pending: <span class="fw-semibold">${escapeHtml(pending)}</span>
-              </div>
-            </div>
-
-            <div class="d-flex gap-2 flex-wrap">
-              <button class="btn btn-outline-secondary btn-sm" type="button" data-inv-toggle="${escapeHtml(logicalId)}">Details</button>
-            </div>
-          </div>
-
-          <div class="mt-3 d-none" data-inv-body="${escapeHtml(logicalId)}">
-            <div class="row g-3">
-              <div class="col-12 col-lg-6">
-                <div class="card card-sm">
-                  <div class="card-body">
-                    <div class="text-secondary mb-1">Status</div>
-                    <div class="fw-semibold">${escapeHtml(status.label)}</div>
-                    <div class="text-secondary mt-1">${escapeHtml(status.hint)}</div>
+    return `
+          <div class="card mb-3 ${tampered ? "border-danger" : ""}">
+            <div class="card-body">
+              <div class="d-flex align-items-start justify-content-between gap-3">
+                <div class="min-w-0">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="fw-semibold font-monospace text-truncate">${escapeHtml(logicalId)}</div>
+                    ${status.badge}${tamperedBadge}
                   </div>
+                    <div class="text-secondary mt-1">
+                      Curve: <span class="fw-semibold">${escapeHtml(curve)}</span>
+                      <span class="mx-2">•</span>
+                      Gen: <span class="fw-semibold">${escapeHtml(gen)}</span>
+                      <span class="mx-2">•</span>
+                      Pending: <span class="fw-semibold">${escapeHtml(pending)}</span>
+                      ${ownerInline}
+                    </div>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button class="btn btn-outline-secondary btn-sm" type="button" data-inv-toggle="${escapeHtml(logicalId)}">Details</button>
                 </div>
               </div>
 
-              <div class="col-12 col-lg-6">
-                <div class="card card-sm">
-                  <div class="card-body">
-                    <div class="text-secondary mb-1">Timestamps</div>
-                    <div class="d-flex justify-content-between">
-                      <span class="text-secondary">Created</span>
-                      <span class="fw-semibold">${escapeHtml(created)}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mt-1">
-                      <span class="text-secondary">Updated</span>
-                      <span class="fw-semibold">${escapeHtml(updated)}</span>
+              <div class="mt-3 d-none" data-inv-body="${escapeHtml(logicalId)}">
+                ${tamperedNote}
+                <div class="row g-3">
+                  <div class="col-12 col-lg-6">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="text-secondary mb-1">Status</div>
+                        <div class="fw-semibold">${escapeHtml(status.label)}</div>
+                        <div class="text-secondary mt-1">${escapeHtml(status.hint)}</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              <div class="col-12">
-                <div class="card card-sm">
-                  <div class="card-body">
-                    <div class="text-secondary mb-2">Policy</div>
-                    ${policy}
+                  <div class="col-12 col-lg-6">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="text-secondary mb-1">Timestamps</div>
+                        <div class="d-flex justify-content-between">
+                          <span class="text-secondary">Created</span>
+                          <span class="fw-semibold">${escapeHtml(created)}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                          <span class="text-secondary">Updated</span>
+                          <span class="fw-semibold">${escapeHtml(updated)}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
+                  <div class="col-12">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="text-secondary mb-2">Policy</div>
+                        ${policy}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-12 d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm" type="button" data-inv-hist="${escapeHtml(logicalId)}">View historical</button>
+                  </div>
+
+                  <div class="col-12 d-none" data-inv-histbox="${escapeHtml(logicalId)}"></div>
                 </div>
               </div>
-
-              <div class="col-12 d-flex gap-2">
-                <button class="btn btn-outline-primary btn-sm" type="button" data-inv-hist="${escapeHtml(logicalId)}">View historical</button>
-              </div>
-
-              <div class="col-12 d-none" data-inv-histbox="${escapeHtml(logicalId)}"></div>
             </div>
           </div>
-        </div>
-      </div>
-    `;
+        `;
   }
 
   function renderHistoricalRow(it) {
@@ -467,14 +513,5 @@ const curve = it.curve ? String(it.curve) : "—";
 
   function cssEsc(s) {
     return String(s).replaceAll('"', '\\"');
-  }
-
-  function escapeHtml(s) {
-    return String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
   }
 }

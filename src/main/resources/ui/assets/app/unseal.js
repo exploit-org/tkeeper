@@ -4,6 +4,30 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
     return;
   }
 
+  function requireDomPurify() {
+    const dp = (typeof window !== "undefined") ? window.DOMPurify : null;
+    if (!dp || typeof dp.sanitize !== "function") {
+      throw new Error("DOMPurify is required but not loaded (window.DOMPurify missing).");
+    }
+    return dp;
+  }
+
+  const DP = requireDomPurify();
+
+  function encodeHtml(s) {
+     return String(s)
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#039;");
+   }
+
+  function escapeHtml(x) {
+    const cleaned = DP.sanitize(String(x ?? ""), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    return encodeHtml(cleaned);
+  }
+
   const stateEl = document.getElementById("tk-unseal-state");
   const sharesEl = document.getElementById("tk-unseal-shares");
   const resetEl = document.getElementById("tk-unseal-reset");
@@ -108,13 +132,4 @@ async function safeStatus(api, showAlert) {
     showAlert("danger", e?.details || e?.message || String(e));
     return null;
   }
-}
-
-function escapeHtml(x) {
-  return String(x)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }
