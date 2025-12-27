@@ -26,7 +26,7 @@ var auth = new DevTokenAuth("your-dev-token");
 ```
 
 ```java
-var auth = new JwtAuth("your-jwt-token");
+var auth = new JwtTokenAuth("your-jwt-token");
 ```
 
 #### Specifying own auth
