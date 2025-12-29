@@ -22,7 +22,17 @@ The Compose runtime is resolved automatically:
 ---
 
 ## Runing tests
-First you need to build docker image. From root project directory call:
+
+### Build the project
+Run from root project directory:
+```bash
+./gradlew prepareDocker
+```
+
+It will build and create jar file in side `build/docker` folder.
+
+### Build test docker image
+Then you need to build docker image. From root project directory call:
 ```bash
 docker build -f integration-tests/docker/Dockerfile -t exploit/tkeeper:dev .
 ```
@@ -30,13 +40,13 @@ docker build -f integration-tests/docker/Dockerfile -t exploit/tkeeper:dev .
 Run the full test suite:
 
 ```bash
-./gradlew test
+./gradlew :integration-tests:test
 ```
 
 Run a specific test class:
 
 ```bash
-./gradlew test --tests "org.exploit.tkeeper.test.{ClassName}"
+./gradlew :integration-tests:test --tests "org.exploit.tkeeper.test.{ClassName}"
 ```
 
 See available test classes in [tests](src/test/kotlin/)

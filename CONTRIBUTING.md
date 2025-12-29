@@ -54,6 +54,9 @@ Use clear messages. Conventional Commits are recommended:
 - `chore(deps): ...`
 - `test: ...`
 
+If changes relate to Java SDK:
+- `fix(sdk): ...`
+
 ## Pull requests
 
 A PR should include:

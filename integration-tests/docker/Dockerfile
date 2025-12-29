@@ -47,7 +47,7 @@ RUN useradd -r -u 10001 -g root -m -d /var/lib/tkeeper tkeeper \
 COPY --from=native-build /usr/local/lib/ /usr/local/lib/
 RUN ldconfig
 
-COPY build/libs/tkeeper-1.0.0.jar /opt/tkeeper/app/tkeeper.jar
+COPY build/docker/tkeeper.jar /opt/tkeeper/app/tkeeper.jar
 COPY integration-tests/docker/entrypoint.sh /opt/tkeeper/entrypoint.sh
 RUN chmod +x /opt/tkeeper/entrypoint.sh
 
