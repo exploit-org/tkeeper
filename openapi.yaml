@@ -117,6 +117,7 @@ components:
       - INVALID_TOTAL
       - INVALID_KEY_ID
       - INVALID_ASSET_OWNER
+      - IMPOSTER_FOUND
       - KEEPER_ALREADY_INITIALIZED
       - KEEPER_ALREADY_UNSEALED
       - KEEPER_NOT_INITIALIZED
@@ -133,6 +134,7 @@ components:
       - NOT_ENOUGH_CONFIGURED_CLIENTS
       - NOT_ENOUGH_HEALTHY_CLIENTS
       - NOT_ENOUGH_PERMISSIONS
+      - NOT_ENOUGH_HONEST_CLIENTS
       - NOT_PARTICIPANT
       - NOT_SUPPORTED_FOR_AUTO_PROVIDER
       - ROTATE_NEEDED
@@ -228,6 +230,16 @@ components:
         outcome:
           $ref: '#/components/schemas/Outcome'
           nullable: true
+        imposters:
+          type: array
+          items:
+            type: string
+          description: Imposters found during this operation
+        dead:
+          type: array
+          items:
+            type: string
+          description: Dead nodes found during this operation
       required:
       - id
       - peerId
@@ -648,6 +660,11 @@ components:
           type: integer
           format: int32
           description: Generation of the key used to produce the signature (or attempted generation when failed).
+        imposters:
+          type: array
+          items:
+            type: string
+          description: Imposters found during signature round
     StoreState:
       type: string
       enum:
@@ -1070,6 +1087,11 @@ components:
         plaintext64:
           type: string
           description: Base64-encoded plaintext.
+        imposters:
+          type: array
+          items:
+            type: string
+          description: Imposters found during decryption
     Generate:
       type: object
       required:
