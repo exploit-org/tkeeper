@@ -7,13 +7,20 @@ plugins {
 }
 
 group = 'org.exploit'
-version = '2.1.0'
+version = '2.2.0'
 
 def projectName = "TKeeper SDK"
 def projectDescription = "API client for TKeeper in Java"
 
 repositories {
     mavenCentral()
+    maven {
+        name = "sonatypeCentralSnapshots"
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
 }
 
 dependencies {
@@ -48,7 +55,7 @@ publishing {
         maven(MavenPublication) {
             groupId = 'org.exploit'
             artifactId = 'tkeeper-sdk'
-            version = '2.1.0'
+            version = '2.2.0'
 
             from components.java
         }
