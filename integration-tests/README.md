@@ -26,15 +26,9 @@ The Compose runtime is resolved automatically:
 ### Build test docker image
 Run from root project directory:
 ```bash
-./gradlew dockerBuildIntegration -Pkeeper.docker.features=all
+./gradlew dockerBuildIntegration
 ```
-`keeper.docker.features=all` includes test-only integration helpers such as `feature-failure-injection`.
-Regular runtime builds with `keeper.features=all` do not include those helpers.
-
-Or select only the modules needed for a test run:
-```bash
-./gradlew dockerBuildIntegration -Pkeeper.docker.features=authority-evm,seal-aws,failure-injection
-```
+The integration image always includes all production features, `platform-ecc`, and the test-only `:integration-tests:failure-injection` module. Regular runtime builds never include failure injection.
 
 Run the full test suite:
 
