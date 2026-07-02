@@ -17,47 +17,47 @@ build/libs/tkeeper-2.0.0.jar
 Build with all production feature modules:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=all
+./gradlew shadowJar -Pkeeper.features=all -Pkeeper.platforms=all
 ```
 
 This is equivalent to:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features.all=true
+./gradlew shadowJar -Pkeeper.features.all=true -Pkeeper.platforms.all=true
 ```
 
 Build with a small feature set:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=authority-evm,authority-bitcoin,authority-x509,ecies,ui
+./gradlew shadowJar -Pkeeper.features=authority-evm,authority-bitcoin,authority-x509,ecies,ui -Pkeeper.platforms=ecc
 ```
 
 Single feature property:
 
 ```bash
-./gradlew shadowJar -Pkeeper.feature.authority.evm=true
+./gradlew shadowJar -Pkeeper.feature.authority.evm=true -Pkeeper.platform.ecc=true
 ```
 
 Feature modules are added separately at build time, so you include only the functionality your environment needs and avoid expanding the potential attack surface unnecessarily.
 
-Feature names in `keeper.features` are written without the `feature-` prefix. The module is `feature-authority-evm`; the build flag is `authority-evm`.
+Feature names in `keeper.features` match the child project name. The module is `:features:authority-evm`; the build flag is `authority-evm`.
 
 Production features:
 
 | Feature | Gradle name |
 | --- | --- |
-| AWS seal provider | `feature-seal-aws` |
-| Google Cloud seal provider | `feature-seal-gcloud` |
-| Bitcoin authorities | `feature-authority-bitcoin` |
-| EVM authorities | `feature-authority-evm` |
-| X.509 authorities | `feature-authority-x509` |
-| Threshold ECIES | `feature-ecies` |
-| Control-plane UI | `feature-ui` |
+| AWS seal provider | `:features:seal-aws` |
+| Google Cloud seal provider | `:features:seal-gcloud` |
+| Bitcoin authorities | `:features:authority-bitcoin` |
+| EVM authorities | `:features:authority-evm` |
+| X.509 authorities | `:features:authority-x509` |
+| Threshold ECIES | `:features:ecies` |
+| Control-plane UI | `:features:ui` |
 
 Build the Docker image:
 
 ```bash
-./gradlew dockerBuild -Pkeeper.features=all
+./gradlew dockerBuild -Pkeeper.features=all -Pkeeper.platforms=all
 ```
 
 The production Docker task tags:
@@ -112,7 +112,7 @@ The feature jar is not in the runtime jar.
 Rebuild with the feature:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=ecies,authority-evm
+./gradlew shadowJar -Pkeeper.features=ecies,authority-evm -Pkeeper.platforms=ecc
 ```
 
 ### Native access warning at startup

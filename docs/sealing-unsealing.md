@@ -65,10 +65,10 @@ Seal providers:
 | --- | --- |
 | `shamir` | core |
 | `hsm` | core |
-| `aws` | `feature-seal-aws` |
-| `google` | `feature-seal-gcloud` |
+| `aws` | `:features:seal-aws` |
+| `google` | `:features:seal-gcloud` |
 
-Feature seal providers must be included at build time. If `keeper.providers.selected = "aws"` but the jar was built without `feature-seal-aws`, startup will not find the provider.
+Feature seal providers must be included at build time. If `keeper.providers.selected = "aws"` but the jar was built without `:features:seal-aws`, startup will not find the provider.
 
 ## Provider Selection
 
@@ -143,7 +143,7 @@ AES_CBC
 
 ## AWS KMS Provider
 
-`aws` lives in `feature-seal-aws`.
+`aws` lives in `:features:seal-aws`.
 
 Build with it:
 
@@ -167,7 +167,7 @@ keeper.providers {
 
 ## Google Cloud KMS Provider
 
-`google` lives in `feature-seal-gcloud`.
+`google` lives in `:features:seal-gcloud`.
 
 Build with it:
 

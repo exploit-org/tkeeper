@@ -140,7 +140,7 @@ If a feature module is missing, TKeeper cannot process that command type and ret
 Build example:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=authority-evm,authority-bitcoin,authority-x509
+./gradlew shadowJar -Pkeeper.features=authority-evm,authority-bitcoin,authority-x509 -Pkeeper.platforms=ecc
 ```
 
 ## Effects

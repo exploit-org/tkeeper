@@ -1,6 +1,6 @@
 # Enabling UI
 
-The control-plane UI lives in `feature-ui`.
+The control-plane UI lives in `:features:ui`.
 
 Build with it:
 
@@ -124,9 +124,8 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains
 
 ### `/ui/` returns 404
 
-Rebuild with `feature-ui`.
+Rebuild with `:features:ui`.
 
 ### OIDC login cannot reach the issuer
 
 Check `keeper.csp.connect-extra` or keep `keeper.csp.oidc-auto-connect = true`.
-

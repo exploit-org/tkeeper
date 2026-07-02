@@ -2,7 +2,9 @@ openapi: 3.0.3
 info:
   title: TKeeper API
   version: 2.0.0
-  description: TKeeper public HTTP API.
+  description: |
+    TKeeper public HTTP API.
+    JSON request bodies reject unknown properties and are limited to 10 MiB by the HTTP server.
 
 servers:
   - url: /
@@ -187,13 +189,12 @@ paths:
           in: query
           required: false
           schema:
-            type: integer
-            format: int32
+            $ref: '#/components/schemas/Generation'
         - name: tweak
           in: query
           required: false
           schema:
-            type: string
+            $ref: '#/components/schemas/Tweak'
       responses:
         '200':
           description: Public key
@@ -419,7 +420,7 @@ paths:
           in: query
           required: false
           schema:
-            type: string
+            $ref: '#/components/schemas/KeyId'
         - name: historical
           in: query
           required: false
@@ -430,12 +431,12 @@ paths:
           in: query
           required: false
           schema:
-            type: string
+            $ref: '#/components/schemas/Cursor'
         - name: assetOwner
           in: query
           required: false
           schema:
-            type: string
+            $ref: '#/components/schemas/AssetOwner'
         - name: limit
           in: query
           required: false
@@ -443,6 +444,7 @@ paths:
             type: integer
             format: int32
             default: 200
+            minimum: 1
             maximum: 200
       responses:
         '200':
@@ -539,6 +541,9 @@ paths:
       tags: [Expiration]
       operationId: listExpires
       summary: List expiring key policy entries
+      description: |
+        Supply either a positive `windowSec`, or `to` with optional `from`.
+        `windowSec` cannot be combined with `from` or `to`, and `from` cannot exceed `to`.
       x-permissions:
         required: [tkeeper.expired.view]
       parameters:
@@ -756,7 +761,7 @@ components:
       in: query
       required: false
       schema:
-        type: string
+        $ref: '#/components/schemas/Cursor'
 
   responses:
     ErrorResponse:
@@ -798,7 +803,7 @@ components:
         - KEY_NOT_FOUND
         - SESSION_MANAGER_NOT_FOUND
         - SESSION_NOT_FOUND
-        - UNSUPPORTED_CURVE
+        - UNSUPPORTED_KEY_ALGORITHM
         - SIGNATURE_VERIFIER_NOT_FOUND
         - SESSION_ALREADY_EXISTS
         - NOT_ENOUGH_HEALTHY_CLIENTS
@@ -806,7 +811,7 @@ components:
         - NOT_ENOUGH_HONEST_CLIENTS
         - INVALID_CONFIG
         - INVALID_SIGNATURE
-        - CURVE_MISMATCH
+        - KEY_ALGORITHM_MISMATCH
         - INVALID_BASE64
         - INVALID_THRESHOLD
         - INVALID_TOTAL
@@ -814,6 +819,7 @@ components:
         - INVALID_CIPHERTEXT
         - INVALID_SESSION_ID
         - INVALID_REQUEST_BODY
+        - INVALID_QUERY_PARAMETER
         - INVALID_SHARE
         - INVALID_KEY_SET_POLICY
         - INVALID_KEY_GENERATION
@@ -867,6 +873,7 @@ components:
 
     KeeperInitData:
       type: object
+      additionalProperties: false
       description: |
         Keeper init data. `threshold=1,total=1` selects mono mode.
         `threshold>1,total>=threshold` selects threshold/MPC mode.
@@ -876,17 +883,20 @@ components:
           type: integer
           format: int32
           minimum: 1
-          description: Local peer id. Mono mode requires `1`. In threshold mode every peer must use a distinct id.
+          maximum: 255
+          description: Local peer id. Must not exceed `total`. Mono mode requires `1`.
         threshold:
           type: integer
           format: int32
           minimum: 1
+          maximum: 255
           description: Required quorum size. Use `1` only with `total=1`.
         total:
           type: integer
           format: int32
           minimum: 1
-          description: Total peers in the quorum. Must be `1` for mono mode.
+          maximum: 255
+          description: Total peers in the quorum. Must be `1` for mono mode and cannot exceed 255.
 
     ShamirInitData:
       type: object
@@ -900,20 +910,27 @@ components:
           format: int32
         shares64:
           type: array
+          minItems: 1
+          maxItems: 255
           items:
-            type: string
+            $ref: '#/components/schemas/NonEmptyBase64'
 
     Unseal:
       type: object
+      additionalProperties: false
+      anyOf:
+        - required: [payload64]
+        - required: [payloads64]
       properties:
         payload64:
-          type: string
-          nullable: true
+          $ref: '#/components/schemas/NonEmptyBase64'
         payloads64:
           type: array
+          minItems: 1
+          maxItems: 255
           nullable: true
           items:
-            type: string
+            $ref: '#/components/schemas/NonEmptyBase64'
         reset:
           type: boolean
           default: false
@@ -999,7 +1016,7 @@ components:
       required: [data64]
       properties:
         data64:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
 
     KeyId:
       type: string
@@ -1011,10 +1028,44 @@ components:
       type: string
       minLength: 1
       maxLength: 255
+      pattern: ^[a-z0-9]+(?:[-_:/][a-z0-9]+)*$
 
-    CurveName:
+    AuthorityId:
       type: string
-      enum: [SECP256K1, ED25519, P256]
+      minLength: 1
+      maxLength: 255
+      pattern: ^[a-z0-9]+(?:[-_:/][a-z0-9]+)*$
+
+    Tweak:
+      type: string
+      minLength: 1
+      maxLength: 255
+      pattern: ^[a-z0-9:_\-/]+$
+
+    Generation:
+      type: integer
+      format: int32
+      minimum: 1
+
+    Cursor:
+      type: string
+      minLength: 1
+
+    Base64:
+      type: string
+      format: byte
+
+    NonEmptyBase64:
+      type: string
+      format: byte
+      minLength: 1
+
+    KeyAlgorithm:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: ^[A-Za-z0-9][A-Za-z0-9._-]*$
+      description: Key algorithm exposed by an installed platform. Built-in ECC values are SECP256K1, ED25519, and P256.
 
     KeyGenMode:
       type: string
@@ -1022,56 +1073,65 @@ components:
 
     Generate:
       type: object
+      additionalProperties: false
       description: |
         Key lifecycle request. Mono mode creates or updates local full key material.
         Threshold mode runs distributed key generation and stores peer shares plus commitments.
-      required: [keyId, curve, authorities, mode]
+      required: [keyId, algorithm, authorities, mode]
       properties:
         keyId:
           $ref: '#/components/schemas/KeyId'
-        curve:
-          $ref: '#/components/schemas/CurveName'
+        algorithm:
+          $ref: '#/components/schemas/KeyAlgorithm'
         authorities:
           type: array
           minItems: 1
+          maxItems: 255
           items:
             $ref: '#/components/schemas/KeySetAuthority'
         mode:
           $ref: '#/components/schemas/KeyGenMode'
         policy:
-          $ref: '#/components/schemas/KeySetPolicy'
+          allOf:
+            - $ref: '#/components/schemas/KeySetPolicy'
           nullable: true
         assetOwner:
-          $ref: '#/components/schemas/AssetOwner'
+          allOf:
+            - $ref: '#/components/schemas/AssetOwner'
           nullable: true
         approvals:
           $ref: '#/components/schemas/Approvals'
 
     Store:
       type: object
+      additionalProperties: false
       description: |
         Trusted dealer import request. Mono mode stores the imported key locally.
         Threshold mode splits the imported key into peer shares.
-      required: [keyId, curve, authorities, value64]
+      required: [keyId, algorithm, authorities, value64]
       properties:
         keyId:
           $ref: '#/components/schemas/KeyId'
-        curve:
-          $ref: '#/components/schemas/CurveName'
+        algorithm:
+          $ref: '#/components/schemas/KeyAlgorithm'
         authorities:
           type: array
           minItems: 1
+          maxItems: 255
           items:
             $ref: '#/components/schemas/KeySetAuthority'
         value64:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/NonEmptyBase64'
           description: Base64 raw private key bytes. For Ed25519, use the standard seed bytes.
         policy:
-          $ref: '#/components/schemas/KeySetPolicy'
+          allOf:
+            - $ref: '#/components/schemas/KeySetPolicy'
           nullable: true
 
     QuorumPromotion:
       type: object
+      additionalProperties: false
       description: Target threshold/MPC quorum for mono promotion.
       required: [threshold, total]
       properties:
@@ -1079,11 +1139,13 @@ components:
           type: integer
           format: int32
           minimum: 2
+          maximum: 255
           description: Target threshold. Must be greater than 1.
         total:
           type: integer
           format: int32
           minimum: 2
+          maximum: 255
           description: Target total peers. Must be at least `threshold`. The promoted keeper becomes peer 1.
 
     QuorumPromotionResult:
@@ -1110,25 +1172,31 @@ components:
 
     KeySetAuthority:
       type: object
+      additionalProperties: false
       required: [id]
       properties:
         id:
-          type: string
+          $ref: '#/components/schemas/AuthorityId'
         oci:
           type: string
+          minLength: 1
           nullable: true
 
     KeySetPolicy:
       type: object
+      additionalProperties: false
       properties:
         apply:
-          $ref: '#/components/schemas/NotAfter'
+          allOf:
+            - $ref: '#/components/schemas/NotAfter'
           nullable: true
         process:
-          $ref: '#/components/schemas/NotAfter'
+          allOf:
+            - $ref: '#/components/schemas/NotAfter'
           nullable: true
         fourEye:
-          $ref: '#/components/schemas/FourEyeControlPolicy'
+          allOf:
+            - $ref: '#/components/schemas/FourEyeControlPolicy'
           nullable: true
         allowHistoricalProcess:
           type: boolean
@@ -1140,6 +1208,7 @@ components:
 
     NotAfter:
       type: object
+      additionalProperties: false
       required: [unit]
       properties:
         unit:
@@ -1151,73 +1220,89 @@ components:
 
     FourEyeControlPolicy:
       type: object
+      additionalProperties: false
       required: [m, n, keys]
       properties:
         m:
           type: integer
           format: int32
+          minimum: 2
+          maximum: 255
         n:
           type: integer
           format: int32
+          minimum: 2
+          maximum: 255
         keys:
           type: array
+          minItems: 2
+          maxItems: 255
+          uniqueItems: true
           items:
             $ref: '#/components/schemas/ApproverPublicKey'
 
     ApproverPublicKey:
       type: object
-      required: [curve, publicKey64]
+      additionalProperties: false
+      required: [algorithm, publicKey64]
       properties:
-        curve:
-          $ref: '#/components/schemas/CurveName'
+        algorithm:
+          $ref: '#/components/schemas/KeyAlgorithm'
         publicKey64:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
 
     Approvals:
       type: object
+      additionalProperties: false
       properties:
         keeperId:
           type: integer
           format: int32
           default: 0
+          minimum: 0
+          maximum: 255
         nonce:
           type: string
           default: ''
+          maxLength: 255
         timestamp:
           type: integer
           format: int64
         proofs:
           type: array
+          maxItems: 255
           items:
             $ref: '#/components/schemas/Proof'
           default: []
 
     Proof:
       type: object
+      additionalProperties: false
       required: [fingerprint, signature64]
       properties:
         fingerprint:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
         signature64:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
 
     KeyDestroyReference:
       type: object
+      additionalProperties: false
       description: Key generation destroy request.
       required: [keyId, generation]
       properties:
         keyId:
           $ref: '#/components/schemas/KeyId'
         generation:
-          type: integer
-          format: int32
-          minimum: 1
+          allOf:
+            - $ref: '#/components/schemas/Generation'
           description: Generation to destroy. Current generation cannot be destroyed.
         approvals:
           $ref: '#/components/schemas/Approvals'
 
     Sign:
       type: object
+      additionalProperties: false
       description: Sign request. The command carries the signature scheme and hash.
       required: [keyId, command]
       properties:
@@ -1226,44 +1311,47 @@ components:
         command:
           $ref: '#/components/schemas/Command'
         tweak:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/Tweak'
           nullable: true
         approvals:
           $ref: '#/components/schemas/Approvals'
 
     Verify:
       type: object
+      additionalProperties: false
       description: Verify request. If generation is omitted, the active generation is used.
       required: [keyId, command, signature64]
       properties:
         keyId:
           $ref: '#/components/schemas/KeyId'
         generation:
-          type: integer
-          format: int32
+          allOf:
+            - $ref: '#/components/schemas/Generation'
           nullable: true
         command:
           $ref: '#/components/schemas/Command'
         signature64:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
         tweak:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/Tweak'
           nullable: true
 
     Command:
       type: object
+      additionalProperties: false
       required: [type, authorityId, artifact]
       properties:
         type:
           type: string
-          enum:
-            - arbitrary
-            - custom
-            - evm.transaction
-            - bitcoin.transaction
-            - x509.tbs-certificate
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+          description: Extensible command type registered by the core or an enabled feature.
+          example: arbitrary
         authorityId:
-          type: string
+          $ref: '#/components/schemas/AuthorityId'
         artifact:
           $ref: '#/components/schemas/Artifact'
 
@@ -1275,10 +1363,12 @@ components:
         - $ref: '#/components/schemas/BitcoinTransactionArtifact'
         - $ref: '#/components/schemas/X509TbsCertificateArtifact'
 
-    SigScheme:
+    SignatureScheme:
       type: string
-      description: Signature scheme. Support depends on curve and quorum mode.
-      enum: [ECDSA, EdDSA, SCHNORR, BIP340, TAPROOT]
+      minLength: 1
+      maxLength: 64
+      pattern: ^[A-Za-z0-9][A-Za-z0-9._-]*$
+      description: Signature scheme exposed by an installed platform. Built-in ECC values are ECDSA, EdDSA, SCHNORR, BIP340, and TAPROOT.
 
     HashMethod:
       type: string
@@ -1286,21 +1376,23 @@ components:
 
     ArbitraryArtifact:
       type: object
+      additionalProperties: false
       required: [scheme, data64]
       properties:
         scheme:
-          $ref: '#/components/schemas/SigScheme'
+          $ref: '#/components/schemas/SignatureScheme'
         hash:
           $ref: '#/components/schemas/HashMethod'
         data64:
-          type: string
+          $ref: '#/components/schemas/Base64'
 
     TypedArtifact:
       type: object
+      additionalProperties: false
       required: [scheme, typed]
       properties:
         scheme:
-          $ref: '#/components/schemas/SigScheme'
+          $ref: '#/components/schemas/SignatureScheme'
         hash:
           $ref: '#/components/schemas/HashMethod'
         typed:
@@ -1309,49 +1401,58 @@ components:
 
     EvmTransactionArtifact:
       type: object
+      additionalProperties: false
       required: [message64]
       properties:
         message64:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
 
     BitcoinTransactionArtifact:
       type: object
+      additionalProperties: false
       required: [transaction64, previousTransactions64, input]
       properties:
         transaction64:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
         previousTransactions64:
           type: array
+          minItems: 1
           items:
-            type: string
+            $ref: '#/components/schemas/NonEmptyBase64'
         input:
           type: integer
           format: int32
+          minimum: 0
         redeemScript64:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/NonEmptyBase64'
           nullable: true
         witnessScript64:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/NonEmptyBase64'
           nullable: true
         merkleRoot64:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/NonEmptyBase64'
           nullable: true
 
     X509TbsCertificateArtifact:
       type: object
+      additionalProperties: false
       required: [der64]
       properties:
         der64:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
 
     CalculatedSignature:
       type: object
       required: [type, generation, imposters]
       properties:
         type:
-          $ref: '#/components/schemas/SigScheme'
+          $ref: '#/components/schemas/SignatureScheme'
         signature64:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/NonEmptyBase64'
           nullable: true
         generation:
           type: integer
@@ -1375,6 +1476,7 @@ components:
 
     Encrypt:
       type: object
+      additionalProperties: false
       description: ECIES encrypt request. Encryption uses public key material.
       required: [keyId, plaintext64]
       properties:
@@ -1383,9 +1485,10 @@ components:
         algorithm:
           $ref: '#/components/schemas/CipherType'
         plaintext64:
-          type: string
+          $ref: '#/components/schemas/Base64'
         tweak:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/Tweak'
           nullable: true
 
     Encrypted:
@@ -1393,13 +1496,13 @@ components:
       required: [ciphertext64, generation]
       properties:
         ciphertext64:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
         generation:
-          type: integer
-          format: int32
+          $ref: '#/components/schemas/Generation'
 
     Decrypt:
       type: object
+      additionalProperties: false
       description: ECIES decrypt request. Mono mode decrypts locally; threshold mode uses peer partial decrypts.
       required: [keyId, ciphertext64]
       properties:
@@ -1408,13 +1511,14 @@ components:
         algorithm:
           $ref: '#/components/schemas/CipherType'
         generation:
-          type: integer
-          format: int32
+          allOf:
+            - $ref: '#/components/schemas/Generation'
           nullable: true
         ciphertext64:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
         tweak:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/Tweak'
           nullable: true
         approvals:
           $ref: '#/components/schemas/Approvals'
@@ -1424,7 +1528,7 @@ components:
       required: [plaintext64, imposters]
       properties:
         plaintext64:
-          type: string
+          $ref: '#/components/schemas/Base64'
         imposters:
           type: array
           description: Peers that returned invalid partial decrypt proofs. Empty in mono mode.
@@ -1487,8 +1591,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/KeySetAuthority'
-        curve:
-          $ref: '#/components/schemas/CurveName'
+        algorithm:
+          allOf:
+            - $ref: '#/components/schemas/KeyAlgorithm'
           nullable: true
         createdAt:
           type: integer
@@ -1497,7 +1602,8 @@ components:
           type: integer
           format: int64
         policy:
-          $ref: '#/components/schemas/KeySetPolicy'
+          allOf:
+            - $ref: '#/components/schemas/KeySetPolicy'
           nullable: true
         hasActiveKey:
           type: boolean
@@ -1517,56 +1623,76 @@ components:
 
     SignedLine:
       type: object
+      additionalProperties: false
       required: [event, signature]
       properties:
         event:
           $ref: '#/components/schemas/AuditEvent'
         signature:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
 
     Logs:
       type: object
+      additionalProperties: false
+      required: [logs]
       properties:
         logs:
           type: array
+          minItems: 1
+          maxItems: 1000
           items:
             $ref: '#/components/schemas/SignedLine'
           default: []
 
     AuditEvent:
       type: object
+      additionalProperties: false
       required: [id, peerId, integrityKeyVersion, timestamp, event]
       properties:
         id:
           type: string
+          minLength: 1
+          maxLength: 255
         peerId:
           type: integer
           format: int32
+          minimum: 1
+          maximum: 255
         integrityKeyVersion:
           type: integer
           format: int32
+          minimum: 1
         timestamp:
           type: integer
           format: int64
+          minimum: 0
         event:
           type: string
+          minLength: 1
+          maxLength: 255
         auth:
-          $ref: '#/components/schemas/Auth'
+          allOf:
+            - $ref: '#/components/schemas/Auth'
           nullable: true
         context:
-          $ref: '#/components/schemas/Ctx'
+          allOf:
+            - $ref: '#/components/schemas/Ctx'
           nullable: true
         request:
-          $ref: '#/components/schemas/Http'
+          allOf:
+            - $ref: '#/components/schemas/Http'
           nullable: true
         crypto:
-          $ref: '#/components/schemas/Crypto'
+          allOf:
+            - $ref: '#/components/schemas/Crypto'
           nullable: true
         digest:
-          $ref: '#/components/schemas/Dig'
+          allOf:
+            - $ref: '#/components/schemas/Dig'
           nullable: true
         outcome:
-          $ref: '#/components/schemas/Outcome'
+          allOf:
+            - $ref: '#/components/schemas/Outcome'
           nullable: true
         approvers:
           type: array
@@ -1574,7 +1700,8 @@ components:
           items:
             type: string
         policy:
-          $ref: '#/components/schemas/PolicyEvaluation'
+          allOf:
+            - $ref: '#/components/schemas/PolicyEvaluation'
           nullable: true
         imposters:
           type: array
@@ -1589,12 +1716,15 @@ components:
 
     Auth:
       type: object
+      additionalProperties: false
       properties:
         subject:
           type: string
+          minLength: 1
 
     Ctx:
       type: object
+      additionalProperties: false
       properties:
         sid:
           type: string
@@ -1602,6 +1732,7 @@ components:
 
     Http:
       type: object
+      additionalProperties: false
       properties:
         method:
           type: string
@@ -1615,6 +1746,7 @@ components:
 
     Crypto:
       type: object
+      additionalProperties: false
       properties:
         algo:
           type: string
@@ -1623,12 +1755,13 @@ components:
           type: string
           nullable: true
         generation:
-          type: integer
-          format: int32
+          allOf:
+            - $ref: '#/components/schemas/Generation'
           nullable: true
 
     Dig:
       type: object
+      additionalProperties: false
       properties:
         purpose:
           type: string
@@ -1636,28 +1769,37 @@ components:
         hmacKeyVersion:
           type: integer
           format: int32
+          minimum: 1
           nullable: true
         bodyHash:
-          $ref: '#/components/schemas/Digest'
+          allOf:
+            - $ref: '#/components/schemas/Digest'
           nullable: true
 
     Digest:
       type: object
+      additionalProperties: false
+      required: [alg, value64]
       properties:
         alg:
           type: string
+          minLength: 1
         value64:
-          type: string
+          $ref: '#/components/schemas/NonEmptyBase64'
 
     Outcome:
       type: object
+      additionalProperties: false
       properties:
         statusCode:
           type: integer
           format: int32
+          minimum: 100
+          maximum: 599
           nullable: true
         error:
-          $ref: '#/components/schemas/ErrorType'
+          allOf:
+            - $ref: '#/components/schemas/ErrorType'
           nullable: true
         details:
           type: string
@@ -1665,6 +1807,7 @@ components:
 
     PolicyEvaluation:
       type: object
+      additionalProperties: false
       required: [decision, matches]
       properties:
         decision:
@@ -1677,10 +1820,12 @@ components:
 
     RuleMatch:
       type: object
+      additionalProperties: false
       required: [id, effect]
       properties:
         id:
           type: string
+          minLength: 1
         effect:
           type: string
           enum: [ALLOW, DENY]

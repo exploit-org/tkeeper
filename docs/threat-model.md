@@ -19,7 +19,7 @@ In scope:
 - key lifecycle operations
 - trusted dealer import
 - audit log integrity and sink enforcement
-- UI exposure through `feature-ui`
+- UI exposure through `:features:ui`
 
 Out of scope:
 
@@ -84,7 +84,7 @@ Stored key material is encrypted. Signed records protect public metadata, key re
 
 Browser to UI:
 
-`feature-ui` exposes the control-plane UI. It uses the same external API permissions as direct API clients. CSP configuration controls what the browser may load or connect to.
+`:features:ui` exposes the control-plane UI. It uses the same external API permissions as direct API clients. CSP configuration controls what the browser may load or connect to.
 
 ## Threats
 

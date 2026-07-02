@@ -77,7 +77,7 @@ Response shape:
 }
 ```
 
-Asset Inventory is exportable from the control-plane UI when `feature-ui` is enabled.
+Asset Inventory is exportable from the control-plane UI when `:features:ui` is enabled.
 
 See [Enabling UI](enabling-ui.md).
 

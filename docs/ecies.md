@@ -1,6 +1,6 @@
 # ECIES
 
-ECIES lives in `feature-ecies`.
+ECIES lives in `:features:ecies`.
 
 It uses an ElGamal-style KEM over the key curve plus an AEAD payload cipher.
 
@@ -15,7 +15,7 @@ In threshold mode the private key is never reconstructed.
 Build with it:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=ecies
+./gradlew shadowJar -Pkeeper.features=ecies -Pkeeper.platforms=ecc
 ```
 
 Required permissions:
@@ -108,7 +108,7 @@ If quorum is still honest, threshold decrypt can succeed and report the bad peer
 
 ### ECIES endpoints are missing
 
-Rebuild with `feature-ecies`.
+Rebuild with `:features:ecies`.
 
 ### `INVALID_CIPHERTEXT`
 

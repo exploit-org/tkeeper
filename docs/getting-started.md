@@ -9,7 +9,7 @@ For a real threshold cluster, run one keeper per peer and keep `threshold` and `
 ## Build
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=all
+./gradlew shadowJar -Pkeeper.features=all -Pkeeper.platforms=all
 ```
 
 The jar is:
