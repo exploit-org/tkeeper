@@ -1,0 +1,30 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+group = 'org.exploit'
+version = '2.2.0'
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "sonatypeCentralSnapshots"
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
+}
+
+dependencies {
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    api 'org.exploit.anvil:t-mldsa:2.0.0-SNAPSHOT'
+}
+
+kotlin {
+    jvmToolchain(25)
+}
+
+test {
+    useJUnitPlatform()
+}
