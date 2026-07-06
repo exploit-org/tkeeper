@@ -1065,7 +1065,7 @@ components:
       minLength: 1
       maxLength: 64
       pattern: ^[A-Za-z0-9][A-Za-z0-9._-]*$
-      description: Key algorithm exposed by an installed platform. Built-in ECC values are SECP256K1, ED25519, and P256.
+      description: Key algorithm exposed by an installed platform. Built-in values are SECP256K1, ED25519, P256, MLDSA44, MLDSA65, and MLDSA87.
 
     KeyGenMode:
       type: string
@@ -1368,7 +1368,7 @@ components:
       minLength: 1
       maxLength: 64
       pattern: ^[A-Za-z0-9][A-Za-z0-9._-]*$
-      description: Signature scheme exposed by an installed platform. Built-in ECC values are ECDSA, EdDSA, SCHNORR, BIP340, and TAPROOT.
+      description: Signature scheme exposed by an installed platform. Built-in values are ECDSA, EdDSA, SCHNORR, BIP340, TAPROOT, and MLDSA.
 
     HashMethod:
       type: string
