@@ -22,6 +22,7 @@ dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     compileOnly(project(':'))
     compileOnly(project(':platform-ecc'))
+    compileOnly(project(':platform-pqc'))
 
     ksp "io.micronaut:micronaut-inject-kotlin:4.10.8"
 }
