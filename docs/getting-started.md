@@ -15,7 +15,7 @@ For a real threshold cluster, run one keeper per peer and keep `threshold` and `
 The jar is:
 
 ```text
-build/libs/tkeeper-2.0.0.jar
+build/libs/tkeeper-2.2.0.jar
 ```
 
 TKeeper needs Java 25.
@@ -80,7 +80,7 @@ java \
   -Dkeeper.dev.enabled=true \
   -Dkeeper.dev.config.location=/tmp/tkeeper \
   -Dkeeper.coordinator.enabled=true \
-  -jar build/libs/tkeeper-2.0.0.jar
+  -jar build/libs/tkeeper-2.2.0.jar
 ```
 
 ## Initialize
@@ -113,7 +113,7 @@ curl -s \
   -H 'Content-Type: application/json' \
   -d '{
     "keyId": "demo-key",
-    "curve": "SECP256K1",
+    "algorithm": "SECP256K1",
     "mode": "CREATE",
     "authorities": [
       { "id": "arbitrary" }

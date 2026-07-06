@@ -2,7 +2,7 @@
 
 Trusted dealer imports an existing private key into the current quorum mode.
 
-In mono mode, TKeeper stores the full key material locally and records the matching commitment.
+In mono mode, TKeeper stores the full key material locally and records the matching public side state.
 
 In threshold mode, TKeeper splits the key into peer shares and distributes them to the cluster.
 
@@ -17,7 +17,7 @@ Body:
 ```json
 {
   "keyId": "imported-secp256k1",
-  "curve": "SECP256K1",
+  "algorithm": "SECP256K1",
   "value64": "base64-raw-private-key",
   "authorities": [
     { "id": "arbitrary" }
@@ -40,7 +40,7 @@ Important details:
 - the dealer sees the raw private key
 - threshold mode splits the raw key into peer shares
 - mono mode stores the raw key locally
-- commitments are stored too
+- algorithm-specific public side state is stored too: ECC commitments or the aggregate ML-DSA public key
 - the imported key can sign and verify like a DKG-created key
 - for `ED25519`, import the standard seed, not an expanded private scalar
 
@@ -56,8 +56,8 @@ Use trusted dealer only for bringing an existing key into TKeeper. For new keys,
 
 ### Imported key exists but signing fails
 
-Trusted dealer import must store commitments with the imported material. Without commitments, public key checks and later protocols cannot prove the same key state.
+Trusted dealer import must store the algorithm-specific public side state with the imported material. Without ECC commitments or the ML-DSA public key, public key checks and later protocols cannot prove the same key state.
 
-### Wrong curve
+### Wrong algorithm
 
-The raw private key must match the declared curve.
+The raw private key must match the declared algorithm and its expected encoding.

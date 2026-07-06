@@ -61,7 +61,7 @@ Response shape:
             "oci": "oci://registry.example/verdict/authorities/evm-mainnet-usdc@sha256:..."
           }
         ],
-        "curve": "SECP256K1",
+        "algorithm": "SECP256K1",
         "createdAt": 1760000000000,
         "updatedAt": 1760000000000,
         "policy": null,

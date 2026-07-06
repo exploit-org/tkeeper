@@ -21,28 +21,36 @@ The Compose runtime is resolved automatically:
 
 ---
 
-## Runing tests
+## Running tests
 
 ### Build test docker image
 Run from root project directory:
 ```bash
 ./gradlew dockerBuildIntegration
 ```
-The integration image always includes all production features, `platform-ecc`, and the test-only `:integration-tests:failure-injection` module. Regular runtime builds never include failure injection.
+The integration image always includes all production features, `platform-ecc`, `platform-pqc`, and the test-only `:integration-tests:failure-injection` module. Regular runtime builds never include failure injection.
 
-Run the full test suite:
+Do not add `-Pkeeper.features=all` or `-Pkeeper.platforms=...`; `dockerBuildIntegration` does not need them because its dedicated `shadowJarIntegration` classpath always contains the complete integration runtime.
+
+Run the functional suite:
 
 ```bash
-./gradlew :integration-tests:test
+./gradlew :integration-tests:functional:test
 ```
 
 Run a specific test class:
 
 ```bash
-./gradlew :integration-tests:test --tests "org.exploit.tkeeper.test.{ClassName}"
+./gradlew :integration-tests:functional:test --tests "org.exploit.test.functional.{ClassName}"
 ```
 
-See available test classes in [tests](src/test/kotlin/)
+Run performance tests separately:
+
+```bash
+./gradlew :integration-tests:performance:test
+```
+
+See available functional test classes in [tests](functional/src/test/kotlin/org/exploit/test/functional/).
 
 ---
 

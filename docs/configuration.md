@@ -34,7 +34,7 @@ Example:
 java \
   -Dkeeper.config.location=/etc/tkeeper \
   -Dkeeper.dev.config.location=/etc/tkeeper \
-  -jar build/libs/tkeeper-2.0.0.jar
+  -jar build/libs/tkeeper-2.2.0.jar
 ```
 
 Minimal node config:
@@ -85,7 +85,7 @@ Common fields:
 | `keeper.providers.selected` | Seal provider id |
 | `keeper.client.tls` | TLS for peer clients |
 | `keeper.approval.ttl` | Four eye approval lifetime |
-| `keeper.session.*` | DKG, FROST, GG20, ECIES, destroy session limits |
+| `keeper.session.*` | DKG, FROST, GG20, ML-DSA, ECIES, destroy session limits |
 
 Coordinator-only endpoints can be disabled on a node:
 
@@ -184,11 +184,18 @@ keeper.session {
     max-rounds = 3
   }
 
+  mldsa {
+    expire = 5m
+    max-rounds = 12
+  }
+
   ecies {
     max-rounds = 3
   }
 }
 ```
+
+For ML-DSA, `max-rounds` is the maximum number of complete signing attempts, not the number of protocol messages and not the internal parallel-instance count `K`. Each attempt has three signing rounds and may abort by design during rejection sampling. The default of `12` bounds latency; exhausting it returns `SESSION_MAX_ROUNDS_EXCEEDED` and does not identify a dead or malicious peer. Increase it only together with an end-to-end request deadline and latency monitoring.
 
 ## Audit
 

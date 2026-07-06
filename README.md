@@ -16,7 +16,7 @@ Classic access control answers who can call an API. TKeeper answers what this ca
 
 TKeeper places policy on the authority path. Before `sign`, `decrypt`, `rotate`, `refresh`, `destroy`, or `import` starts, it evaluates configured controls: auth, permissions, key lifecycle, time policy, four-eye policy, authority policy, audit, and integrity.
 
-Built on [Anvil](https://github.com/exploit-org/anvil): cryptographic building blocks for threshold ECDSA, FROST, and verifiable threshold ECIES.
+Built on [Anvil](https://github.com/exploit-org/anvil): cryptographic building blocks for threshold ECDSA, FROST, verifiable threshold ECIES, and threshold ML-DSA.
 
 See [Documentation](https://tkeeper.org/docs) for deployment, API, protocols, and threat model.
 
@@ -116,15 +116,40 @@ Currently supported:
 
 TKeeper uses MPC to remove unilateral cryptographic control.
 
-| Capability           | Protocols                                         | Curves                        |
-|----------------------|---------------------------------------------------|-------------------------------|
-| Threshold signing    | GG20 ECDSA, FROST Schnorr, BIP-340, Taproot       | secp256k1, secp256r1, Ed25519 |
-| Threshold decryption | Threshold ECIES                                   | secp256k1, secp256r1          |
-| Key lifecycle        | DKG, import, refresh, rotate, destroy             | secp256k1, secp256r1, Ed25519 |
-| Key derivation       | deterministic scalar tweak                        | supported signing curves      |
+| Capability | Protocols | Algorithms |
+| --- | --- | --- |
+| Threshold signing | GG20 ECDSA, FROST Schnorr/BIP-340/Taproot, threshold ML-DSA | `SECP256K1`, `P256`, `ED25519`, `MLDSA44`, `MLDSA65`, `MLDSA87` |
+| Threshold decryption | Threshold ECIES | `SECP256K1`, `P256` |
+| Key lifecycle | DKG, import, refresh, rotate, destroy | installed platform algorithms |
+| Key derivation | deterministic scalar tweak | supported ECC signing algorithms |
 
 
 Protocol details live in the documentation and in [Anvil](https://github.com/exploit-org/anvil).
+
+Cryptographic implementations are loaded through build-time platforms:
+
+- `platform-ecc` provides the ECC algorithms and threshold protocols
+- `platform-pqc` provides ML-DSA, including threshold DKG and signing
+
+A deployable build must include at least one platform.
+
+Build all production features and platforms with:
+
+```bash
+./gradlew shadowJar -Pkeeper.features=all -Pkeeper.platforms=all
+```
+
+Features that depend on a platform require it explicitly. For example:
+
+```bash
+./gradlew shadowJar -Pkeeper.features=authority-evm,ecies -Pkeeper.platforms=ecc
+```
+
+The integration image is intentionally separate and includes every production feature, both platforms, and the test-only failure-injection module:
+
+```bash
+./gradlew dockerBuildIntegration
+```
 
 ---
 
@@ -173,7 +198,7 @@ See [OpenAPI Reference](openapi.yaml).
 
 Integration tests run against a local Docker Compose cluster via [Testcontainers](https://testcontainers.com).
 
-The test suite includes **150+** simulation tests covering quorum behavior, peer failures, protocol aborts, key lifecycle operations, audit enforcement, and permission boundaries.
+The test suite covers quorum behavior, peer failures, protocol aborts, key lifecycle operations, audit enforcement, and permission boundaries.
 
 See [integration-tests](integration-tests) for setup and environment details.
 

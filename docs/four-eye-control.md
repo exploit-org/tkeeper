@@ -11,15 +11,15 @@ Policy shape:
     "n": 3,
     "keys": [
       {
-        "curve": "SECP256K1",
+        "algorithm": "SECP256K1",
         "publicKey64": "..."
       },
       {
-        "curve": "P256",
+        "algorithm": "P256",
         "publicKey64": "..."
       },
       {
-        "curve": "ED25519",
+        "algorithm": "ED25519",
         "publicKey64": "..."
       }
     ]
@@ -33,8 +33,8 @@ Rules:
 - `m` must be at least 2
 - `keys.size` must equal `n`
 - duplicate approver keys are rejected
-- approver public keys must decode to valid curve points
-- supported approver curves are `SECP256K1`, `P256`, and `ED25519`
+- approver public keys must decode under the declared algorithm
+- supported approver algorithms are `SECP256K1`, `P256`, and `ED25519`
 
 Operations that carry approvals hash the operation body first. Approvers sign that hash. TKeeper verifies the submitted proofs before continuing.
 
@@ -60,9 +60,9 @@ The nonce cannot be reused. The timestamp must not be in the future and must fit
 
 The coordinator peer id in `approvals.keeperId` must match the peer that coordinates the operation.
 
-Approver signature type depends on the approver key curve:
+Approver signature type depends on the approver key algorithm:
 
-| Curve | Approval signature |
+| Algorithm | Approval signature |
 | --- | --- |
 | `SECP256K1` | ECDSA |
 | `P256` | ECDSA |
@@ -71,7 +71,7 @@ Approver signature type depends on the approver key curve:
 The approver fingerprint is:
 
 ```text
-base64(sha256(compressed-public-key))
+base64(sha256(encoded-public-key))
 ```
 
 ## Signed Fields
@@ -102,7 +102,7 @@ The exact fields are operation-specific:
 
 | Operation | Fields |
 | --- | --- |
-| DKG | `keeperId`, `keyId`, `curve`, `authorities`, `mode`, optional `policy`, optional `assetOwner`, `nonce`, `timestamp` |
+| DKG | `keeperId`, `keyId`, `algorithm`, `authorities`, `mode`, optional `policy`, optional `assetOwner`, `nonce`, `timestamp` |
 | Sign | `keeperId`, `keyId`, `command`, optional `tweak`, `nonce`, `timestamp` |
 | ECIES decrypt | `keeperId`, `keyId`, optional `generation`, `algorithm`, `ciphertext64`, optional `tweak`, `nonce`, `timestamp` |
 | Destroy | `keeperId`, `keyId`, `generation`, `nonce`, `timestamp` |

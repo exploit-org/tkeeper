@@ -2,7 +2,7 @@
 
 Signing runs in the Keeper's quorum mode.
 
-The coordinator materializes the command into bytes, checks the key controls, then chooses the signing manager for the key curve, signature scheme, and quorum mode.
+The coordinator materializes the command into bytes, checks the key controls, then chooses the signing manager for the key algorithm, signature scheme, and quorum mode.
 
 In `mono` mode, TKeeper signs locally with the stored private key material. Controls still run before the signature is produced.
 
@@ -12,6 +12,7 @@ For threshold mode TKeeper uses:
 
 - FROST for EdDSA, Schnorr, BIP340, and Taproot signatures
 - GG20 for ECDSA signatures
+- Threshold ML-DSA for ML-DSA signatures
 
 The command decides the signature scheme and hash. The top-level sign request does not carry `hash` or `algorithm`.
 
@@ -101,6 +102,9 @@ TKeeper builds the bytes to sign from the command. For EVM, Bitcoin, X.509, and 
 | `BIP340` | local BIP340 | FROST | secp256k1 Bitcoin Schnorr |
 | `TAPROOT` | local Taproot key-path | FROST | secp256k1 Taproot key-path |
 | `EdDSA` | local EdDSA | FROST | Ed25519 |
+| `MLDSA` | local ML-DSA | threshold ML-DSA | ML-DSA-44, ML-DSA-65, or ML-DSA-87 |
+
+Threshold ML-DSA uses probabilistic rejection sampling. A complete attempt can abort even when every peer is healthy and honest, so TKeeper retries with fresh session state up to `keeper.session.mldsa.max-rounds`. Exhaustion returns `SESSION_MAX_ROUNDS_EXCEEDED`; it is an availability outcome, not evidence that the key or peers are corrupt.
 
 Hash methods:
 
@@ -151,6 +155,6 @@ Check that `command`, `tweak`, `generation`, and `signature64` match the origina
 
 The key authority does not allow this command. For non-arbitrary keys, check the authority id and the OCI policy.
 
-### No manager for scheme and curve
+### No manager for scheme and algorithm
 
-The key curve or quorum mode does not support the requested signature scheme. For example, Ed25519 only supports `EdDSA`, and mono secp256k1 does not support `SCHNORR`.
+The key algorithm or quorum mode does not support the requested signature scheme. For example, `ED25519` only supports `EdDSA`, ML-DSA algorithms use `MLDSA`, and mono `SECP256K1` does not support `SCHNORR`.

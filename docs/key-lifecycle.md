@@ -11,7 +11,7 @@ Body:
 ```json
 {
   "keyId": "eth-cold-storage",
-  "curve": "SECP256K1",
+  "algorithm": "SECP256K1",
   "mode": "CREATE",
   "assetOwner": "customer-42",
   "authorities": [
@@ -28,7 +28,7 @@ Modes:
 | --- | --- |
 | `CREATE` | new logical key |
 | `ROTATE` | new generation under the same logical id; the public key changes |
-| `REFRESH` | new shares for the same public key |
+| `REFRESH` | new generation with the same public key; cryptographic-material behavior is algorithm-specific |
 
 Required permission is selected from `mode`:
 
@@ -52,13 +52,14 @@ In `mono` mode, TKeeper manages full key material locally:
 
 Mono refresh is useful when you want lifecycle history to move forward without changing the key. It does not create peer shares because there are no peers in mono mode.
 
-In `threshold` mode, TKeeper runs distributed key generation across peers:
+In `threshold` mode, TKeeper coordinates lifecycle changes across peers:
 
 - `CREATE` creates the first shared key generation
 - `ROTATE` creates a new shared key generation and changes the public key
-- `REFRESH` creates new shares for the same public key
+- ECC `REFRESH` creates new shares for the same public key
+- ML-DSA `REFRESH` creates a new generation by copying the existing per-peer shares and public key; it does not refresh cryptographic material
 
-Threshold DKG stores the key share, metadata, and commitments for each generation. Commitments are later used to derive peer public shares for signing, ECIES, consistency checks, and Byzantine detection.
+Threshold lifecycle state stores the key share and metadata for each generation. ECC commitments are later used to derive peer public shares for signing, ECIES, consistency checks, and Byzantine detection. ML-DSA stores its aggregate public key as signed side state.
 
 ## Public Key
 

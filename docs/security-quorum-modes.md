@@ -17,7 +17,7 @@ In threshold mode, each peer holds one share. A sign or decrypt operation needs 
 
 This matters for insider risk too. A single operator, VM, pod, or host with access to one peer does not get unilateral key authority.
 
-Threshold mode also gives better failure evidence. When a peer lies during FROST, GG20, or threshold ECIES, TKeeper reports bad peers where the protocol can identify them. If enough honest peers remain, the operation can still complete.
+Threshold mode also gives better failure evidence. When a peer lies during FROST, GG20, or threshold ECIES, TKeeper reports bad peers where the protocol can identify them. Threshold ML-DSA rejects invalid transcripts but its normal probabilistic aborts do not identify an imposter. If enough honest peers remain, the operation can still complete.
 
 What MPC helps with:
 
@@ -40,6 +40,8 @@ Threshold mode is heavier.
 You run more nodes. You monitor more nodes. You need internal networking, peer auth, health checks, coordinated deploys, and backup discipline for each peer.
 
 Some operations are slower because peers have to talk. Some failures are more complex because an operation can be half-complete on one peer and not another. TKeeper has consistency repair for that, but the operational model is still more serious than one local process.
+
+Threshold ML-DSA has an additional availability cost: rejection sampling can abort a healthy signing attempt. TKeeper retries with fresh state under a bounded attempt budget, so deployments that require strict latency must set both `keeper.session.mldsa.max-rounds` and an end-to-end request deadline.
 
 The cost is both CAPEX and OPEX:
 

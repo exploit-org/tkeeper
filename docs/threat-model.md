@@ -2,7 +2,7 @@
 
 This page covers TKeeper service-level threats.
 
-For protocol-level details in FROST, GG20, ECIES, ZK proofs, nonce handling, Paillier, and curve math, use the tss4j threat model:
+For protocol-level details in FROST, GG20, threshold ML-DSA, ECIES, ZK proofs, nonce handling, Paillier, and elliptic-curve math, use the Anvil threat model:
 
 [Anvil THREAT_MODEL.md](https://github.com/exploit-org/anvil/blob/main/THREAT_MODEL.md)
 
@@ -37,6 +37,8 @@ Compromising fewer than `threshold` peers must not give the attacker a usable pr
 
 All protected operations run only after the keeper is unsealed.
 
+Production artifacts include only explicitly selected platforms and features. The dedicated integration artifact additionally contains failure-injection controls and must not be deployed as a production image.
+
 Authorities are part of the signing boundary. A key either uses `arbitrary` for raw signing or uses concrete authority policies. `arbitrary` cannot be mixed with concrete authorities on the same key.
 
 Concrete authorities use digest-pinned OCI references. Tags are mutable and are only useful for local development.
@@ -68,7 +70,7 @@ Requests are untrusted until authenticated and authorized. JWT mode validates to
 
 Keeper to Keeper:
 
-Internal peer calls happen inside the cluster boundary. Peers still verify protocol data. Bad FROST, GG20, or ECIES contributions are rejected where the protocol can identify the sender.
+Internal peer calls happen inside the cluster boundary. Peers still verify protocol data. Bad FROST, GG20, ML-DSA, or ECIES contributions are rejected. Protocols report an imposter only where the sender can be identified; a normal ML-DSA rejection-sampling abort is not Byzantine evidence.
 
 Keeper to OCI registry:
 
@@ -194,18 +196,19 @@ Compromised approver keys can approve malicious requests. Store approver keys se
 
 Attack:
 
-A peer sends invalid FROST or GG20 data to corrupt a signature or bias the result.
+A peer sends invalid FROST, GG20, or threshold ML-DSA data to corrupt a signature or bias the result.
 
 Mitigation:
 
 - FROST verifies peer proof material and signing contributions.
 - GG20 verifies the ZK proof flow used by the protocol.
+- Threshold ML-DSA binds commitments, reveals, participants, message context, and partial responses, then verifies the combined standard ML-DSA signature.
 - Identified bad peers are returned as `imposters`.
 - Signing restarts with fresh session state where the protocol reports an imposter.
 
 Residual risk:
 
-Byzantine peers can cause availability loss by aborting sessions.
+Byzantine peers can cause availability loss by aborting sessions. Threshold ML-DSA does not provide identifiable abort for every failure.
 
 ### T-8: Byzantine Peer During ECIES Decrypt
 
@@ -295,19 +298,20 @@ Trusted dealer mode trusts the importer to bring valid key material. Use it only
 
 Attack:
 
-An attacker rotates, reshares, destroys, or runs consistency repair on a key to cause denial of service or move the key into an unexpected state.
+An attacker rotates, refreshes, destroys, or runs consistency repair on a key to cause denial of service or move the key into an unexpected state.
 
 Mitigation:
 
 - Lifecycle operations use separate permissions.
 - Destructive operations are audit-logged.
 - Key metadata and active generations are integrity-protected.
-- Reshare and rotate run through the threshold cluster.
+- ECC refresh reshapes the existing secret shares without changing the public key. Rotate creates new key material.
+- ML-DSA refresh creates a new generation with the same per-peer share and public key; it does not refresh cryptographic material. ML-DSA rotate runs a new DKG and creates a new key.
 - Consistency repair is an explicit API, not part of normal signing flow.
 
 Residual risk:
 
-Authorized lifecycle operators can still break availability. Keep lifecycle permissions narrower than signing permissions.
+Authorized lifecycle operators can still break availability. A compromised ML-DSA share remains compromised after refresh; use rotate when new cryptographic material is required. Keep lifecycle permissions narrower than signing permissions.
 
 ### T-14: UI Exposure
 
@@ -326,12 +330,45 @@ Residual risk:
 
 Bad CSP or weak browser session handling can expose operators to web attacks. Keep UI access narrow.
 
+### T-15: Probabilistic ML-DSA Signing Exhaustion
+
+Attack or failure:
+
+A healthy threshold ML-DSA signing operation repeatedly aborts during rejection sampling, or an attacker amplifies the cost by submitting many authorized signing requests.
+
+Mitigation:
+
+- Each retry creates fresh session state and fresh signing randomness.
+- `keeper.session.mldsa.max-rounds` bounds complete signing attempts; it defaults to `12`.
+- Session expiry and caller-side deadlines bound retained state and end-to-end latency.
+- Exhaustion fails closed with `SESSION_MAX_ROUNDS_EXCEEDED`; no signature is returned.
+
+Residual risk:
+
+Threshold ML-DSA is probabilistic and does not provide a hard success-latency guarantee. Exhaustion with empty `dead` and `imposters` sets is not proof of corruption. Monitor retry counts and latency; increasing the attempt cap trades availability for resource use and worst-case response time.
+
+### T-16: Integration Artifact in Production
+
+Attack:
+
+An operator deploys the integration image, exposing the failure-injection module used to corrupt, demote, delete, or replace test key state.
+
+Mitigation:
+
+- Regular `shadowJar` and `dockerBuild` include only selected production platforms and features.
+- `:integration-tests:failure-injection` is wired only into `shadowJarIntegration` and `dockerBuildIntegration`.
+- The integration image uses the separate `exploit/tkeeper:dev` tag.
+
+Residual risk:
+
+Build separation cannot prevent an operator from deploying the wrong artifact. Production admission and release policy must reject the integration jar and `exploit/tkeeper:dev` image.
+
 ## Security Properties
 
 | Property | Mechanism |
 | --- | --- |
 | No unilateral key use | `t-of-n` threshold protocols |
-| No key reconstruction | FROST, GG20, and threshold ECIES use shares |
+| No key reconstruction | FROST, GG20, threshold ML-DSA, and threshold ECIES use shares |
 | Raw signing isolated | `arbitrary` cannot be mixed with concrete authorities |
 | Typed signing policy | authorities materialize commands before signing |
 | Authority immutability | digest-pinned OCI references |

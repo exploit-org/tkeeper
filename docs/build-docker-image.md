@@ -8,10 +8,12 @@ Build the jar:
 ./gradlew shadowJar
 ```
 
+This produces the core artifact only. Select at least one platform for a usable cryptographic runtime; without one, TKeeper has no key algorithm providers.
+
 The jar lands under:
 
 ```text
-build/libs/tkeeper-2.0.0.jar
+build/libs/tkeeper-2.2.0.jar
 ```
 
 Build with all production feature modules:
@@ -42,6 +44,25 @@ Feature modules are added separately at build time, so you include only the func
 
 Feature names in `keeper.features` match the child project name. The module is `:features:authority-evm`; the build flag is `authority-evm`.
 
+Platforms contain algorithm implementations and are selected independently from features:
+
+| Platform | Gradle module | Build value |
+| --- | --- | --- |
+| Elliptic-curve algorithms | `:platform-ecc` | `ecc` |
+| ML-DSA algorithms | `:platform-pqc` | `pqc` |
+
+Features with cryptographic platform dependencies require the matching platform explicitly. The build fails early instead of producing a jar with an incomplete runtime graph. `authority-bitcoin`, `authority-evm`, `authority-x509`, and `ecies` currently require `-Pkeeper.platforms=ecc`.
+
+Selection properties:
+
+| Scope | Features | Platforms |
+| --- | --- | --- |
+| Runtime jar | `keeper.features` | `keeper.platforms` |
+| Docker build | `keeper.docker.features` | `keeper.docker.platforms` |
+| Select all | `keeper.features.all=true` | `keeper.platforms.all=true` |
+
+Comma-separated selectors accept short names such as `ecies` and `ecc`; `all` selects every production module in that category.
+
 Production features:
 
 | Feature | Gradle name |
@@ -63,7 +84,7 @@ Build the Docker image:
 The production Docker task tags:
 
 ```text
-exploit/tkeeper:2.0.0
+exploit/tkeeper:2.2.0
 exploit/tkeeper:latest
 ```
 
@@ -73,7 +94,7 @@ The integration image task tags:
 exploit/tkeeper:dev
 ```
 
-The feature set is build-time only.
+The feature and platform sets are build-time only.
 
 The Dockerfile uses Red Hat UBI OpenJDK 25. It also adds the JVM flag needed by the FFI Java API:
 
@@ -88,7 +109,7 @@ java \
   --enable-native-access=ALL-UNNAMED \
   -Dkeeper.config.location=/etc/tkeeper \
   -Dkeeper.dev.config.location=/etc/tkeeper \
-  -jar build/libs/tkeeper-2.0.0.jar
+  -jar build/libs/tkeeper-2.2.0.jar
 ```
 
 Run the Docker image:
@@ -100,8 +121,16 @@ docker run --rm \
   -v "$PWD/config:/etc/tkeeper:ro" \
   -v "$PWD/data:/var/lib/tkeeper" \
   -e KEEPER_CONFIG_LOCATION=/etc/tkeeper \
-  exploit/tkeeper:2.0.0
+  exploit/tkeeper:2.2.0
 ```
+
+Build the integration image with:
+
+```bash
+./gradlew dockerBuildIntegration
+```
+
+This task does not need `keeper.features` or `keeper.platforms`. It uses `shadowJarIntegration`, which always contains every production feature, every platform, and the test-only `:integration-tests:failure-injection` module. `dockerBuild` and regular `shadowJar` never include failure injection.
 
 ## Frequent Problems
 
@@ -113,6 +142,14 @@ Rebuild with the feature:
 
 ```bash
 ./gradlew shadowJar -Pkeeper.features=ecies,authority-evm -Pkeeper.platforms=ecc
+```
+
+### Feature requires a platform
+
+Add the platform named by the Gradle error. For example:
+
+```bash
+./gradlew shadowJar -Pkeeper.features=authority-evm -Pkeeper.platforms=ecc
 ```
 
 ### Native access warning at startup
