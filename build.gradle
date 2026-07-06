@@ -36,7 +36,8 @@ def testOnlyFeatureModules = [
 ]
 
 def platformModules = [
-        'platform-ecc': 'keeper.platform.ecc'
+        'platform-ecc': 'keeper.platform.ecc',
+        'platform-pqc': 'keeper.platform.pqc'
 ]
 
 def featurePlatformRequirements = [
