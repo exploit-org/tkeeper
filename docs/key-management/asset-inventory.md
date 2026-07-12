@@ -79,11 +79,15 @@ Response shape:
 
 Asset Inventory is exportable from the control-plane UI when `:features:ui` is enabled.
 
-See [Enabling UI](enabling-ui.md).
+See [Control Plane UI](../deployment/control-plane-ui.md).
 
 `tampered = true` means local signed metadata failed integrity verification while inventory was being read.
 
-## Frequent Problems
+Treat `tampered = true` as a security incident, not a stale-data warning. Stop relying on that node's inventory or key state until the cause is understood.
+
+Inventory is a control-plane read model. It does not replace comparison of peer generation state, audit history, or external asset ownership records during reconciliation.
+
+## Common problems
 
 ### Inventory is empty
 

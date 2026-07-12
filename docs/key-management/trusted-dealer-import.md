@@ -1,4 +1,4 @@
-# Trusted Dealer
+# Trusted Dealer Import
 
 Trusted dealer imports an existing private key into the current quorum mode.
 
@@ -20,7 +20,10 @@ Body:
   "algorithm": "SECP256K1",
   "value64": "base64-raw-private-key",
   "authorities": [
-    { "id": "arbitrary" }
+    {
+      "id": "payments-small",
+      "oci": "oci://registry.example/verdict/authorities/payments-small@sha256:..."
+    }
   ]
 }
 ```
@@ -52,7 +55,9 @@ Response:
 
 Use trusted dealer only for bringing an existing key into TKeeper. For new keys, prefer DKG.
 
-## Frequent Problems
+Import does not erase the dealer's copy, backups, or handling history. Threshold custody protects later use by TKeeper peers, but it cannot make the key equivalent to one that was never reconstructed. Rotate after migration when continuity of the imported public key is not required.
+
+## Common problems
 
 ### Imported key exists but signing fails
 

@@ -1,0 +1,30 @@
+# Key Management
+
+In TKeeper, a key is the identity boundary. The key's authorities define what the identity can authorize, and lifecycle operations change the generations through which that identity operates.
+
+Read:
+
+- [Key Lifecycle](key-lifecycle.md)
+- [Trusted Dealer Import](trusted-dealer-import.md)
+- [Quorum Promotion](quorum-promotion.md)
+- [Asset Inventory](asset-inventory.md)
+
+## Lifecycle choices
+
+| Operation | Use when | Public key |
+| --- | --- | --- |
+| `CREATE` | creating a new identity | new |
+| `ROTATE` | creating new cryptographic material for the same logical identity | changes |
+| `REFRESH` | creating a new generation without changing the public identity | same |
+| Trusted dealer import | bringing existing key material into TKeeper | imported |
+| Quorum promotion | moving a mono identity into threshold custody | same identity |
+| Destroy | removing an old generation | active generation stays |
+
+Refresh behavior is algorithm-specific. For ML-DSA, refresh creates a new generation with the same share and public key; it does not refresh cryptographic material.
+
+## Security notes
+
+- Keep lifecycle permissions narrower than signing permissions.
+- Treat trusted-dealer import as a different trust model from DKG.
+- Use rotate when key material must change.
+- Use asset inventory to review authorities attached to identities.

@@ -104,7 +104,7 @@ Decrypt requests can carry four eye approvals. The approval hash binds the decry
 
 If quorum is still honest, threshold decrypt can succeed and report the bad peers.
 
-## Frequent Problems
+## Common problems
 
 ### ECIES endpoints are missing
 

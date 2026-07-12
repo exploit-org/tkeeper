@@ -1,14 +1,16 @@
 # Authorities
 
-Authorities bind a key to the kind of effect it may produce.
+Authorities bind a key identity to the actions it may authorize.
 
-With authorities, TKeeper checks the requested effect before it starts threshold signing.
+With concrete authorities, TKeeper checks the requested effect before signing starts.
+
+An authority document is security policy and an intent schema. Review changes to either with the same care as changes to signing code.
 
 Full Verdict syntax lives here:
 
 [github.com/exploit-org/verdict](https://github.com/exploit-org/verdict)
 
-## Key Authorities
+## Key authorities
 
 A key stores a list of authorities.
 
@@ -27,7 +29,7 @@ Concrete authorities use OCI references:
 ]
 ```
 
-`arbitrary` is for raw data signing:
+`arbitrary` is for raw data signing. It is useful for demos and compatibility, but it gives TKeeper no semantic intent:
 
 ```json
 [
@@ -48,7 +50,7 @@ Rules:
 - tags are for local development, not production trust anchors
 - authority ids must be unique on the same key
 
-## Authority Document
+## Authority document
 
 Concrete authorities are Verdict authority documents.
 
@@ -96,7 +98,7 @@ Fields:
 
 TKeeper rejects the authority when the loaded document id does not match the configured key authority id.
 
-## Request Matching
+## Request matching
 
 For a concrete authority, the sign command must reference an authority attached to the key:
 
@@ -123,7 +125,7 @@ If policy returns `ALLOW`, TKeeper starts threshold signing. If the policy retur
 
 For `arbitrary`, TKeeper only checks that the key allows `arbitrary` and that the command artifact type is `arbitrary`. No Verdict policy is loaded.
 
-## Intent Types
+## Intent types
 
 Authority `type` selects the payload format and policy context.
 
@@ -183,7 +185,7 @@ Examples:
 
 Typed JSON authorities produce only the effects declared in authority config.
 
-## Policy Format
+## Policy format
 
 Verdict policies use `allow`, `deny`, and `fallback`:
 
@@ -223,7 +225,7 @@ The audit event stores the policy decision and matched rules.
 
 For a policy-checked sign request, the audit event always carries the Verdict policy evaluation.
 
-## OCI Artifacts
+## OCI artifacts
 
 An authority OCI artifact contains one authority document:
 
@@ -239,13 +241,24 @@ oci://registry.example/verdict/authorities/evm-mainnet-usdc@sha256:...
 
 Tags are mutable. They are fine for local development, but not as a production trust anchor.
 
-For a local HTTP registry, enable insecure ORAS access:
+Allow every registry explicitly. The match includes the port, and an empty list denies OCI pulls:
 
 ```hocon
-oras.insecure = true
+oras {
+  allowed-registries = ["registry.example"]
+}
 ```
 
-## Custom Typed Authority
+For a local HTTP registry, allow that registry and enable insecure ORAS access:
+
+```hocon
+oras {
+  allowed-registries = ["registry:5000"]
+  insecure = true
+}
+```
+
+## Custom typed authority
 
 Use `custom` when the request is JSON and no native intent exists.
 
@@ -309,11 +322,15 @@ Command:
 
 Only declared fields become CEL variables. Unknown JSON fields are ignored. `effects` is reserved.
 
+This has an important integration consequence: a backend must not act on unknown fields that were invisible to policy. Reject extra fields before calling TKeeper, or construct the executed action exclusively from declared, governed fields.
+
+Schema evolution should be explicit. Changing field meaning, effect mapping, or policy requires a new reviewed artifact digest; the human-readable `version` field is not a trust anchor.
+
 For all supported field types, effect mapping rules, and CEL helpers, use the Verdict docs:
 
 [github.com/exploit-org/verdict](https://github.com/exploit-org/verdict)
 
-## Frequent Problems
+## Common problems
 
 ### Key with `arbitrary` plus another authority is rejected
 
@@ -327,6 +344,10 @@ The authority list is invalid, the OCI reference is malformed, the authority id 
 
 The command artifact type does not match the authority type, or the feature module for that intent is missing.
 
+### `AUTHORITY_VIOLATION`
+
+The command selected an authority id that is not attached to the key identity. This also applies when an `arbitrary` command is sent to a key that does not allow `arbitrary`.
+
 ### `INVALID_INTENT`
 
 The command payload could not be decoded into the authority intent. Common causes are malformed transactions, missing previous Bitcoin transactions, unknown EVM contracts, or invalid typed JSON.
@@ -337,4 +358,4 @@ The Verdict policy evaluated to `DENY`.
 
 ### OCI pull fails with TLS errors
 
-Check `oras.insecure`. Local HTTP registry needs it set to `true`.
+Check that the exact host and port are present in `oras.allowed-registries`. A local HTTP registry also needs `oras.insecure = true`.

@@ -1,46 +1,126 @@
-# TKeeper SDK
+# TKeeper Java SDK
 
-### Maven
+The SDK is a Java 17 client for the current TKeeper HTTP API.
+
+## Dependency
+
+Maven:
+
 ```xml
 <dependency>
-    <groupId>org.exploit</groupId>
-    <artifactId>tkeeper-sdk</artifactId>
-    <version>1.0.6</version>
+  <groupId>org.exploit</groupId>
+  <artifactId>tkeeper-sdk</artifactId>
+  <version>2.2.0</version>
 </dependency>
 ```
 
-#### Gradle
+Gradle:
+
 ```groovy
-implementation 'org.exploit:tkeeper-sdk:1.0.6'
+implementation 'org.exploit:tkeeper-sdk:2.2.0'
 ```
 
-## Usage
-TKeeper client exposes API separated by modules:
+## Client
 
-### Creating client
-First you need to define authorization instance:
-
-#### Built-in auth mechanism
-```java
-var auth = new DevTokenAuth("your-dev-token");
-```
+Use JWT authentication outside local development:
 
 ```java
-var auth = new JwtTokenAuth("your-jwt-token");
-```
+import org.exploit.tkeeper.sdk.TKeeperClient;
+import org.exploit.tkeeper.sdk.auth.JwtTokenAuth;
 
-#### Specifying own auth
-If you have any custom authentication mechanism, simply implement `Authorization` interface:
-```java
-public interface Authorization {
-    default void apply(UrlBuilder urlBuilder) {}
-
-    default void apply(Request request) {}
+try (var keeper = new TKeeperClient(
+        "https://keeper.example",
+        new JwtTokenAuth(jwt)
+)) {
+    var status = keeper.system().status();
 }
 ```
 
-After creating auth instance, create the client:
+`DevTokenAuth` and the `TKeeperClient(baseUrl, devToken)` convenience constructor are for development environments.
+
+## Governed typed signing
+
+This example assumes the digest-pinned `payments-small` custom authority already exists in the referenced OCI registry.
+
 ```java
-var client = new TKeeperClient("keeper-url", auth);
-var status = client.system().status();
+import org.exploit.tkeeper.sdk.TKeeperClient;
+import org.exploit.tkeeper.sdk.auth.JwtTokenAuth;
+import org.exploit.tkeeper.sdk.model.*;
+import org.exploit.tkeeper.sdk.model.command.Command;
+import org.exploit.tkeeper.sdk.model.command.artifact.TypedData;
+import org.exploit.tkeeper.sdk.util.TKeeperJackson;
+
+try (var keeper = new TKeeperClient(baseUrl, new JwtTokenAuth(jwt))) {
+    var authorities = KeySetAuthorities.of(KeySetAuthority.oci(
+            "payments-small",
+            "oci://registry.example/verdict/authorities/payments-small@sha256:..."
+    ));
+
+    keeper.dkg().generate(new Generate(
+            "payments-key",
+            KeyAlgorithms.SECP256K1,
+            authorities,
+            KeyGenMode.CREATE
+    ));
+
+    var payload = TKeeperJackson.signingNode()
+            .put("amount", 5000)
+            .put("currency", "USD");
+
+    var command = Command.of(
+            "payments-small",
+            new TypedData(SignatureSchemes.ECDSA, HashMethod.SHA256, payload)
+    );
+
+    var signature = keeper.signature().sign(Sign.of("payments-key", command));
+    var verified = keeper.signature().verify(new Verify(
+            "payments-key",
+            signature.generation(),
+            command,
+            signature.signature64(),
+            null
+    ));
+
+    if (!Boolean.TRUE.equals(verified.valid())) {
+        throw new IllegalStateException("signature verification failed");
+    }
+}
 ```
+
+The short `Generate` constructors that omit `KeySetAuthorities` default to `arbitrary` raw signing. Pass authorities explicitly for governed identities.
+
+## Modules
+
+| Client method | API area |
+| --- | --- |
+| `system()` | initialization, unseal, status, health, readiness |
+| `dkg()` | create, rotate, refresh |
+| `signature()` | sign and verify |
+| `storage()` | trusted-dealer import |
+| `quorum()` | mono-to-threshold promotion |
+| `destroy()` | generation destruction |
+| `consistency()` | threshold consistency repair |
+| `ecies()` | optional encrypt/decrypt feature |
+| `compliance()` | asset inventory |
+| `expire()` | expiration indexes |
+| `audit()` and `integrity()` | audit verification and integrity-key rotation |
+| `controlPlane()` | control-plane reads |
+
+Feature-specific calls fail when the server artifact does not include the required feature or cryptographic platform.
+
+## Errors
+
+Non-success responses throw `TKeeperException`. Branch on the stable `ErrorType`; use `details` only for diagnostics.
+
+| Error family | Handling |
+| --- | --- |
+| `ACCESS_DENIED`, `POLICY_VIOLATION` | reject; do not retry unchanged input |
+| validation and authority errors | fix the request, authority, or server artifact |
+| `SESSION_MAX_ROUNDS_EXCEEDED`, quorum, audit, or timeout errors | retry only under a bounded availability policy |
+| non-empty `imposters` | preserve as security evidence and investigate the named peers |
+
+Do not blindly retry policy, permission, or validation failures. Preserve `imposters` and `dead` as security and availability diagnostics.
+
+## Contract
+
+[`../openapi.yaml`](../openapi.yaml) is the source of truth for routes and wire models. If an SDK helper and OpenAPI disagree, update the SDK rather than coding against the stale helper behavior.
