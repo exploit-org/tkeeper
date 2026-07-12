@@ -1717,10 +1717,16 @@ components:
     Auth:
       type: object
       additionalProperties: false
+      required: [subject]
       properties:
         subject:
           type: string
           minLength: 1
+        actor:
+          type: string
+          minLength: 1
+          nullable: true
+          description: Original external actor when subject is an authenticated keeper peer
 
     Ctx:
       type: object
@@ -1972,9 +1978,11 @@ components:
 
     SimpleAuthData:
       type: object
-      required: [subject, permissions]
+      required: [subject, actor, permissions]
       properties:
         subject:
+          type: string
+        actor:
           type: string
         permissions:
           type: array
