@@ -1,12 +1,13 @@
 # Four Eye Control
 
-Four eye control is a key policy. It requires external approver signatures before sensitive operations run.
+Four-eye control is a key policy. It requires `m` distinct approver signatures from `n` configured approver keys before TKeeper continues.
 
-Policy shape:
+## Policy shape
 
 ```json
 {
   "fourEye": {
+    "mode": "STRICT",
     "m": 2,
     "n": 3,
     "keys": [
@@ -29,14 +30,21 @@ Policy shape:
 
 Rules:
 
+- `mode` is `STRICT` or `LENIENT`; omitted values default to `STRICT`
+- `m` must be at least `2`
 - `m` cannot be greater than `n`
-- `m` must be at least 2
 - `keys.size` must equal `n`
 - duplicate approver keys are rejected
 - approver public keys must decode under the declared algorithm
 - supported approver algorithms are `SECP256K1`, `P256`, and `ED25519`
 
-Operations that carry approvals hash the operation body first. Approvers sign that hash. TKeeper verifies the submitted proofs before continuing.
+`STRICT` preserves the original behavior: approvals are required for every operation protected by the key policy, including signing, decrypting, rotating, refreshing, and destroying a generation.
+
+`LENIENT` requires approvals only for `ROTATE` and `REFRESH`. Signing, decrypting, destroying, and other operations do not use this four-eye policy. Authentication, permissions, authority policies, and audit checks still apply.
+
+## Approval model
+
+Approvers sign a hash of the exact operation body. TKeeper verifies the submitted proofs before continuing to signing, DKG, destroy, or decrypt.
 
 Approval payload:
 
@@ -56,13 +64,13 @@ Approval payload:
 }
 ```
 
-The nonce cannot be reused. The timestamp must not be in the future and must fit `keeper.approval.ttl`.
+The nonce is one-time. The timestamp must not be in the future and must fit `keeper.approval.ttl`.
 
-The coordinator peer id in `approvals.keeperId` must match the peer that coordinates the operation.
+The coordinator peer id in `approvals.keeperId` must match the peer coordinating the operation.
 
-Approver signature type depends on the approver key algorithm:
+## Signature algorithms
 
-| Algorithm | Approval signature |
+| Approver key | Approval signature |
 | --- | --- |
 | `SECP256K1` | ECDSA |
 | `P256` | ECDSA |
@@ -74,7 +82,7 @@ The approver fingerprint is:
 base64(sha256(encoded-public-key))
 ```
 
-## Signed Fields
+## Canonical approval hash
 
 TKeeper uses canonical JSON for approval hashes.
 
@@ -88,7 +96,7 @@ Canonicalization rules for SDKs and non-Java clients:
 - apply the same object-field sorting to objects inside arrays
 - keep string values byte-exact, including base64 strings, enum names, nonce, and tweak
 
-Do not sort arrays globally. JSON arrays are ordered data. If a request contains `authorities`, `fourEye.keys`, Bitcoin previous transactions, typed JSON arrays, or any other array, the approval hash uses that array order. If the order matters to an application, send and approve the exact same body.
+Do not sort arrays globally. Arrays are ordered data.
 
 The approval hash is:
 
@@ -98,7 +106,7 @@ sha256(canonical-json-bytes)
 
 Approvers sign that 32-byte hash. `approvals.proofs` is not part of the hash.
 
-The exact fields are operation-specific:
+## Signed fields
 
 | Operation | Fields |
 | --- | --- |
@@ -107,9 +115,18 @@ The exact fields are operation-specific:
 | ECIES decrypt | `keeperId`, `keyId`, optional `generation`, `algorithm`, `ciphertext64`, optional `tweak`, `nonce`, `timestamp` |
 | Destroy | `keeperId`, `keyId`, `generation`, `nonce`, `timestamp` |
 
-The table describes the logical fields, not serialization order. Serialization order is defined by the canonicalization rules above. Any change to those fields changes the approval hash.
+The table describes logical fields, not serialization order. Serialization order is defined by canonicalization.
 
-## Frequent Problems
+## Security notes
+
+- Four-eye approvals do not replace TKeeper authentication or permissions.
+- Approver keys should be stored separately from TKeeper peers.
+- Any change to the approved request body requires new approvals.
+- Approval signatures are only as trustworthy as approver key custody.
+- Approval tooling should render the canonical operation from the signed fields. A trusted human summary that is not bound to the approval hash can mislead the approver.
+- Nonce uniqueness prevents approval reuse inside TKeeper; downstream replay rules are still required for the resulting cryptographic proof.
+
+## Common failures
 
 ### Approvals fail after changing the request
 

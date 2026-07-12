@@ -1,4 +1,4 @@
-# Initializing TKeeper
+# Initialization and Unseal
 
 Init writes the keeper identity and quorum settings into the sealed store.
 
@@ -65,41 +65,17 @@ For threshold mode, all peers must be initialized with the same `threshold` and 
 
 Peers can be initialized independently. The threshold parameters are the part that must match.
 
-## Choosing A Mode
+## Choosing a mode
 
 Use mono when one Keeper is enough for custody, but you still want TKeeper's authority controls around the key. Mono operations are local. There is no peer quorum, no distributed signing protocol, and no protection against compromise of that one node.
 
 Use threshold when no single machine should be able to use the key alone. Keys are split across peers. Signing and decrypting need enough healthy peers to participate. For ECDSA TKeeper uses GG20. For Schnorr-style schemes it uses FROST. Threshold ECIES decrypts through peer partial decrypts.
 
-Most production custody setups should use threshold mode. Mono is useful for development, small deployments, bootstrap phases, and systems that plan to promote into a quorum later.
+Use threshold mode when one compromised node must not be enough to act as the identity. Mono is appropriate for development, explicitly lower-impact deployments, bootstrap phases, and systems that plan to promote into a quorum later.
 
-## Promoting Mono To Threshold
+## Promoting mono to threshold
 
-A mono Keeper can be promoted into a threshold quorum:
-
-```http
-POST /v2/keeper/quorum/promote
-```
-
-Body:
-
-```json
-{
-  "threshold": 2,
-  "total": 3
-}
-```
-
-Before promotion:
-
-- the mono Keeper must be initialized and unsealed
-- the target peers must already be initialized and unsealed with the target `threshold` and `total`
-- the mono Keeper config must list the target peers as peer ids `2..total`
-- the target peers must trust the mono Keeper through the internal auth setup
-
-After promotion, the mono Keeper becomes peer `1` of the new threshold quorum. TKeeper splits active keys into shares, imports those shares into the target peers, creates a new active generation, and destroys the old mono generations locally.
-
-Promotion returns `restartRequired = true`. Restart the promoted Keeper before using it as a threshold peer.
+See [Quorum Promotion](../key-management/quorum-promotion.md).
 
 If the selected seal provider needs recovery material, init returns it. With manual Shamir, that means unseal shares. Store them outside the node. Without enough shares, the node stays sealed.
 
@@ -142,7 +118,7 @@ GET /v1/keeper/peerId
 GET /v1/keeper/ping
 ```
 
-## Frequent Problems
+## Common problems
 
 ### `KEEPER_ALREADY_INITIALIZED`
 

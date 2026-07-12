@@ -1,4 +1,4 @@
-# Enabling UI
+# Control Plane UI
 
 The control-plane UI lives in `:features:ui`.
 
@@ -120,7 +120,7 @@ When public TLS is enabled:
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 ```
 
-## Frequent Problems
+## Common problems
 
 ### `/ui/` returns 404
 

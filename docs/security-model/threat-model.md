@@ -1,6 +1,8 @@
 # Threat Model
 
-This page covers TKeeper service-level threats.
+This page covers TKeeper service-level threats and residual risks.
+
+TKeeper's security boundary is the governed cryptographic identity. With a concrete authority, an identity can authorize an action only after TKeeper materializes the intent, accepts the authority and policy decision, passes audit and key controls, and produces proof that the downstream system verifies before execution. An `arbitrary` authority is raw signing and does not provide this semantic guarantee.
 
 For protocol-level details in FROST, GG20, threshold ML-DSA, ECIES, ZK proofs, nonce handling, Paillier, and elliptic-curve math, use the Anvil threat model:
 
@@ -24,6 +26,8 @@ In scope:
 Out of scope:
 
 - compromise of at least `threshold` peers
+- downstream systems that execute effects without verifying TKeeper proof
+- bad authority policies approved by operators
 - physical side channels
 - host hardening
 - kernel, container runtime, and hypervisor compromise
@@ -62,7 +66,7 @@ Audit events are signed with the integrity key. When audit is enabled, at least 
 | Audit records | Low | Critical | High |
 | Session context | Low | Critical | High |
 
-## Trust Boundaries
+## Trust boundaries
 
 Client to Keeper:
 
@@ -70,11 +74,11 @@ Requests are untrusted until authenticated and authorized. JWT mode validates to
 
 Keeper to Keeper:
 
-Internal peer calls happen inside the cluster boundary. Peers still verify protocol data. Bad FROST, GG20, ML-DSA, or ECIES contributions are rejected. Protocols report an imposter only where the sender can be identified; a normal ML-DSA rejection-sampling abort is not Byzantine evidence.
+Internal peer calls happen inside the cluster boundary. Requests and authenticated responses are signed and bound to the peer identities, request nonce, request hash, status, and body. Actor credentials are forwarded only to internal operation entrypoints that enforce their permissions. Peers still verify protocol data. Bad FROST, GG20, ML-DSA, or ECIES contributions are rejected. Protocols report an imposter only where the sender can be identified; a normal ML-DSA rejection-sampling abort is not Byzantine evidence.
 
 Keeper to OCI registry:
 
-Authorities are loaded from OCI. Digest-pinned references protect against tag drift. The authority id inside the artifact must match the id configured on the key.
+Authorities are loaded only from explicitly allowed OCI registries. Digest-pinned references protect against tag drift. The authority id inside the artifact must match the id configured on the key.
 
 Keeper to seal provider:
 
@@ -82,7 +86,7 @@ Seal providers protect the DEK. Built-in providers are Shamir and HSM. External 
 
 Keeper storage:
 
-Stored key material is encrypted. Signed records protect public metadata, key records, and integrity-sensitive state from silent tampering.
+Stored key material is AEAD-encrypted. New generations use a separate encrypt-then-sign version store whose signature is bound to the record id. Legacy generations remain readable for compatibility and migrate only through an explicit lifecycle operation.
 
 Browser to UI:
 
@@ -151,6 +155,7 @@ An attacker changes the authority artifact in the registry or points a key at a 
 Mitigation:
 
 - Production references use `@sha256:...`.
+- `oras.allowed-registries` restricts outbound pulls to exact registry authorities.
 - TKeeper verifies the loaded authority id against the configured id.
 - Authority metadata is part of signed key state.
 - Audit logs record authority-related operations.
@@ -173,7 +178,7 @@ Mitigation:
 
 Residual risk:
 
-Policy can only enforce the effects it can model. Raw bytes give policy almost no semantic context.
+Policy can only enforce the effects it can model. Raw bytes give policy almost no semantic context. Custom authorities ignore undeclared JSON fields, so a backend that acts on those fields can create a policy bypass.
 
 ### T-6: Four Eye Replay or Bypass
 
@@ -201,14 +206,17 @@ A peer sends invalid FROST, GG20, or threshold ML-DSA data to corrupt a signatur
 Mitigation:
 
 - FROST verifies peer proof material and signing contributions.
-- GG20 verifies the ZK proof flow used by the protocol.
+- FROST signing nonces are atomically consumed and cannot produce a second partial signature.
+- GG20 verifies the ZK proof flow used by the protocol; MtA responses expose only the ciphertext and proof, never the respondent mask or encryption randomness.
+- GG20 signing state emits at most one partial signature.
+- FROST and GG20 session clients are destroyed on success, abort, expiry, and shutdown.
 - Threshold ML-DSA binds commitments, reveals, participants, message context, and partial responses, then verifies the combined standard ML-DSA signature.
 - Identified bad peers are returned as `imposters`.
 - Signing restarts with fresh session state where the protocol reports an imposter.
 
 Residual risk:
 
-Byzantine peers can cause availability loss by aborting sessions. Threshold ML-DSA does not provide identifiable abort for every failure.
+Byzantine peers can cause availability loss by aborting sessions. Threshold ML-DSA does not provide identifiable abort for every failure. A defect that exposes an MtA mask or permits reuse of FROST/GG20 signing state can invalidate the threshold confidentiality assumption; affected key generations require rotation, not refresh.
 
 ### T-8: Byzantine Peer During ECIES Decrypt
 
@@ -242,7 +250,7 @@ Mitigation:
 
 Residual risk:
 
-Memory forensics against an unsealed keeper can expose runtime secrets. Use host hardening and encrypted swap.
+Memory forensics against an unsealed keeper can expose runtime secrets. A complete rollback or deletion of the local database cannot be detected solely by keys and signatures stored in that same database. Use host storage controls, encrypted swap, durable external audit export, and independently protected backups.
 
 ### T-10: Unseal Material Compromise
 
@@ -305,6 +313,7 @@ Mitigation:
 - Lifecycle operations use separate permissions.
 - Destructive operations are audit-logged.
 - Key metadata and active generations are integrity-protected.
+- Refresh writes a new signed generation and never overwrites a legacy generation in place.
 - ECC refresh reshapes the existing secret shares without changing the public key. Rotate creates new key material.
 - ML-DSA refresh creates a new generation with the same per-peer share and public key; it does not refresh cryptographic material. ML-DSA rotate runs a new DKG and creates a new key.
 - Consistency repair is an explicit API, not part of normal signing flow.
@@ -363,12 +372,30 @@ Residual risk:
 
 Build separation cannot prevent an operator from deploying the wrong artifact. Production admission and release policy must reject the integration jar and `exploit/tkeeper:dev` image.
 
-## Security Properties
+### T-17: Downstream Proof Misuse
+
+Attack:
+
+A downstream service accepts a valid signature for the wrong identity, executes a payload that differs from the governed intent, relies on unsigned fields, or replays a previously valid proof.
+
+Mitigation:
+
+- Verifiers pin the expected identity or public key.
+- The executed effect is reconstructed from the exact governed command.
+- Security-relevant context is included in the signed intent or checked before execution.
+- Nonces, expiry, sequence numbers, or idempotency keys are enforced where replay matters.
+- Custom-authority integrations reject or ignore undeclared fields before execution.
+
+Residual risk:
+
+TKeeper cannot enforce a downstream path that misinterprets or bypasses its proof. Cryptographic validity does not establish business validity, freshness, or correct environment by itself.
+
+## Security properties
 
 | Property | Mechanism |
 | --- | --- |
-| No unilateral key use | `t-of-n` threshold protocols |
-| No key reconstruction | FROST, GG20, threshold ML-DSA, and threshold ECIES use shares |
+| No unilateral key use in threshold mode | `t-of-n` threshold protocols |
+| No key reconstruction in normal threshold flows | FROST, GG20, threshold ML-DSA, and threshold ECIES use shares |
 | Raw signing isolated | `arbitrary` cannot be mixed with concrete authorities |
 | Typed signing policy | authorities materialize commands before signing |
 | Authority immutability | digest-pinned OCI references |
@@ -379,7 +406,7 @@ Build separation cannot prevent an operator from deploying the wrong artifact. P
 | Storage integrity | signed key and metadata records |
 | Audit integrity | Ed25519-signed events |
 
-## Operational Checklist
+## Operational checklist
 
 - Use short-lived JWTs.
 - Configure the expected JWT issuer and audience explicitly.

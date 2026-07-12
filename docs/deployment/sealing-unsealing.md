@@ -70,7 +70,7 @@ Seal providers:
 
 Feature seal providers must be included at build time. If `keeper.providers.selected = "aws"` but the jar was built without `:features:seal-aws`, startup will not find the provider.
 
-## Provider Selection
+## Provider selection
 
 Provider selection lives under `keeper.providers`:
 
@@ -85,7 +85,7 @@ keeper.providers {
 
 For automatic providers, `GET /v1/keeper/system/unseal` asks the selected provider to decrypt TKeeper's internal master key. That is how HSM, AWS KMS, and Google Cloud KMS unseal without submitted shares.
 
-## Shamir Provider
+## Shamir provider
 
 `shamir` is built in.
 
@@ -108,7 +108,7 @@ Behavior:
 - `POST /v1/keeper/system/unseal` accepts one or more shares
 - `GET /v1/keeper/system/unseal` is not supported for manual Shamir
 
-## HSM Provider
+## HSM provider
 
 `hsm` is built in. It uses PKCS#11 through `SunPKCS11`.
 
@@ -141,7 +141,7 @@ AES_CBC
 
 `slot` and `slot-list-index` are mutually exclusive.
 
-## AWS KMS Provider
+## AWS KMS provider
 
 `aws` lives in `:features:seal-aws`.
 
@@ -165,7 +165,7 @@ keeper.providers {
 }
 ```
 
-## Google Cloud KMS Provider
+## Google Cloud KMS provider
 
 `google` lives in `:features:seal-gcloud`.
 
@@ -191,7 +191,7 @@ keeper.providers {
 }
 ```
 
-## Frequent Problems
+## Common problems
 
 ### `KEEPER_SEALED`
 

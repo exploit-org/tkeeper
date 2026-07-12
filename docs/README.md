@@ -1,24 +1,41 @@
 # TKeeper Docs
 
-Start here for setup and system overview.
+TKeeper gives machines, agents, services, and workflows a cryptographic identity whose use is constrained by explicit authorities and policy.
 
-Recommended reading order:
+## Read first
 
-1. [Getting Started](getting-started.md)
-2. [Threat Model](threat-model.md)
-3. [Choosing a Quorum Mode](security-quorum-modes.md)
-4. [Build & Docker Image](build-docker-image.md)
-5. [Configuration](configuration.md)
-6. [Authentication & Authorization](authentication-authorization.md)
-7. [Enabling UI](enabling-ui.md)
-8. [Initializing TKeeper](initializing-tkeeper.md)
-9. [Sealing & Unsealing](sealing-unsealing.md)
-10. [Authorities](authorities.md)
-11. [Four Eye Control](four-eye-control.md)
-12. [Key Lifecycle](key-lifecycle.md)
-13. [Trusted Dealer](trusted-dealer.md)
-14. [Signing Messages](signing.md)
-15. [Encryption & Decryption](ecies.md)
-16. [Asset Inventory](asset-inventory.md)
-17. [Audit Logging](audit-logging.md)
-18. [Error Tracking](error-tracking.md)
+- [Overview](overview/README.md)
+- [Use Cases](use-cases/README.md)
+- [Getting Started](getting-started/README.md)
+- [Deployment](deployment/README.md)
+- [Security Model](security-model/README.md)
+- [Key Management](key-management/README.md)
+- [Signing and Authorities](signing-and-authorities/README.md)
+- [Crypto Platforms](crypto-platforms/README.md)
+- [API Reference](api-reference/README.md)
+- [Operations](operations/README.md)
+
+## Common paths
+
+| Goal | Start here |
+| --- | --- |
+| Understand the product | [What is TKeeper?](overview/what-is-tkeeper.md) |
+| Map it to your use case | [Use Cases](use-cases/README.md) |
+| Run it locally | [Local Single Node](getting-started/local-single-node.md) |
+| Build an artifact | [Build and Features](deployment/build-and-features.md) |
+| Design backup and recovery | [Backup and Recovery](deployment/backup-and-recovery.md) |
+| Choose mono or threshold | [Quorum Modes](security-model/quorum-modes.md) |
+| Create and operate keys | [Key Lifecycle](key-management/key-lifecycle.md) |
+| Govern signing | [Authorities](signing-and-authorities/authorities.md) |
+| Select ECC or PQC | [Platforms](crypto-platforms/platforms.md) |
+| Use the HTTP API | [OpenAPI](api-reference/openapi.md) |
+| Run integration tests | [Integration Tests](operations/integration-tests.md) |
+
+## By audience
+
+| Reader | Recommended path |
+| --- | --- |
+| Application integrator | [Getting Started](getting-started/README.md) -> [Signing](signing-and-authorities/signing.md) -> [Java SDK](api-reference/sdk.md) or [OpenAPI](api-reference/openapi.md) |
+| Security reviewer | [Security Model](security-model/README.md) -> [Threat Model](security-model/threat-model.md) -> [Status and Limitations](overview/status-and-limitations.md) |
+| Platform operator | [Deployment](deployment/README.md) -> [Production Checklist](deployment/production-checklist.md) -> [Operations](operations/README.md) |
+| Cryptography reviewer | [Crypto Platforms](crypto-platforms/README.md) -> [Quorum Modes](security-model/quorum-modes.md) -> [Anvil threat model](https://github.com/exploit-org/anvil/blob/main/THREAT_MODEL.md) |

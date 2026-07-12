@@ -17,6 +17,8 @@ External config can be:
 
 Multiple external locations are comma-separated. Earlier locations win because they are loaded first.
 
+Configuration can contain bootstrap tokens, HSM PINs, registry credentials, and trust-store passwords. Keep configuration files out of source control, restrict filesystem access, and inject secrets through the deployment's protected configuration mechanism. Do not expose resolved configuration in logs or support bundles.
+
 Profile config uses bundled files named `application-{profile}.conf`, `application-{profile}.json`, or `application-{profile}.properties`.
 
 Dev auth config is separate. Enable it with:
@@ -141,6 +143,29 @@ keeper.client {
 }
 ```
 
+For mutual TLS, require client certificates on every internal server and configure the peer client key store:
+
+```hocon
+keeper.server.internal.tls {
+  enabled = true
+  client-auth = true
+  trust-store-path = "/etc/tkeeper/peer-ca.p12"
+  trust-store-password = "..."
+  trust-store-type = "PKCS12"
+}
+
+keeper.client {
+  tls = true
+  trust-store-path = "/etc/tkeeper/internal-truststore.p12"
+  trust-store-password = "..."
+  key-store-path = "/etc/tkeeper/peer-client.p12"
+  key-store-password = "..."
+  key-store-type = "PKCS12"
+}
+```
+
+mTLS limits internal API access and protects forwarded actor credentials from network interception. TKeeper still verifies application-level peer signatures because TLS may terminate at infrastructure boundaries and does not bind protocol messages to TKeeper sessions.
+
 ## Authentication
 
 JWT authentication is configured under `auth.jwt`:
@@ -213,7 +238,7 @@ keeper.audit {
 }
 ```
 
-Socket audit supports TLS, SPKI pins, client certificates, batching, timeouts, and reconnect backoff. See [Audit Logging](audit-logging.md).
+Socket audit supports TLS, SPKI pins, client certificates, batching, timeouts, and reconnect backoff. See [Audit Logging](../security-model/audit-logging.md).
 
 ## ORAS
 
@@ -222,18 +247,19 @@ ORAS config is used by authority OCI pulls:
 ```hocon
 oras {
   insecure = false
+  allowed-registries = ["registry.example.com"]
   username = "robot"
   password = "secret"
 }
 ```
 
-For HTTPS registries, set `insecure = false`. For a local plain HTTP registry, set `insecure = true`.
+`allowed-registries` is mandatory for OCI authorities and matches the exact registry authority, including the port. An empty list denies all OCI pulls. HTTPS is the default; use `insecure = true` only for an explicitly allowed local plain HTTP registry.
 
 ## UI CSP
 
-The UI has its own CSP config under `keeper.csp`. See [Enabling UI](enabling-ui.md).
+The UI has its own CSP config under `keeper.csp`. See [Control Plane UI](control-plane-ui.md).
 
-## Environment Aliases
+## Environment aliases
 
 Common environment variables:
 
@@ -253,8 +279,11 @@ Common environment variables:
 | `KEEPER_TLS_ENABLED` | `keeper.server.public.tls.enabled` |
 | `KEEPER_INTERNAL_TLS_ENABLED` | `keeper.server.internal.tls.enabled` |
 | `KEEPER_CLIENT_TLS` | `keeper.client.tls` |
+| `KEEPER_INTERNAL_TLS_CLIENT_AUTH` | `keeper.server.internal.tls.client-auth` |
+| `KEEPER_INTERNAL_TLS_TRUST_STORE_PATH` | `keeper.server.internal.tls.trust-store-path` |
+| `KEEPER_CLIENT_KEY_STORE_PATH` | `keeper.client.key-store-path` |
 
-## Frequent Problems
+## Common problems
 
 ### Peer calls fail
 
@@ -265,11 +294,17 @@ Check `keeper.peers`. Each node lists the other peers, not itself.
 Local registry over plain HTTP:
 
 ```hocon
-oras { insecure = true }
+oras {
+  insecure = true
+  allowed-registries = ["registry:5000"]
+}
 ```
 
 Real registry over HTTPS:
 
 ```hocon
-oras { insecure = false }
+oras {
+  insecure = false
+  allowed-registries = ["registry.example.com"]
+}
 ```

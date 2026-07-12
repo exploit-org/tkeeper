@@ -20,7 +20,7 @@ SENTRY_APPLICATION_ENVIRONMENT
 SENTRY_APPLICATION_RELEASE
 ```
 
-## Frequent Problems
+## Common problems
 
 ### Sentry stays disabled
 

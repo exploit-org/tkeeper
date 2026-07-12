@@ -67,9 +67,23 @@ Example line, formatted for readability:
 
 Some fields depend on the operation. `approvers` appears only for approved operations. `policy` appears when a Verdict authority was evaluated. `imposters` and `dead` appear when a threshold protocol reports bad or unavailable peers.
 
+`auth.subject` is the identity authenticated on the current HTTP hop. For a direct public request it is the external principal. For a protected peer request it is the keeper peer that signed the internal request, while optional `auth.actor` preserves the original external principal. Peer-only protocol rounds omit `actor`.
+
 The policy object is Verdict's `PolicyEvaluation`: `decision` plus matched rules.
 
-## File Sink
+## Integrity boundary
+
+The signature detects modification of an individual encoded event when the verifier has the correct integrity public key. It does not by itself prove that the log is complete, correctly ordered, retained, or delivered to every configured sink.
+
+For compliance or incident evidence:
+
+- preserve events in an access-controlled external system
+- retain integrity public keys for every referenced version
+- monitor gaps, duplicate ids, and unexpected time ordering at the collector
+- define retention and deletion controls outside TKeeper
+- verify records independently instead of trusting only the producer
+
+## File sink
 
 ```hocon
 keeper.audit {
@@ -90,7 +104,7 @@ keeper.audit {
 }
 ```
 
-## Socket Sink
+## Socket sink
 
 ```hocon
 keeper.audit {
@@ -226,13 +240,15 @@ Response:
 { "data": "base64-public-key" }
 ```
 
-## Failure Behavior
+## Failure behavior
 
 When audit is enabled, TKeeper checks sink availability before protected operations. At least one configured sink must be available.
 
 When an event is written, the operation continues if at least one configured sink accepts the event before the audit timeout. If all configured sinks fail or miss the timeout, the operation fails with `AUDIT_FAILED`.
 
-## Frequent Problems
+Multiple configured sinks are therefore redundant destinations, not an all-sinks durability guarantee. If policy requires delivery to a particular archive, enforce and monitor that requirement at the deployment or collector layer.
+
+## Common problems
 
 ### Audit sink is down
 
