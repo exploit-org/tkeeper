@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: TKeeper API
-  version: 2.0.0
+  version: 2.2.0
   description: |
     TKeeper public HTTP API.
     JSON request bodies reject unknown properties and are limited to 10 MiB by the HTTP server.
@@ -1223,6 +1223,8 @@ components:
       additionalProperties: false
       required: [m, n, keys]
       properties:
+        mode:
+          $ref: '#/components/schemas/FourEyeControlMode'
         m:
           type: integer
           format: int32
@@ -1240,6 +1242,11 @@ components:
           uniqueItems: true
           items:
             $ref: '#/components/schemas/ApproverPublicKey'
+
+    FourEyeControlMode:
+      type: string
+      enum: [STRICT, LENIENT]
+      default: STRICT
 
     ApproverPublicKey:
       type: object
