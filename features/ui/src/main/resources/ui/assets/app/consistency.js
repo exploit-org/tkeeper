@@ -45,7 +45,7 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
 
     const keyId = (keyIdEl.value || "").trim();
     if (!keyId) {
-      showAlert("warning", "Please enter a Target Key Identifier.");
+      showAlert("warning", "Please enter a target identity ID.");
       runBtn.disabled = false;
       return;
     }
@@ -104,7 +104,7 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
             </div>`;
       }
     } catch (e) {
-      const msg = e?.details || e?.message || String(e);
+      const msg = e?.message || String(e);
       showAlert("danger", msg);
     } finally {
         runBtn.disabled = false;

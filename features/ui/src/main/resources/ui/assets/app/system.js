@@ -31,17 +31,14 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
   }
 
   const els = {
-    badge: document.getElementById("tk-system-badge"),
     refresh: document.getElementById("tk-system-refresh"),
     alerts: document.getElementById("tk-system-alerts"),
 
     capability: document.getElementById("tk-system-capability"),
-    peerstate: document.getElementById("tk-system-peerstate"),
     ready: document.getElementById("tk-system-ready"),
     threshold: document.getElementById("tk-system-threshold"),
 
     peers: document.getElementById("tk-system-peers"),
-    foot: document.getElementById("tk-system-footnote"),
 
     upgrade: document.getElementById("tk-quorum-upgrade"),
     upgradeThreshold: document.getElementById("tk-quorum-threshold"),
@@ -68,22 +65,17 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
   async function load() {
     clear(els.alerts);
     clearAlerts();
-    setTopBadge("LOADING", "secondary");
 
     let sys;
     try {
       sys = await api.getSystem();
     } catch (e) {
-      showAlert("danger", e?.details || e?.message || String(e));
-      setTopBadge("UNAVAILABLE", "danger");
+      showAlert("danger", e?.message || String(e));
       return;
     }
 
     clearAlerts();
     lastSystem = sys;
-
-    const selfId = sys?.id ? String(sys.id) : null;
-    const selfState = String(sys?.state || "").toUpperCase();
 
     const peerEntries = normalizePeers(sys);
     const readyCount = peerEntries.filter(p => p.state === "READY").length;
@@ -94,18 +86,11 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
     const cap = clusterCapability(readyCount, threshold, totalPeers);
     renderCapability(cap, readyCount, threshold, totalPeers);
 
-    renderThisPeer(selfState);
-
-    els.foot.textContent = selfId ? `Node: ${selfId}` : "";
     els.ready.textContent = `${readyCount} / ${totalPeers}`;
     els.threshold.textContent = String(threshold);
 
     els.peers.innerHTML = peerEntries.map(rowHtml).join("");
     renderUpgradeSection(sys);
-
-    if (cap === "READY") setTopBadge("READY", "green");
-    else if (cap === "LIMITED") setTopBadge("LIMITED", "warning");
-    else setTopBadge("UNAVAILABLE", "danger");
   }
 
   function clusterCapability(readyCount, threshold, totalPeers) {
@@ -117,24 +102,18 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
   function renderCapability(cap, readyCount, threshold, totalPeers) {
     if (cap === "READY") {
       els.capability.textContent = "Ready";
-      addAlert("success", "Cluster can perform all operations, including key generation/rotation/refresh.");
+      addAlert("success", "Cluster can perform all operations, including creating, rotating and refreshing identities.");
       return;
     }
 
     if (cap === "LIMITED") {
       els.capability.textContent = "Limited";
-      addAlert("warning", "Cluster can perform operations, but key generation/rotation/refresh will be unavailable.");
+      addAlert("warning", "Cluster can perform operations, but identity creation, rotation and refresh are unavailable.");
       return;
     }
 
     els.capability.textContent = "Unavailable";
     addAlert("danger", "Not enough READY peers to reach threshold. Operations will fail.");
-  }
-
-  function renderThisPeer(state) {
-    if (state === "READY") els.peerstate.textContent = "Ready";
-    else if (state === "NOT_READY") els.peerstate.textContent = "Not ready";
-    else els.peerstate.textContent = "Unavailable";
   }
 
   function renderUpgradeSection(sys) {
@@ -229,7 +208,7 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
       return;
     }
 
-    if (!window.confirm("Promote this keeper to threshold mode? TKeeper will distribute existing keys to peers, delete mono history, and this keeper cannot return to mono mode.")) {
+    if (!window.confirm("Promote this keeper to threshold mode? TKeeper will distribute existing identities to peers, delete mono history, and this keeper cannot return to mono mode.")) {
       return;
     }
 
@@ -248,7 +227,7 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
       setUpgradeResult(result);
       setUpgradeStatus("Promotion completed. Restart this keeper before normal operations.", "success");
     } catch (e) {
-      promotionError = e?.details || e?.message || String(e);
+      promotionError = e?.message || String(e);
       setUpgradeStatus(promotionError, "danger");
     } finally {
       promoting = false;
@@ -261,8 +240,8 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
 
     els.upgradeStatus.textContent = text || "";
     els.upgradeStatus.className =
-      kind === "danger" ? "text-danger small fw-semibold" :
-      kind === "success" ? "text-green small fw-semibold" :
+      kind === "danger" ? "text-danger small" :
+      kind === "success" ? "text-green small" :
       "text-muted small";
   }
 
@@ -281,21 +260,10 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
       <div class="alert alert-success mb-0" role="alert">
         <div class="fw-semibold mb-1">Promoted to ${escapeHtml(result.threshold)}-of-${escapeHtml(result.total)}</div>
         <div class="small">
-          Peer ID ${escapeHtml(result.peerId)}. Promoted keys: ${escapeHtml(result.promotedKeys)}. ${escapeHtml(restart)}.
+          Peer ID ${escapeHtml(result.peerId)}. Promoted identities: ${escapeHtml(result.promotedKeys)}. ${escapeHtml(restart)}.
         </div>
       </div>
     `;
-  }
-
-  function setTopBadge(text, kind) {
-    const cls =
-      kind === "green" ? "badge bg-green-lt" :
-      kind === "warning" ? "badge bg-warning-lt" :
-      kind === "danger" ? "badge bg-danger-lt" :
-      "badge bg-secondary-lt";
-
-    els.badge.className = cls;
-    els.badge.textContent = text;
   }
 
   function addAlert(kind, text) {
@@ -308,15 +276,16 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
 
   function normalizePeers(sys) {
     const peers = sys?.peers && typeof sys.peers === "object" ? sys.peers : {};
+    const selfId = sys?.id ? String(sys.id) : null;
     const entries = Object.keys(peers).map(id => ({
       id,
-      state: String(peers[id] || "").toUpperCase()
+      state: String(peers[id] || "").toUpperCase(),
+      current: id === selfId
     }));
 
-    const selfId = sys?.id ? String(sys.id) : null;
     const selfState = sys?.state ? String(sys.state).toUpperCase() : null;
     if (selfId && selfState && !entries.some(e => e.id === selfId)) {
-      entries.push({ id: selfId, state: selfState });
+      entries.push({ id: selfId, state: selfState, current: true });
     }
 
     entries.sort((a, b) => {
@@ -337,9 +306,10 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
   function rowHtml(p) {
     const badge = peerBadge(p.state);
     const note = peerNote(p.state);
+    const current = p.current ? `<span class="tk-peer-current">Current</span>` : "";
     return `
-      <tr>
-        <td class="font-monospace">${escapeHtml(p.id)}</td>
+      <tr class="${p.current ? "tk-peer-row--current" : ""}">
+        <td class="font-monospace"><span>${escapeHtml(p.id)}</span>${current}</td>
         <td>${badge}</td>
         <td class="text-secondary">${note}</td>
       </tr>

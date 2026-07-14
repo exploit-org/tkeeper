@@ -1,7 +1,7 @@
-import {buildFourEyePolicy, initFourEyeUI} from "./fourEye.js";
+import {buildFourEyePolicy, initFourEyeUI, setAlgorithmOptions} from "./fourEye.js";
 
-export async function init({api, Auth, showAlert, setTitle, clearAlerts}) {
-    setTitle?.("Import");
+export async function init({api, Auth, showAlert, setTitle, clearAlerts, signal}) {
+    setTitle?.("Import Identity");
 
     if (!Auth?.subject) {
         showAlert("warning", "Unauthenticated.");
@@ -14,14 +14,17 @@ export async function init({api, Auth, showAlert, setTitle, clearAlerts}) {
     }
 
     const el = ids([
+        "tk-import-form",
         "tk-import-keyId",
-        "tk-import-curve",
+        "tk-import-algorithm",
         "tk-import-assetOwner",
         "tk-import-value64",
         "tk-import-authorities",
+        "tk-import-authority-guidance",
         "tk-import-authority-add",
         "tk-import-authority-arbitrary",
         "tk-import-submit",
+        "tk-import-submit-dock",
         "tk-import-clear",
         "tk-import-status",
         "tk-import-policy-enabled",
@@ -30,9 +33,16 @@ export async function init({api, Auth, showAlert, setTitle, clearAlerts}) {
         "tk-import-process-notAfter",
         "tk-import-allow-historical",
         "tk-import-foureye-enabled",
+        "tk-import-foureye-body",
+        "tk-import-foureye-keys",
         "tk-import-foureye-m",
+        "tk-import-foureye-mode",
+        "tk-import-foureye-mode-hint",
         "tk-import-foureye-add",
     ]);
+    const form = el["tk-import-form"];
+    const submit = el["tk-import-submit"];
+    const dockSubmit = el["tk-import-submit-dock"];
 
     (function initClearable() {
         const pairs = [
@@ -63,22 +73,42 @@ export async function init({api, Auth, showAlert, setTitle, clearAlerts}) {
         });
     })();
 
-    const fourEyeEnabledEl = document.getElementById("tk-import-foureye-enabled");
-    const fourEyeBodyEl = document.getElementById("tk-import-foureye-body");
-    const fourEyeKeysEl = document.getElementById("tk-import-foureye-keys");
-    const fourEyeAddEl = document.getElementById("tk-import-foureye-add");
-    const fourEyeMEl = document.getElementById("tk-import-foureye-m");
+    const fourEyeEnabledEl = el["tk-import-foureye-enabled"];
+    const fourEyeBodyEl = el["tk-import-foureye-body"];
+    const fourEyeKeysEl = el["tk-import-foureye-keys"];
+    const fourEyeAddEl = el["tk-import-foureye-add"];
+    const fourEyeMEl = el["tk-import-foureye-m"];
+    const fourEyeModeEl = el["tk-import-foureye-mode"];
+    const fourEyeModeHintEl = el["tk-import-foureye-mode-hint"];
 
-    if (fourEyeEnabledEl && fourEyeBodyEl && fourEyeKeysEl && fourEyeAddEl && fourEyeMEl) {
-        initFourEyeUI({
-            enabledEl: fourEyeEnabledEl,
-            bodyEl: fourEyeBodyEl,
-            keysContainerEl: fourEyeKeysEl,
-            addBtnEl: fourEyeAddEl,
-        });
-    }
+    const capabilities = await api.getCapabilities();
+    const algorithms = Array.isArray(capabilities?.algorithms)
+        ? capabilities.algorithms.filter((value) => typeof value === "string" && value.length > 0)
+        : [];
+    if (algorithms.length === 0) throw new Error("No key algorithms are available in this build.");
+
+    setAlgorithmOptions(el["tk-import-algorithm"], algorithms);
+    form.addEventListener("submit", (event) => event.preventDefault());
+    initFourEyeUI({
+        enabledEl: fourEyeEnabledEl,
+        bodyEl: fourEyeBodyEl,
+        keysContainerEl: fourEyeKeysEl,
+        addBtnEl: fourEyeAddEl,
+        algorithms,
+        modeEl: fourEyeModeEl,
+        modeHintEl: fourEyeModeHintEl,
+    });
 
     setArbitraryAuthority();
+
+    dockSubmit.addEventListener("click", () => submit.click());
+    setupActionDock(submit, dockSubmit, signal);
+
+    document.addEventListener("keydown", (event) => {
+        if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
+        event.preventDefault();
+        if (!submit.disabled) submit.click();
+    }, {signal});
 
     el["tk-import-authority-arbitrary"].addEventListener("click", () => setArbitraryAuthority());
     el["tk-import-authority-add"].addEventListener("click", () => {
@@ -95,7 +125,7 @@ export async function init({api, Auth, showAlert, setTitle, clearAlerts}) {
 
     el["tk-import-clear"].addEventListener("click", () => {
         el["tk-import-keyId"].value = "";
-        el["tk-import-curve"].value = "SECP256K1";
+        el["tk-import-algorithm"].selectedIndex = 0;
         el["tk-import-value64"].value = "";
         el["tk-import-policy-enabled"].checked = false;
         el["tk-import-policy"].classList.add("d-none");
@@ -108,18 +138,19 @@ export async function init({api, Auth, showAlert, setTitle, clearAlerts}) {
         if (fourEyeEnabledEl) fourEyeEnabledEl.checked = false;
         if (fourEyeBodyEl) fourEyeBodyEl.classList.add("d-none");
         if (fourEyeMEl) fourEyeMEl.value = "2";
+        if (fourEyeModeEl) fourEyeModeEl.value = "STRICT";
         if (fourEyeKeysEl) fourEyeKeysEl.innerHTML = "";
+        clearAlerts?.();
     });
 
-    el["tk-import-submit"].addEventListener("click", async () => {
-        const keyId = (el["tk-import-keyId"].value || "").trim();
-        const curve = el["tk-import-curve"].value;
-        const value64 = (el["tk-import-value64"].value || "").trim();
-        const assetOwnerRaw = (el["tk-import-assetOwner"].value || "").trim();
-        let authorities;
+    submit.addEventListener("click", async () => {
+        if (!form.reportValidity()) return;
 
-        if (!keyId) return showAlert("warning", "Key ID is required.");
-        if (!value64) return showAlert("warning", "Key value64 is required.");
+        const keyId = (el["tk-import-keyId"].value || "").trim();
+        const algorithm = el["tk-import-algorithm"].value;
+        const value64 = (el["tk-import-value64"].value || "").trim();
+        const assetOwner = (el["tk-import-assetOwner"].value || "").trim();
+        let authorities;
 
         try {
             authorities = buildAuthorities();
@@ -128,14 +159,20 @@ export async function init({api, Auth, showAlert, setTitle, clearAlerts}) {
             return;
         }
 
-        const policy = buildPolicy(el);
+        let policy;
+        try {
+            policy = buildPolicy(el);
+        } catch (validationErr) {
+            showAlert("warning", validationErr.message);
+            return;
+        }
 
         const payload = {
             keyId,
-            curve,
+            algorithm,
             authorities,
             value64,
-            assetOwner: assetOwnerRaw.length ? assetOwnerRaw : null,
+            assetOwner: assetOwner || null,
             ...(policy ? {policy} : {}),
         };
 
@@ -145,9 +182,9 @@ export async function init({api, Auth, showAlert, setTitle, clearAlerts}) {
             clearAlerts();
             if (res?.warning) showAlert("warning", String(res.warning));
             el["tk-import-status"].textContent = "Imported.";
-            showAlert("success", "Key imported.");
+            showAlert("success", "Identity imported.");
         } catch (e) {
-            showAlert("danger", e?.details || e?.message || String(e));
+            showAlert("danger", e?.message || String(e));
         } finally {
             lock(false, el);
         }
@@ -187,27 +224,39 @@ export async function init({api, Auth, showAlert, setTitle, clearAlerts}) {
 
         const idInput = row.querySelector(".tk-authority-id");
         const ociInput = row.querySelector(".tk-authority-oci");
+        const removeButton = row.querySelector(".tk-authority-remove");
         const syncArbitrary = () => {
             const arbitrary = String(idInput?.value || "").trim().toLowerCase() === "arbitrary";
+            if (idInput) idInput.readOnly = arbitrary;
             if (ociInput) {
                 ociInput.disabled = arbitrary;
                 if (arbitrary) ociInput.value = "";
             }
+            if (removeButton) removeButton.disabled = arbitrary;
             row.classList.toggle("is-arbitrary", arbitrary);
+            syncArbitraryGuidance();
         };
 
         idInput?.addEventListener("input", syncArbitrary);
         idInput?.addEventListener("change", syncArbitrary);
         syncArbitrary();
 
-        row.querySelector(".tk-authority-remove")?.addEventListener("click", () => {
+        removeButton?.addEventListener("click", () => {
             row.remove();
             if (el["tk-import-authorities"].querySelectorAll(".tk-authority-row").length === 0) {
                 setArbitraryAuthority();
+            } else {
+                syncArbitraryGuidance();
             }
         });
 
         el["tk-import-authorities"].appendChild(row);
+        syncArbitraryGuidance();
+    }
+
+    function syncArbitraryGuidance() {
+        const arbitrary = readAuthorityRows().some((row) => row.id.toLowerCase() === "arbitrary");
+        el["tk-import-authority-guidance"].classList.toggle("d-none", !arbitrary);
     }
 
     function readAuthorityRows() {
@@ -245,17 +294,12 @@ export async function init({api, Auth, showAlert, setTitle, clearAlerts}) {
     }
 
     function buildPolicy(el) {
-        let fourEye = null;
-        try {
-            fourEye = buildFourEyePolicy({
-                enabledEl: el["tk-import-foureye-enabled"],
-                mEl: el["tk-import-foureye-m"],
-                keysContainerEl: document.getElementById("tk-import-foureye-keys"),
-            });
-        } catch (validationErr) {
-            showAlert("warning", validationErr.message);
-            return;
-        }
+        const fourEye = buildFourEyePolicy({
+            enabledEl: el["tk-import-foureye-enabled"],
+            mEl: el["tk-import-foureye-m"],
+            modeEl: el["tk-import-foureye-mode"],
+            keysContainerEl: document.getElementById("tk-import-foureye-keys"),
+        });
 
         if (!el["tk-import-policy-enabled"].checked && !fourEye) return null;
 
@@ -313,4 +357,18 @@ function escapeHtml(x) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+}
+
+function setupActionDock(source, dock, signal) {
+    if (typeof IntersectionObserver !== "function") return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+        const visible = !entry.isIntersecting;
+        dock.classList.toggle("is-visible", visible);
+        dock.tabIndex = visible ? 0 : -1;
+        dock.setAttribute("aria-hidden", String(!visible));
+    }, {threshold: 0.25});
+
+    observer.observe(source);
+    signal?.addEventListener("abort", () => observer.disconnect(), {once: true});
 }

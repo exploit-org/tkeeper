@@ -5,16 +5,16 @@ const ROUTES = {
   "#/welcome": { title: "Welcome", page: "/ui/pages/welcome.html", module: "/ui/assets/app/welcome.js" },
   "#/login": { title: "Login", page: "/ui/pages/login.html", module: "/ui/assets/app/login.js" },
   "#/oidc/callback": { title: "Signing in", page: "/ui/pages/oidc-callback.html", module: "/ui/assets/app/oidc-callback.js" },
-  "#/keys": { title: "Vault", page: "/ui/pages/keys.html", module: "/ui/assets/app/keys.js" },
-  "#/keygen": { title: "Key Lifecycle", page: "/ui/pages/keygen.html", module: "/ui/assets/app/keygen.js" },
+  "#/keys": { title: "Cryptographic Identities", page: "/ui/pages/keys.html", module: "/ui/assets/app/keys.js" },
+  "#/keygen": { title: "Create / Rotate / Refresh", page: "/ui/pages/keygen.html", module: "/ui/assets/app/keygen.js" },
   "#/consistency": { title: "Consistency check", page: "/ui/pages/consistency.html", module: "/ui/assets/app/consistency.js" },
   "#/system": { title: "System", page: "/ui/pages/system.html", module: "/ui/assets/app/system.js" },
-  "#/inventory": { title: "Vault", page: "/ui/pages/keys.html", module: "/ui/assets/app/keys.js" },
+  "#/inventory": { title: "Cryptographic Identities", page: "/ui/pages/keys.html", module: "/ui/assets/app/keys.js" },
   "#/audit": { title: "Audit logging", page: "/ui/pages/audit.html", module: "/ui/assets/app/audit.js" },
   "#/init": { title: "Initialize", page: "/ui/pages/init.html", module: "/ui/assets/app/init.js" },
   "#/unseal": { title: "Unseal", page: "/ui/pages/unseal.html", module: "/ui/assets/app/unseal.js" },
   "#/unavailable": { title: "Unavailable", page: "/ui/pages/unavailable.html", module: "/ui/assets/app/unavailable.js" },
-  "#/import": { title: "Import", page: "/ui/pages/import.html", module: "/ui/assets/app/import.js" },
+  "#/import": { title: "Import Identity", page: "/ui/pages/import.html", module: "/ui/assets/app/import.js" },
   "#/audit-sinks": { title: "Sinks", page: "/ui/pages/audit-sinks.html", module: "/ui/assets/app/audit-sinks.js" },
 };
 
@@ -31,6 +31,7 @@ const els = {
 
 let ROUTE_PARAMS = {};
 let SYSTEM_INFO = null;
+let ROUTE_ABORT = null;
 
 boot();
 
@@ -238,6 +239,11 @@ function applyNavPermissions() {
 }
 
 async function navigate(route) {
+  closeMobileNavigation();
+  ROUTE_ABORT?.abort();
+  ROUTE_ABORT = new AbortController();
+  els.view.before(els.alerts);
+
   const r = ROUTES[route] || ROUTES["#/welcome"];
   setActiveNav(route);
 
@@ -254,6 +260,7 @@ async function navigate(route) {
   }
 
   els.view.innerHTML = html;
+  placeAlertsBelowTitle();
 
   if (r.module) {
     try {
@@ -263,7 +270,8 @@ async function navigate(route) {
           route,
           api,
           Auth,
-          params: ROUTE_PARAMS,
+          params: {...routeParams(location.hash), ...ROUTE_PARAMS},
+          signal: ROUTE_ABORT.signal,
           setTitle: (t) => (els.title.textContent = t),
           showAlert,
           clearAlerts,
@@ -276,6 +284,20 @@ async function navigate(route) {
   }
 }
 
+function placeAlertsBelowTitle() {
+  const title = els.view.querySelector(".tk-panel-head");
+  if (title) title.after(els.alerts);
+}
+
+function closeMobileNavigation() {
+  if (window.innerWidth >= 992) return;
+
+  const menu = document.getElementById("sidebar-menu");
+  if (!menu?.classList.contains("show")) return;
+
+  document.querySelector('[data-bs-target="#sidebar-menu"]')?.click();
+}
+
 function setActiveNav(route) {
   const links = document.querySelectorAll("a.nav-link[data-route]");
   links.forEach((a) => {
@@ -286,10 +308,17 @@ function setActiveNav(route) {
 }
 
 function normalizeRoute(hash) {
-  const h = (hash || "").trim();
+  const h = (hash || "").trim().split("?", 1)[0];
   if (!h || h === "#") return "#/welcome";
   if (h === "#/inventory") return "#/keys";
   return ROUTES[h] ? h : "#/welcome";
+}
+
+function routeParams(hash) {
+  const value = String(hash || "");
+  const index = value.indexOf("?");
+  if (index < 0) return {};
+  return Object.fromEntries(new URLSearchParams(value.slice(index + 1)));
 }
 
 async function fetchText(url) {
@@ -312,12 +341,6 @@ function showAlert(kind, text) {
 }
 
 function errorMessage(e) {
-  if (e instanceof ApiError) {
-    const bits = [];
-    if (e.errorType) bits.push(e.errorType);
-    if (e.details) bits.push(e.details);
-    if (!bits.length) bits.push(e.message || `HTTP ${e.status}`);
-    return bits.join(": ");
-  }
+  if (e instanceof ApiError) return e.message || `HTTP ${e.status}`;
   return e?.message || String(e);
 }

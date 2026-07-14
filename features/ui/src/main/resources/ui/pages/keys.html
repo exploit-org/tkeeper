@@ -14,7 +14,8 @@
                         </svg>
                     </span>
                     <div class="tk-panel-title-wrap min-w-0">
-                        <h3 class="card-title mb-0 fw-bold tk-panel-title">Vault</h3>
+                        <h3 class="card-title mb-0 fw-bold tk-panel-title">Cryptographic Identities</h3>
+                        <div class="text-muted small">Inspect identities, governed generations, authorities, policy and integrity state.</div>
                     </div>
                 </div>
 
@@ -23,15 +24,15 @@
                         <button id="tk-keys-export-json" class="btn btn-outline-secondary" type="button">Export JSON</button>
                         <button id="tk-keys-export-csv" class="btn btn-outline-secondary" type="button">CSV</button>
                     </div>
-                    <button id="tk-keys-refresh" class="btn btn-outline-primary shadow-sm" type="button">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline me-2 tk-inv-refresh-icon"
+                    <button id="tk-keys-refresh" class="btn btn-action btn-sm border tk-btn-icon" type="button"
+                            title="Refresh data" aria-label="Refresh data">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon tk-inv-refresh-icon"
                              width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
                              fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                             <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/>
                             <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>
                         </svg>
-                        Refresh
                     </button>
                 </div>
             </div>
@@ -41,10 +42,11 @@
                     <div class="tk-inv-toolbar tk-vault-toolbar mb-3">
                         <div class="row g-2 align-items-end">
                             <div class="col-12 col-lg-5">
-                                <label class="form-label mb-1 text-muted small">Key ID</label>
+                                <label class="form-label mb-1 text-muted small">Identity ID</label>
                                 <div class="input-group input-group-flat bg-white rounded border tk-inv-filter-wrap">
                                     <input id="tk-keys-filter" class="form-control border-0"
-                                           placeholder="Filter by key ID..." autocomplete="off">
+                                           placeholder="Filter by identity ID..." autocomplete="off"
+                                           aria-keyshortcuts="/" title="Press / to focus">
                                 </div>
                             </div>
 
@@ -104,7 +106,7 @@
                 </div>
                 <div class="modal-body p-4 bg-body text-center">
                     <div class="mb-3">
-                        <label class="form-label small text-muted text-uppercase fw-bold ls-1">Logical ID</label>
+                        <label class="form-label small text-muted text-uppercase fw-bold ls-1">Identity ID</label>
                         <input id="tk-public-key" class="form-control border-0 text-center fw-bold bg-transparent" readonly>
                     </div>
 
@@ -135,7 +137,7 @@
                             <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
                             <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
                         </svg>
-                        Destroy Key
+                        Destroy Generation
                     </h5>
                     <button type="button" class="btn-close" id="tk-destroy-close" aria-label="Close"></button>
                 </div>
@@ -144,7 +146,7 @@
                         This action is irreversible. The key material for this generation will be permanently erased.
                     </p>
                     <div class="mb-3">
-                        <label class="form-label small text-muted">Target Key</label>
+                        <label class="form-label small text-muted">Target Identity</label>
                         <input id="tk-destroy-key" class="form-control bg-light border-0 fw-bold" readonly>
                     </div>
                     <div class="mb-3">
@@ -152,8 +154,8 @@
                         <input id="tk-destroy-generation" class="form-control bg-light border-0" readonly>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small">Type the key ID to confirm</label>
-                        <input id="tk-destroy-confirm" class="form-control border-danger" placeholder="Enter logical ID here...">
+                        <label class="form-label small">Type the identity ID to confirm</label>
+                        <input id="tk-destroy-confirm" class="form-control border-danger" placeholder="Enter identity ID here...">
                     </div>
                     <div class="mb-2 text-danger small fw-bold" id="tk-destroy-status"></div>
                 </div>

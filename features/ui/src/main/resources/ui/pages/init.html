@@ -1,4 +1,4 @@
-<div class="row row-cards">
+<div class="row row-cards tk-page-narrow">
     <div class="col-12">
         <div class="card shadow-sm border-0 tk-panel">
             <div class="tk-panel-head">
@@ -7,44 +7,50 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5" /><path d="M12 12l8 -4.5" /><path d="M12 12l0 9" /><path d="M12 12l-8 -4.5" /></svg>
                     </span>
                     <div class="tk-panel-title-wrap">
-                        <div class="tk-panel-kicker">Runtime</div>
                         <h3 class="card-title mb-0 fw-bold tk-panel-title">System Setup</h3>
+                        <div class="text-muted small">Initialize cluster parameters and recovery shares.</div>
                     </div>
                 </div>
             </div>
 
             <div class="card-body p-4">
                 <div id="tk-init-form">
-                    <div class="alert alert-info d-flex align-items-center mb-4">
-                        <div>Keeper is currently uninitialized. Configure cluster parameters.</div>
+                    <div class="tk-init-guidance">
+                        <div class="tk-init-guidance-title">Choose a custody mode</div>
+                        <div class="tk-init-guidance-row">
+                            <span class="tk-init-guidance-label">Mono</span>
+                            Set Peer ID, Threshold and Total Peers to <span class="font-monospace">1</span>.
+                        </div>
+                        <div class="tk-init-guidance-row">
+                            <span class="tk-init-guidance-label">MPC quorum (recommended)</span>
+                            Use Threshold greater than <span class="font-monospace">1</span> and Total Peers greater than or equal to Threshold. This removes unilateral custody from any one keeper.
+                        </div>
                     </div>
 
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-lg-4">
-                            <label class="form-label small text-muted text-uppercase fw-bold ls-1">Peer ID</label>
-                            <input id="tk-init-peerId" class="form-control fw-bold text-center" inputmode="numeric" placeholder="i">
+                            <label class="form-label">Peer ID</label>
+                            <input id="tk-init-peerId" class="form-control text-center" inputmode="numeric" placeholder="i">
                         </div>
                         <div class="col-12 col-lg-4">
-                            <label class="form-label small text-muted text-uppercase fw-bold ls-1">Threshold</label>
-                            <input id="tk-init-threshold" class="form-control fw-bold text-center" inputmode="numeric" placeholder="t">
+                            <label class="form-label">Threshold</label>
+                            <input id="tk-init-threshold" class="form-control text-center" inputmode="numeric" placeholder="t">
                         </div>
                         <div class="col-12 col-lg-4">
-                            <label class="form-label small text-muted text-uppercase fw-bold ls-1">Total Peers</label>
-                            <input id="tk-init-total" class="form-control fw-bold text-center" inputmode="numeric" placeholder="n">
+                            <label class="form-label">Total Peers</label>
+                            <input id="tk-init-total" class="form-control text-center" inputmode="numeric" placeholder="n">
                         </div>
                     </div>
 
-                    <div class="d-flex align-items-start gap-2 p-3 mb-1 tk-init-callout">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm mt-1 flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="#0044ff" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <div class="d-flex align-items-start gap-2 tk-init-callout" role="note">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm mt-1 flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <circle cx="12" cy="12" r="9"/>
-                            <line x1="12" y1="8" x2="12.01" y2="8"/>
-                            <polyline points="11 12 12 12 12 16 13 16"/>
+                            <path d="M12 9v4"/><path d="M12 17v.01"/>
+                            <path d="M10.3 4.4l-7.1 12.3a2 2 0 0 0 1.8 3h14a2 2 0 0 0 1.8 -3l-7.1 -12.3a2 2 0 0 0 -3.4 0z"/>
                         </svg>
-                        <div class="small text-muted lh-sm">
-                            <span class="fw-bold text-dark d-block mb-1 tk-init-callout-label">Cross-Peer Consistency</span>
-                            <strong>Threshold</strong> and <strong>Total Peers</strong> must be identical across all nodes in the cluster.
-                            Mismatched values will cause signing failures or prevent quorum from being reached.
+                        <div class="small">
+                            <span class="d-block mb-1 tk-init-callout-label">MPC peer configuration</span>
+                            Threshold and Total Peers must be identical on every keeper. Peer ID must be unique and between <span class="font-monospace">1</span> and Total Peers.
                         </div>
                     </div>
 

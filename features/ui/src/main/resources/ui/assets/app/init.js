@@ -91,7 +91,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
 
             result.scrollIntoView({behavior: "smooth", block: "start"});
         } catch (e) {
-            showAlert("danger", e?.details || e?.message || String(e));
+            showAlert("danger", e?.message || String(e));
         } finally {
             submit.disabled = false;
         }

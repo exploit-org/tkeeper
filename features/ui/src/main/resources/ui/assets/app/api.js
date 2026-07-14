@@ -110,6 +110,7 @@ export const api = {
   },
 
   _tokenStore: new TokenStore("session"),
+  _capabilities: null,
 
   async initAuth() {
     const cfg = await this.getAuthConfig();
@@ -228,6 +229,13 @@ export const api = {
   async getSystem() {
     const res = await this.getJson("/v1/keeper/control/system");
     return res?.data ?? res;
+  },
+
+  async getCapabilities() {
+    if (this._capabilities) return this._capabilities;
+    const res = await this.getJson("/v1/keeper/control/capabilities");
+    this._capabilities = res?.data ?? res;
+    return this._capabilities;
   },
 
   async getInventory({ logicalId = null, assetOwner = null, historical = false, lastSeen = null, limit = 200 } = {}) {
@@ -352,8 +360,9 @@ async function requestJson(method, path, { query, headers, body, signal, skipAut
 
   const errParsed = await tryReadJson(res);
   if (isErrorMessage(errParsed)) {
+    const details = normalizeErrorDetails(errParsed.error, errParsed.details);
     throw new ApiError(
-      errParsed.details || `${errParsed.error}`,
+      formatErrorMessage(errParsed.error, details),
       {
         url,
         method,
@@ -361,7 +370,7 @@ async function requestJson(method, path, { query, headers, body, signal, skipAut
         warning,
         errorType: errParsed.error,
         errorCode: errParsed.code ?? null,
-        details: errParsed.details ?? null,
+        details,
       }
     );
   }
@@ -420,4 +429,26 @@ function isErrorMessage(obj) {
     && typeof obj.error === "string"
     && (obj.code === undefined || obj.code === null || typeof obj.code === "number")
     && (obj.details === undefined || obj.details === null || typeof obj.details === "string");
+}
+
+function normalizeErrorDetails(errorType, details) {
+  const text = String(details ?? "").trim();
+  if (!text || text === "null") return null;
+
+  const legacyPrefix = `[${errorType}]`;
+  if (!text.startsWith(legacyPrefix)) return text;
+
+  const unwrapped = text.slice(legacyPrefix.length).trim();
+  return unwrapped && unwrapped !== "null" ? unwrapped : null;
+}
+
+function formatErrorMessage(errorType, details) {
+  const words = String(errorType || "REQUEST_FAILED").toUpperCase().split("_");
+  const title = words.map((word, index) => {
+    if (["ID", "HMAC", "HSM", "BASE64"].includes(word)) return word;
+    const lower = word.toLowerCase();
+    return index === 0 ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower;
+  }).join(" ");
+
+  return details ? `${title}: ${details}` : title;
 }

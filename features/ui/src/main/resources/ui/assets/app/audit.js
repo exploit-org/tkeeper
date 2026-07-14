@@ -86,7 +86,7 @@ export async function init({ api, Auth, showAlert, clearAlerts }) {
       clearAlerts();
       els.result.innerHTML = renderVerifyResult(out, rows.length);
     } catch (e) {
-      showAlert("danger", e?.details || e?.message || String(e));
+      showAlert("danger", e?.message || String(e));
     } finally {
       lock(false);
     }

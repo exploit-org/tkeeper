@@ -10,9 +10,15 @@
 
 <body>
 <div class="page">
-    <aside class="navbar navbar-vertical navbar-expand-lg tk-sidebar" data-bs-theme="dark">
+    <aside class="navbar navbar-vertical navbar-expand-lg tk-sidebar" data-bs-theme="light">
         <div class="container-fluid">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu">
+            <button class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#sidebar-menu"
+                    aria-controls="sidebar-menu"
+                    aria-expanded="false"
+                    aria-label="Open navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
@@ -26,7 +32,7 @@
                         height="364"
                 />
                 <span class="tk-brand-text">
-      <span class="text-white fw-bold tracking-tight tk-brand-title">TKeeper</span>
+      <span class="fw-bold tracking-tight tk-brand-title">TKeeper</span>
     </span>
             </a>
 
@@ -39,46 +45,34 @@
                         width="223"
                         height="191"
                 />
-                <span class="text-white fw-bold">TKeeper</span>
+                <span class="fw-bold tk-brand-title">TKeeper</span>
             </a>
 
             <div class="collapse navbar-collapse" id="sidebar-menu">
                 <ul class="navbar-nav pt-lg-2">
 
                     <li class="nav-item">
-                        <div class="nav-link text-white-50 tk-nav-section-label">
-                            Core Platform
-                        </div>
-                    </li>
-
-                    <li class="nav-item">
                         <a class="nav-link" href="#/system"
                            data-route="#/system"
-                           data-title="System"
+                          data-title="System"
                            data-requires="tkeeper.control.system">
                           <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 12l0 2.5" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="6" height="5"/><rect x="15" y="4" width="6" height="5"/><rect x="9" y="15" width="6" height="5"/><path d="M6 9v2h12V9M12 11v4"/></svg>
                           </span>
                             <span class="nav-link-title">System</span>
                         </a>
                     </li>
 
-                    <li class="nav-item mt-4">
-                        <div class="nav-link text-white-50 tk-nav-section-label">
-                            Cryptography
-                        </div>
-                    </li>
-
-                    <li class="nav-item">
+                    <li class="nav-item tk-nav-group-start">
                         <a class="nav-link"
                            href="#/keygen"
                            data-route="#/keygen"
-                           data-title="Key Generation"
+                           data-title="Create / Rotate / Refresh"
                            data-requires="tkeeper.dkg.create|tkeeper.dkg.rotate|tkeeper.dkg.refresh">
                           <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 10l0 10" /><path d="M18 10l0 10" /><path d="M9 10l0 10" /><path d="M15 10l0 10" /><path d="M3 10a7 7 0 1 1 18 0l-2 0a5 5 0 1 0 -14 0l-2 0" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7a7 7 0 0 1 11 2"/><path d="M18 5v4h-4"/><path d="M17 17a7 7 0 0 1 -11 -2"/><path d="M6 19v-4h4"/><path d="M12 9l3 3l-3 3l-3 -3z"/></svg>
                           </span>
-                            <span class="nav-link-title">Key Lifecycle</span>
+                            <span class="nav-link-title">Create / Rotate / Refresh</span>
                         </a>
                     </li>
 
@@ -86,24 +80,24 @@
                         <a class="nav-link"
                            href="#/import"
                            data-route="#/import"
-                           data-title="Import Keys"
+                           data-title="Import Identity"
                            data-requires="tkeeper.storage.write">
                           <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 9l5 5l5 -5" /><path d="M12 4l0 10" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h9l5 5v11H5z"/><path d="M14 4v5h5"/><path d="M3 13h8"/><path d="M8 10l3 3l-3 3"/></svg>
                           </span>
-                            <span class="nav-link-title">Import Keys</span>
+                            <span class="nav-link-title">Import Identity</span>
                         </a>
                     </li>
 
                     <li class="nav-item">
                         <a class="nav-link" href="#/keys"
                            data-route="#/keys"
-                           data-title="Vault"
+                           data-title="Cryptographic Identities"
                            data-requires="tkeeper.compliance.inventory">
                           <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /><path d="M12 10l-2 2l2 2l2 -2l-2 -2" /><path d="M12 13l0 9" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14"/><circle cx="9" cy="12" r="2.5"/><path d="M11.5 12H18M16 12v2M13 12v2"/></svg>
                           </span>
-                            <span class="nav-link-title">Vault</span>
+                            <span class="nav-link-title">Cryptographic Identities</span>
                         </a>
                     </li>
 
@@ -114,25 +108,19 @@
                            data-requires="tkeeper.consistency.fix"
                            data-hide-quorum="mono">
                           <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l7 4v5c0 5 -3 9 -7 9s-7 -4 -7 -9v-7l7 -4z" /><path d="M12 12l0 9" /><path d="M12 12l-8 -4" /><path d="M12 12l8 -4" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="7" height="14"/><rect x="14" y="5" width="7" height="14"/><path d="M6 9h1M6 13h1M17 9h1M17 13h1M10 9h4M10 15h4"/></svg>
                           </span>
                             <span class="nav-link-title">Consistency Check</span>
                         </a>
                     </li>
 
-                    <li class="nav-item mt-4">
-                        <div class="nav-link text-white-50 tk-nav-section-label">
-                            Audit
-                        </div>
-                    </li>
-
-                    <li class="nav-item">
+                    <li class="nav-item tk-nav-group-start">
                         <a class="nav-link" href="#/audit"
                            data-route="#/audit"
                            data-title="Audit Logs"
                            data-requires="tkeeper.audit.log.verify">
                           <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c1.918 0 3.52 1.35 3.91 3.151l.09 3.849h-8l.09 -3.849c.39 -1.801 1.992 -3.151 3.91 -3.151z" /><path d="M12 21c-1.918 0 -3.52 -1.35 -3.91 -3.151l-.09 -3.849h8l-.09 3.849c-.39 1.801 -1.992 -3.151 -3.91 -3.151z" /><path d="M3 12c0 -1.918 1.35 -3.52 3.151 -3.91l3.849 -.09v8l-3.849 -.09c-1.801 -.39 -3.151 -1.992 -3.151 -3.91z" /><path d="M21 12c0 1.918 -1.35 3.52 -3.151 3.91l-3.849 .09v-8l3.849 .09c1.801 .39 3.151 1.992 3.151 3.91z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v5h4M9 12h6M9 16h3"/><path d="M8.5 8.5l1 1l2 -2"/></svg>
                           </span>
                             <span class="nav-link-title">Audit Trails</span>
                         </a>
@@ -144,7 +132,7 @@
                            data-title="Log Sinks"
                            data-requires="tkeeper.control.sinks">
                           <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 8h-10a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2z" /><path d="M20 12l-2 0" /><path d="M9 12l0 .01" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h10v16H4z"/><path d="M7 8h4M7 12h4M7 16h3M14 12h7M18 9l3 3l-3 3"/></svg>
                           </span>
                             <span class="nav-link-title">Log Sinks</span>
                         </a>
@@ -153,7 +141,7 @@
                     <li class="nav-item mt-auto pt-3 pb-3">
                         <a class="nav-link" href="#" id="tk-logout">
                           <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /><path d="M9 12h12l-3 -3" /><path d="M18 15l3 -3" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4H5v16h5M8 12h11M16 9l3 3l-3 3"/></svg>
                           </span>
                             <span class="nav-link-title">Logout</span>
                         </a>
@@ -171,7 +159,8 @@
                 <div class="navbar-nav">
                     <div class="nav-item">
                         <a class="nav-link tk-doc-link" href="https://tkeeper.org/docs" target="_blank" rel="noopener noreferrer">
-                            Documentation
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H12v18H7.5A3.5 3.5 0 0 0 4 23z"/><path d="M20 5.5A3.5 3.5 0 0 0 16.5 2H12v18h4.5A3.5 3.5 0 0 1 20 23z"/></svg>
+                            <span>Documentation</span>
                         </a>
                     </div>
                 </div>
@@ -215,7 +204,7 @@
 
         <div class="page-body">
             <div class="container-xl">
-                <div id="tk-alerts"></div>
+                <div id="tk-alerts" class="tk-page-alerts"></div>
                 <div id="tk-view"></div>
             </div>
         </div>

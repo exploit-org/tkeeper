@@ -1,4 +1,4 @@
-import {initFourEyeUI, buildFourEyePolicy} from "./fourEye.js";
+import {initFourEyeUI, buildFourEyePolicy, createFourEyeKeyRow, setAlgorithmOptions} from "./fourEye.js";
 
 const PERMS = Object.freeze({
     create: "tkeeper.dkg.create",
@@ -6,7 +6,25 @@ const PERMS = Object.freeze({
     refresh: "tkeeper.dkg.refresh",
 });
 
-export async function init({api, Auth, showAlert, clearAlerts}) {
+const MODE_UI = Object.freeze({
+    CREATE: {
+        action: "Create Identity",
+        description: "Creates a new cryptographic identity and its first generation.",
+        success: "Identity created successfully.",
+    },
+    ROTATE: {
+        action: "Rotate Identity",
+        description: "Replaces the current key material and advances the generation.",
+        success: "Identity rotated successfully.",
+    },
+    REFRESH: {
+        action: "Refresh Identity",
+        description: "Creates a new generation without changing the key. Threshold ECC replaces the peer shares while preserving the aggregate key; ML-DSA carries the existing shares forward unchanged.",
+        success: "Identity refreshed successfully.",
+    },
+});
+
+export async function init({api, Auth, showAlert, clearAlerts, params = {}, signal}) {
     function requireDomPurify() {
         const dp = (typeof window !== "undefined") ? window.DOMPurify : null;
         if (!dp || typeof dp.sanitize !== "function") {
@@ -35,11 +53,12 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     const form = document.getElementById("tk-keygen-form");
 
     const keyIdEl = document.getElementById("tk-keygen-keyId");
-    const curveEl = document.getElementById("tk-keygen-curve");
+    const algorithmEl = document.getElementById("tk-keygen-algorithm");
     const modeEl = document.getElementById("tk-keygen-mode");
     const modeHint = document.getElementById("tk-keygen-mode-hint");
     const ownerEl = document.getElementById("tk-keygen-assetOwner");
     const authoritiesEl = document.getElementById("tk-keygen-authorities");
+    const authorityGuidanceEl = document.getElementById("tk-keygen-authority-guidance");
     const authorityAddEl = document.getElementById("tk-keygen-authority-add");
     const authorityArbitraryEl = document.getElementById("tk-keygen-authority-arbitrary");
 
@@ -51,6 +70,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     const procValEl = document.getElementById("tk-keygen-process-value");
 
     const submit = document.getElementById("tk-keygen-submit");
+    const dockSubmit = document.getElementById("tk-keygen-submit-dock");
     const reset = document.getElementById("tk-keygen-reset");
     const notificationsEl = document.getElementById("tk-keygen-notifications");
 
@@ -59,15 +79,8 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     const fourEyeKeysEl = document.getElementById("tk-keygen-foureye-keys");
     const fourEyeAddEl = document.getElementById("tk-keygen-foureye-add");
     const fourEyeMEl = document.getElementById("tk-keygen-foureye-m");
-
-    if (fourEyeEnabledEl && fourEyeBodyEl && fourEyeKeysEl && fourEyeAddEl && fourEyeMEl) {
-        initFourEyeUI({
-            enabledEl: fourEyeEnabledEl,
-            bodyEl: fourEyeBodyEl,
-            keysContainerEl: fourEyeKeysEl,
-            addBtnEl: fourEyeAddEl,
-        });
-    }
+    const fourEyeModeEl = document.getElementById("tk-keygen-foureye-mode");
+    const fourEyeModeHintEl = document.getElementById("tk-keygen-foureye-mode-hint");
 
     function showNotification(type, title, message) {
         if (!notificationsEl) return;
@@ -98,13 +111,33 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     }
 
     if (
-        !disabled || !form || !keyIdEl || !curveEl || !modeEl || !modeHint || !ownerEl ||
-        !authoritiesEl || !authorityAddEl || !authorityArbitraryEl ||
-        !polEnabled || !polBox || !allowHistEl || !applyValEl || !procValEl || !submit || !reset
+        !disabled || !form || !keyIdEl || !algorithmEl || !modeEl || !modeHint || !ownerEl ||
+        !authoritiesEl || !authorityAddEl || !authorityArbitraryEl || !authorityGuidanceEl ||
+        !polEnabled || !polBox || !allowHistEl || !applyValEl || !procValEl || !submit || !dockSubmit || !reset ||
+        !fourEyeEnabledEl || !fourEyeBodyEl || !fourEyeKeysEl || !fourEyeAddEl || !fourEyeMEl ||
+        !fourEyeModeEl || !fourEyeModeHintEl
     ) {
         console.error("Keygen init: missing required DOM elements.");
         return;
     }
+
+    const capabilities = await api.getCapabilities();
+    const algorithms = Array.isArray(capabilities?.algorithms)
+        ? capabilities.algorithms.filter((value) => typeof value === "string" && value.length > 0)
+        : [];
+    if (algorithms.length === 0) throw new Error("No key algorithms are available in this build.");
+
+    setAlgorithmOptions(algorithmEl, algorithms);
+    form.addEventListener("submit", (event) => event.preventDefault());
+    initFourEyeUI({
+        enabledEl: fourEyeEnabledEl,
+        bodyEl: fourEyeBodyEl,
+        keysContainerEl: fourEyeKeysEl,
+        addBtnEl: fourEyeAddEl,
+        algorithms,
+        modeEl: fourEyeModeEl,
+        modeHintEl: fourEyeModeHintEl,
+    });
 
     setArbitraryAuthority();
 
@@ -147,12 +180,21 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         });
     })();
 
-    const allowed = Auth?.permissions?.anyOf?.([PERMS.create, PERMS.rotate, PERMS.refresh]) ?? false;
+    const availableModes = Object.keys(MODE_UI).filter((mode) => isModeAllowed(mode, Auth));
+    for (const option of modeEl.options) {
+        const visible = availableModes.includes(String(option.value || "").toUpperCase());
+        option.hidden = !visible;
+        option.disabled = !visible;
+    }
+
+    const defaultMode = availableModes[0] || "CREATE";
+    modeEl.value = defaultMode;
+    const allowed = availableModes.length > 0;
 
     if (!allowed) {
         disabled.classList.remove("d-none");
         form.querySelectorAll("input,select,button,textarea").forEach((x) => (x.disabled = true));
-        submit.disabled = true;
+        setSubmitDisabled(true);
         reset.disabled = true;
         return;
     }
@@ -169,10 +211,26 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     modeEl.addEventListener("change", updateModeHint);
     updateModeHint();
 
+    dockSubmit.addEventListener("click", () => submit.click());
+    setupActionDock(submit, dockSubmit, signal);
+
+    const contextKey = String(params.key || "").trim();
+    const contextMode = String(params.mode || "").toUpperCase();
+    if (contextKey && ["ROTATE", "REFRESH"].includes(contextMode)) {
+        await hydrateLifecycleContext(contextKey, contextMode);
+    }
+
+    document.addEventListener("keydown", (event) => {
+        if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
+        event.preventDefault();
+        if (!submit.disabled) submit.click();
+    }, {signal});
+
     reset.addEventListener("click", () => {
         keyIdEl.value = "";
-        curveEl.value = "SECP256K1";
-        modeEl.value = "CREATE";
+        keyIdEl.readOnly = false;
+        algorithmEl.selectedIndex = 0;
+        modeEl.value = defaultMode;
 
         ownerEl.value = "";
         polEnabled.checked = false;
@@ -187,9 +245,12 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         if (fourEyeEnabledEl) fourEyeEnabledEl.checked = false;
         if (fourEyeBodyEl) fourEyeBodyEl.classList.add("d-none");
         if (fourEyeMEl) fourEyeMEl.value = "2";
+        if (fourEyeModeEl) fourEyeModeEl.value = "STRICT";
         if (fourEyeKeysEl) fourEyeKeysEl.innerHTML = "";
 
         clearNotifications();
+        clearAlerts?.();
+        setSubmitDisabled(false);
         updateModeHint();
 
         applyValEl.dispatchEvent(new Event("input", {bubbles: true}));
@@ -199,18 +260,16 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     submit.addEventListener("click", async () => {
         const mode = String(modeEl.value || "").toUpperCase();
 
+        if (!form.reportValidity()) return;
+
         if (!isModeAllowed(mode, Auth)) {
             showAlert?.("danger", "Not enough permissions for selected mode.");
             return;
         }
 
         const keyId = String(keyIdEl.value || "").trim();
-        if (!keyId) {
-            showAlert?.("danger", "Key ID is required.");
-            return;
-        }
 
-        const curve = String(curveEl.value || "").toUpperCase();
+        const algorithm = String(algorithmEl.value || "").toUpperCase();
         const assetOwnerRaw = String(ownerEl.value || "").trim();
         let authorities;
         try {
@@ -222,7 +281,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
 
         const body = {
             keyId,
-            curve,
+            algorithm,
             authorities,
             mode,
             assetOwner: assetOwnerRaw.length ? assetOwnerRaw : null,
@@ -233,6 +292,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
             fourEye = buildFourEyePolicy({
                 enabledEl:       fourEyeEnabledEl,
                 mEl:             fourEyeMEl,
+                modeEl:          fourEyeModeEl,
                 keysContainerEl: fourEyeKeysEl,
             });
         } catch (validationErr) {
@@ -257,7 +317,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
             body.policy = policy;
         }
 
-        submit.disabled = true;
+        setSubmitDisabled(true);
 
         try {
             const r = await api.dkgGenerate(body);
@@ -267,18 +327,119 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
             const warning = r?.warning;
             if (warning) showNotification("warning", "Warning", warning);
 
-            showNotification("success", "DKG operation completed", `${mode} was successful`);
+            showNotification("success", "Lifecycle operation completed", MODE_UI[mode]?.success || `${mode} was successful.`);
         } catch (e) {
-            showNotification("danger", "Error", e?.details || e?.message || String(e));
+            showNotification("danger", "Error", e?.message || String(e));
         } finally {
-            submit.disabled = false;
+            setSubmitDisabled(false);
         }
     });
 
     function updateModeHint() {
         const m = String(modeEl.value || "").toUpperCase();
         const ok = isModeAllowed(m, Auth);
-        modeHint.textContent = ok ? "" : "You don’t have permission for this mode.";
+        const ui = MODE_UI[m] || {action: "Run Operation", description: ""};
+        submit.textContent = ui.action;
+        dockSubmit.textContent = ui.action;
+        modeHint.classList.toggle("text-danger", !ok);
+        modeHint.textContent = ok
+            ? ui.description
+            : `${ui.description} You do not have permission for this mode.`;
+    }
+
+    function setSubmitDisabled(value) {
+        submit.disabled = value;
+        dockSubmit.disabled = value;
+    }
+
+    async function hydrateLifecycleContext(keyId, mode) {
+        keyIdEl.value = keyId;
+        keyIdEl.readOnly = true;
+        modeEl.value = mode;
+        updateModeHint();
+        setSubmitDisabled(true);
+
+        try {
+            const page = await api.getInventory({
+                logicalId: keyId,
+                historical: false,
+                lastSeen: null,
+                limit: 1,
+            });
+            const item = (page?.inventory?.items || []).find((candidate) => String(candidate?.logicalId || "") === keyId);
+            if (!item) throw new Error("Identity was not found in the signed inventory.");
+            if (item.tampered === true) throw new Error("Identity metadata failed its integrity check.");
+            if (String(item.status || "").toUpperCase() !== "ACTIVE") {
+                throw new Error(`Identity is ${String(item.status || "not active").toLowerCase()}.`);
+            }
+
+            const algorithm = String(item.algorithm || "").toUpperCase();
+            if (!algorithms.includes(algorithm)) {
+                throw new Error(`Algorithm ${algorithm || "unknown"} is not available in this build.`);
+            }
+
+            algorithmEl.value = algorithm;
+            ownerEl.value = String(item.assetOwner || "");
+            hydrateAuthorities(item.authorities);
+            hydratePolicy(item.policy);
+            clearAlerts?.();
+            updateModeHint();
+            modeHint.textContent += " Current signed governance metadata was loaded from the identity inventory.";
+            setSubmitDisabled(!isModeAllowed(mode, Auth));
+        } catch (error) {
+            showAlert?.("danger", `Cannot prepare lifecycle operation: ${error?.message || String(error)}`);
+            setSubmitDisabled(true);
+        }
+    }
+
+    function hydrateAuthorities(values) {
+        if (!Array.isArray(values) || values.length === 0) {
+            throw new Error("Signed inventory does not contain authorities.");
+        }
+
+        authoritiesEl.innerHTML = "";
+        values.forEach((value) => {
+            const id = typeof value === "string" ? value : String(value?.id || "");
+            const oci = typeof value === "string" ? "" : String(value?.oci || "");
+            if (!id) throw new Error("Signed inventory contains an invalid authority.");
+            addAuthorityRow(id, oci);
+        });
+    }
+
+    function hydratePolicy(policy) {
+        const hasAccessPolicy = !!policy && (
+            policy.apply != null ||
+            policy.process != null ||
+            Object.prototype.hasOwnProperty.call(policy, "allowHistoricalProcess")
+        );
+
+        polEnabled.checked = hasAccessPolicy;
+        allowHistEl.checked = policy?.allowHistoricalProcess !== false;
+        applyValEl.value = notAfterToLocal(policy?.apply);
+        procValEl.value = notAfterToLocal(policy?.process);
+        syncPolicyVisibility();
+        applyValEl.dispatchEvent(new Event("input", {bubbles: true}));
+        procValEl.dispatchEvent(new Event("input", {bubbles: true}));
+
+        const fourEye = policy?.fourEye || null;
+        fourEyeEnabledEl.checked = !!fourEye;
+        fourEyeMEl.value = String(fourEye?.m ?? 2);
+        fourEyeModeEl.value = String(fourEye?.mode || "STRICT").toUpperCase();
+        fourEyeKeysEl.innerHTML = "";
+
+        for (const key of fourEye?.keys || []) {
+            const algorithm = String(key?.algorithm || "").toUpperCase();
+            if (!algorithms.includes(algorithm)) {
+                throw new Error(`Approver algorithm ${algorithm || "unknown"} is not available in this build.`);
+            }
+            const row = createFourEyeKeyRow(algorithms, (element) => element.remove());
+            row.querySelector("select").value = algorithm;
+            row.querySelector("input").value = String(key?.publicKey64 || "");
+            fourEyeKeysEl.appendChild(row);
+        }
+
+        fourEyeEnabledEl.dispatchEvent(new Event("change", {bubbles: true}));
+        fourEyeModeEl.dispatchEvent(new Event("change", {bubbles: true}));
     }
 
     function setArbitraryAuthority() {
@@ -315,27 +476,39 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
 
         const idInput = row.querySelector(".tk-authority-id");
         const ociInput = row.querySelector(".tk-authority-oci");
+        const removeButton = row.querySelector(".tk-authority-remove");
         const syncArbitrary = () => {
             const arbitrary = String(idInput?.value || "").trim().toLowerCase() === "arbitrary";
+            if (idInput) idInput.readOnly = arbitrary;
             if (ociInput) {
                 ociInput.disabled = arbitrary;
                 if (arbitrary) ociInput.value = "";
             }
+            if (removeButton) removeButton.disabled = arbitrary;
             row.classList.toggle("is-arbitrary", arbitrary);
+            syncArbitraryGuidance();
         };
 
         idInput?.addEventListener("input", syncArbitrary);
         idInput?.addEventListener("change", syncArbitrary);
         syncArbitrary();
 
-        row.querySelector(".tk-authority-remove")?.addEventListener("click", () => {
+        removeButton?.addEventListener("click", () => {
             row.remove();
             if (authoritiesEl.querySelectorAll(".tk-authority-row").length === 0) {
                 setArbitraryAuthority();
+            } else {
+                syncArbitraryGuidance();
             }
         });
 
         authoritiesEl.appendChild(row);
+        syncArbitraryGuidance();
+    }
+
+    function syncArbitraryGuidance() {
+        const arbitrary = readAuthorityRows().some((row) => row.id.toLowerCase() === "arbitrary");
+        authorityGuidanceEl.classList.toggle("d-none", !arbitrary);
     }
 
     function readAuthorityRows() {
@@ -392,4 +565,31 @@ function buildNotAfterFromDate(dateValue) {
     if (seconds <= 0) return null;
 
     return {unit: "SECONDS", notAfter: seconds};
+}
+
+function notAfterToLocal(value) {
+    if (!value || value.notAfter == null) return "";
+    const unit = String(value.unit || "SECONDS").toUpperCase();
+    const milliseconds = unit === "MILLISECONDS"
+        ? Number(value.notAfter)
+        : Number(value.notAfter) * 1000;
+    if (!Number.isFinite(milliseconds) || milliseconds <= 0) return "";
+
+    const date = new Date(milliseconds);
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+    return local.toISOString().slice(0, 16);
+}
+
+function setupActionDock(source, dock, signal) {
+    if (typeof IntersectionObserver !== "function") return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+        const visible = !entry.isIntersecting;
+        dock.classList.toggle("is-visible", visible);
+        dock.tabIndex = visible ? 0 : -1;
+        dock.setAttribute("aria-hidden", String(!visible));
+    }, {threshold: 0.25});
+
+    observer.observe(source);
+    signal?.addEventListener("abort", () => observer.disconnect(), {once: true});
 }

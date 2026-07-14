@@ -1,18 +1,20 @@
-export function createFourEyeKeyRow(onRemove) {
+export function setAlgorithmOptions(selectEl, algorithms) {
+    selectEl.replaceChildren(...algorithms.map((algorithm) => {
+        const option = document.createElement("option");
+        option.value = algorithm;
+        option.textContent = algorithm;
+        return option;
+    }));
+}
+
+export function createFourEyeKeyRow(algorithms, onRemove) {
     const wrapper = document.createElement("div");
-    wrapper.className = "d-flex align-items-start gap-2 border rounded p-2 bg-white";
+    wrapper.className = "tk-approver-row";
     wrapper.dataset.fourEyeKey = "1";
 
-    const curveSelect = document.createElement("select");
-    curveSelect.className = "form-select form-select-sm";
-    curveSelect.style.maxWidth = "140px";
-    curveSelect.style.flexShrink = "0";
-    for (const c of ["SECP256K1", "ED25519", "P256"]) {
-        const opt = document.createElement("option");
-        opt.value = c;
-        opt.textContent = c;
-        curveSelect.appendChild(opt);
-    }
+    const algorithmSelect = document.createElement("select");
+    algorithmSelect.className = "form-select form-select-sm tk-approver-algorithm";
+    setAlgorithmOptions(algorithmSelect, algorithms);
 
     const keyInput = document.createElement("input");
     keyInput.type = "text";
@@ -23,33 +25,42 @@ export function createFourEyeKeyRow(onRemove) {
 
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
-    removeBtn.className = "btn btn-sm btn-ghost-danger flex-shrink-0";
+    removeBtn.className = "btn btn-sm btn-ghost-danger tk-approver-remove";
     removeBtn.setAttribute("aria-label", "Remove key");
     removeBtn.textContent = "×";
     removeBtn.addEventListener("click", () => onRemove(wrapper));
 
-    wrapper.append(curveSelect, keyInput, removeBtn);
+    wrapper.append(algorithmSelect, keyInput, removeBtn);
 
-    wrapper._getCurve = () => curveSelect.value;
+    wrapper._getAlgorithm = () => algorithmSelect.value;
     wrapper._getKey   = () => keyInput.value.trim();
 
     return wrapper;
 }
 
-export function initFourEyeUI({ enabledEl, bodyEl, keysContainerEl, addBtnEl }) {
-    const syncVisibility = () =>
+export function initFourEyeUI({ enabledEl, bodyEl, keysContainerEl, addBtnEl, algorithms, modeEl, modeHintEl }) {
+    const syncModeHint = () => {
+        if (!modeEl || !modeHintEl) return;
+        modeHintEl.textContent = modeEl.value === "LENIENT"
+            ? "Four-eye approval is required only for rotate and refresh, not for signing or decryption."
+            : "Approvals are required for every operation protected by this policy.";
+    };
+    const syncVisibility = () => {
         bodyEl.classList.toggle("d-none", !enabledEl.checked);
+        syncModeHint();
+    };
 
     enabledEl.addEventListener("change", syncVisibility);
+    modeEl?.addEventListener("change", syncModeHint);
     syncVisibility();
 
     addBtnEl.addEventListener("click", () => {
-        const row = createFourEyeKeyRow((el) => el.remove());
+        const row = createFourEyeKeyRow(algorithms, (el) => el.remove());
         keysContainerEl.appendChild(row);
     });
 }
 
-export function buildFourEyePolicy({ enabledEl, mEl, keysContainerEl }) {
+export function buildFourEyePolicy({ enabledEl, mEl, modeEl, keysContainerEl }) {
     if (!enabledEl.checked) return null;
 
     const mRaw = mEl.value.trim();
@@ -78,7 +89,7 @@ export function buildFourEyePolicy({ enabledEl, mEl, keysContainerEl }) {
     const seen = new Set();
 
     for (let i = 0; i < rows.length; i++) {
-        const curve      = rows[i]._getCurve();
+        const algorithm  = rows[i]._getAlgorithm();
         const publicKey64 = rows[i]._getKey();
         const label      = `Approver key ${i + 1}`;
 
@@ -89,16 +100,16 @@ export function buildFourEyePolicy({ enabledEl, mEl, keysContainerEl }) {
             throw new Error(`${label}: invalid base64 encoding.`);
         }
 
-        const dedup = `${curve}::${publicKey64}`;
+        const dedup = `${algorithm}::${publicKey64}`;
         if (seen.has(dedup)) {
             throw new Error(`${label}: duplicate key detected.`);
         }
         seen.add(dedup);
 
-        keys.push({ curve, publicKey64 });
+        keys.push({ algorithm, publicKey64 });
     }
 
-    return { m, n: rows.length, keys };
+    return { m, n: rows.length, keys, mode: String(modeEl?.value || "STRICT").toUpperCase() };
 }
 
 function isValidBase64(s) {

@@ -1,6 +1,6 @@
 import { Permission } from "./auth.js";
 
-export async function init({api, Auth, showAlert, clearAlerts}) {
+export async function init({api, Auth, showAlert, clearAlerts, params = {}, signal}) {
     if (!Auth?.hasPermission?.("tkeeper.compliance.inventory")) {
         showAlert("warning", "Access denied.");
         return;
@@ -25,7 +25,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
 
     for (const id of ids) {
         if (!document.getElementById(id)) {
-            showAlert("danger", `Vault UI mismatch (missing #${id}). Hard refresh / clear cache.`);
+            showAlert("danger", `Identity view mismatch (missing #${id}). Hard refresh or clear the browser cache.`);
             return;
         }
     }
@@ -46,20 +46,34 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         detail: document.getElementById("tk-keys-detail"),
     };
 
+    let requestedDetail = cleanParam(params.detail);
+    const requestedLimit = ["50", "100", "200"].includes(String(params.limit)) ? String(params.limit) : "200";
+
+    els.filter.value = cleanParam(params.key) || requestedDetail || "";
+    els.owner.value = cleanParam(params.owner) || "";
+    els.limit.value = requestedLimit;
+
     let cursor = null;
     let hasMore = false;
-    let currentFilter = null;
-    let currentOwner = null;
+    let currentFilter = String(els.filter.value || "").trim() || null;
+    let currentOwner = String(els.owner.value || "").trim() || null;
     let loading = false;
     let totalLoaded = 0;
     let loadedItems = [];
     let lastInventoryMeta = null;
     let activeGenerationByKey = new Map();
+    let activeDetail = null;
 
-    els.refresh.addEventListener("click", () => reload());
+    els.refresh.addEventListener("click", () => {
+        activeDetail = null;
+        syncUrl();
+        reload();
+    });
     els.apply.addEventListener("click", () => {
         currentFilter = String(els.filter.value || "").trim() || null;
         currentOwner = String(els.owner.value || "").trim() || null;
+        activeDetail = null;
+        syncUrl();
         reload();
     });
     els.clear.addEventListener("click", () => {
@@ -68,6 +82,8 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         els.limit.value = "200";
         currentFilter = null;
         currentOwner = null;
+        activeDetail = null;
+        syncUrl();
         reload();
     });
     els.filter.addEventListener("keydown", (e) => {
@@ -76,13 +92,25 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     els.owner.addEventListener("keydown", (e) => {
         if (e.key === "Enter") els.apply.click();
     });
-    els.limit.addEventListener("change", () => reload());
+    els.limit.addEventListener("change", () => {
+        activeDetail = null;
+        syncUrl();
+        reload();
+    });
     els.more.addEventListener("click", async () => {
         if (!hasMore || loading) return;
         await loadPage({append: true});
     });
     els.exportJson.addEventListener("click", () => exportJson());
     els.exportCsv.addEventListener("click", () => exportCsv());
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+        if (isTextEntry(event.target)) return;
+        event.preventDefault();
+        els.filter.focus();
+        els.filter.select();
+    }, {signal});
 
     await reload();
 
@@ -94,7 +122,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         lastInventoryMeta = null;
         activeGenerationByKey = new Map();
 
-        closeDetail();
+        closeDetail({sync: false});
         els.more.classList.add("d-none");
         els.foot.textContent = "";
 
@@ -104,9 +132,9 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
           <thead>
             <tr class="text-secondary small text-uppercase">
               <th class="tk-col-icon text-center" title="Tampered indicator"></th>
-              <th>Key ID</th>
+              <th>Identity ID</th>
               <th class="tk-col-status">Status</th>
-              <th class="tk-col-curve">Curve</th>
+              <th class="tk-col-algorithm">Algorithm</th>
               <th class="tk-col-gen">Gen / Pending</th>
               <th class="tk-col-owner">Asset Owner</th>
               <th class="tk-col-date">Updated</th>
@@ -188,8 +216,13 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
                 : "";
 
             wireInteractions(tbody);
+
+            if (!append && requestedDetail && loadedItems.some((item) => String(item?.logicalId || "") === requestedDetail)) {
+                openDetail(requestedDetail, {sync: false});
+                requestedDetail = null;
+            }
         } catch (e) {
-            showAlert("danger", e?.details || e?.message || String(e));
+            showAlert("danger", e?.message || String(e));
         } finally {
             loading = false;
             lock(false);
@@ -282,6 +315,17 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
                 }, activeGenerationByKey.get(keyId));
             });
         });
+
+        root.querySelectorAll("[data-vault-lifecycle]").forEach((btn) => {
+            if (btn.__wired) return;
+            btn.__wired = true;
+            btn.addEventListener("click", () => {
+                const keyId = String(btn.getAttribute("data-vault-lifecycle") || "");
+                const mode = String(btn.getAttribute("data-vault-mode") || "").toUpperCase();
+                if (!keyId || !["ROTATE", "REFRESH"].includes(mode)) return;
+                location.hash = lifecycleHash(keyId, mode);
+            });
+        });
     }
 
     async function loadHistorical(host, logicalId) {
@@ -358,7 +402,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
                   <th class="tk-col-h-icon text-center"></th>
                   <th>Status</th>
                   <th class="tk-col-h-gen">Generation</th>
-                  <th class="tk-col-curve">Curve</th>
+                  <th class="tk-col-algorithm">Algorithm</th>
                   <th>Authorities</th>
                   <th>Policy</th>
                   <th class="tk-col-h-date">Created</th>
@@ -399,7 +443,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
             host.innerHTML = `
         <div class="alert alert-danger mt-3" role="alert">
           <strong>Failed to load historical generations.</strong>
-          <span class="text-secondary ms-2">${escapeHtml(e?.details || e?.message || String(e))}</span>
+          <span class="text-secondary ms-2">${escapeHtml(e?.message || String(e))}</span>
         </div>
       `;
         }
@@ -408,7 +452,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     function renderItemRow(it) {
         const logicalId = String(it.logicalId || "");
         const status = statusMeta(it.status);
-        const curve = it.curve ? String(it.curve) : "-";
+        const algorithm = it.algorithm ? String(it.algorithm) : "-";
         const gen = it.currentGeneration == null ? "-" : String(it.currentGeneration);
         const pending = it.lastPendingGeneration == null ? "-" : String(it.lastPendingGeneration);
         const updated = fmtTime(it.updatedAt);
@@ -420,7 +464,11 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
             : `<span class="fw-semibold">${escapeHtml(gen)}</span>`;
 
         const tamperedCell = tampered ? tamperedBadgeCell("Metadata integrity check failed", 12) : `<td></td>`;
-        const actions = renderActions(logicalId, it.currentGeneration, {status: it.status, current: true});
+        const actions = renderActions(logicalId, it.currentGeneration, {
+            status: it.status,
+            current: true,
+            tampered,
+        });
         return `
       <tr data-vault-row="${escapeHtml(logicalId)}" class="${tampered ? "table-danger tk-row-tampered" : ""}">
         ${tamperedCell}
@@ -430,7 +478,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
                   title="${escapeHtml(logicalId)}">${escapeHtml(logicalId)}</button>
         </td>
         <td>${status.badge}</td>
-        <td class="text-secondary">${escapeHtml(curve)}</td>
+        <td class="text-secondary">${escapeHtml(algorithm)}</td>
         <td>${genCell}</td>
         <td class="text-secondary">
           ${owner ? `<span class="text-truncate d-block tk-td-owner-cell" title="${escapeHtml(owner)}">${escapeHtml(owner)}</span>` : `<span class="text-muted">-</span>`}
@@ -447,11 +495,11 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     `;
     }
 
-    function openDetail(logicalId) {
+    function openDetail(logicalId, {sync = true} = {}) {
         const keyId = String(logicalId || "");
         const it = loadedItems.find((item) => String(item?.logicalId || "") === keyId);
         if (!it) {
-            showAlert("warning", "Key is not loaded in the current Vault view.");
+            showAlert("warning", "Identity is not loaded in the current view.");
             return;
         }
 
@@ -459,6 +507,8 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         els.detail.classList.remove("d-none");
         els.detail.innerHTML = renderKeyDetail(it);
         wireInteractions(els.detail);
+        activeDetail = keyId;
+        if (sync) syncUrl();
 
         const back = els.detail.querySelector("[data-vault-back]");
         if (back && !back.__wired) {
@@ -467,23 +517,30 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         }
     }
 
-    function closeDetail() {
+    function closeDetail({sync = true} = {}) {
         if (!els.browser || !els.detail) return;
         els.detail.innerHTML = "";
         els.detail.classList.add("d-none");
         els.browser.classList.remove("d-none");
+        activeDetail = null;
+        if (sync) syncUrl();
     }
 
     function renderKeyDetail(it) {
         const logicalId = String(it.logicalId || "");
         const status = statusMeta(it.status);
-        const curve = it.curve ? String(it.curve) : "-";
+        const algorithm = it.algorithm ? String(it.algorithm) : "-";
         const gen = it.currentGeneration == null ? "-" : String(it.currentGeneration);
         const pending = it.lastPendingGeneration == null ? "-" : String(it.lastPendingGeneration);
         const owner = it.assetOwner?.trim() || null;
         const auth = extractAuthorities(it);
         const tampered = it.tampered === true;
-        const actions = renderActions(logicalId, it.currentGeneration, {status: it.status, current: true});
+        const actions = renderActions(logicalId, it.currentGeneration, {
+            status: it.status,
+            current: true,
+            lifecycle: true,
+            tampered,
+        });
 
         return `
       <div class="tk-vault-detail-page">
@@ -504,7 +561,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         <section class="tk-vault-detail-hero">
           <div class="min-w-0">
             <div class="tk-vault-detail-key font-monospace">${escapeHtml(logicalId)}</div>
-            <div class="tk-vault-detail-muted">${escapeHtml(status.hint || "Key metadata and authority configuration.")}</div>
+            <div class="tk-vault-detail-muted">${escapeHtml(status.hint || "Cryptographic identity metadata and authority configuration.")}</div>
           </div>
           <div class="tk-vault-detail-status">${status.badge}</div>
         </section>
@@ -513,7 +570,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
           <div class="tk-vault-detail-title">Overview</div>
           <div class="tk-vault-overview-grid">
             ${detailFact("Generation", pending !== "-" ? `${gen} / ${pending}` : gen)}
-            ${detailFact("Curve", curve)}
+            ${detailFact("Algorithm", algorithm)}
             ${detailFact("Asset owner", owner || "-")}
             ${detailFact("Created", fmtTime(it.createdAt))}
             ${detailFact("Updated", fmtTime(it.updatedAt))}
@@ -565,7 +622,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         const logicalId = String(it.logicalId || "");
         const status = statusMeta(it.status);
         const tampered = it.tampered === true;
-        const curve = it.curve ? String(it.curve) : "-";
+        const algorithm = it.algorithm ? String(it.algorithm) : "-";
         const gen = it.currentGeneration == null ? "-" : String(it.currentGeneration);
         const auth = extractAuthorities(it);
 
@@ -574,7 +631,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         ${tampered ? tamperedBadgeCell("Tampered", 10) : `<td></td>`}
         <td>${status.badge}</td>
         <td class="fw-semibold">${escapeHtml(gen)}</td>
-        <td class="text-secondary">${escapeHtml(curve)}</td>
+        <td class="text-secondary">${escapeHtml(algorithm)}</td>
         <td>${renderAuthoritySummary(auth)}</td>
         <td>${it.policy ? renderPolicySummary(it.policy) : `<span class="text-muted">-</span>`}</td>
         <td class="text-secondary small text-nowrap">${escapeHtml(fmtTime(it.createdAt))}</td>
@@ -584,15 +641,29 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     `;
     }
 
-    function renderActions(logicalId, generation, {status, current}) {
+    function renderActions(logicalId, generation, {status, current, lifecycle = false, tampered = false}) {
         const keyId = String(logicalId || "");
         const gen = parseIntSafe(generation);
         const st = String(status || "").toUpperCase();
         const canPublic = Auth.hasPermission?.(Permission.keyGetPublicKey(keyId)) && st !== "DESTROYED" && st !== "EXPIRED";
         const canDestroy = Auth.hasPermission?.(Permission.keyDestroy(keyId)) && !current && st !== "DESTROYED";
+        const canRotate = lifecycle && !tampered && current && st === "ACTIVE" && Auth.hasPermission?.(Permission.generateKey("rotate"));
+        const canRefresh = lifecycle && !tampered && current && st === "ACTIVE" && Auth.hasPermission?.(Permission.generateKey("refresh"));
         const activeGen = activeGenerationByKey.get(keyId);
 
         const out = [];
+        if (canRotate) {
+            out.push(`
+        <button class="btn btn-sm btn-primary" type="button"
+                data-vault-lifecycle="${escapeHtml(keyId)}" data-vault-mode="ROTATE">Rotate</button>
+      `);
+        }
+        if (canRefresh) {
+            out.push(`
+        <button class="btn btn-sm tk-btn-refresh" type="button"
+                data-vault-lifecycle="${escapeHtml(keyId)}" data-vault-mode="REFRESH">Refresh</button>
+      `);
+        }
         if (canPublic) {
             out.push(`
         <button class="btn btn-sm btn-outline-secondary" type="button"
@@ -613,6 +684,16 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         }
 
         return out.length ? `<div class="d-inline-flex gap-1 flex-wrap justify-content-end">${out.join("")}</div>` : "";
+    }
+
+    function syncUrl() {
+        const query = new URLSearchParams();
+        if (currentFilter) query.set("key", currentFilter);
+        if (currentOwner) query.set("owner", currentOwner);
+        if (String(els.limit.value || "200") !== "200") query.set("limit", String(els.limit.value));
+        if (activeDetail) query.set("detail", activeDetail);
+        const suffix = query.toString();
+        history.replaceState(null, "", `#/keys${suffix ? `?${suffix}` : ""}`);
     }
 
     function renderAuthoritySummary(auth) {
@@ -708,7 +789,8 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         if (p.fourEye) {
             const m = Number(p.fourEye.m ?? 0);
             const n = Number(p.fourEye.n ?? 0);
-            badges.push(`<span class="badge bg-warning-lt" title="${escapeHtml(String(m))}/${escapeHtml(String(n))} approvals required">4-eye ${escapeHtml(String(m))}/${escapeHtml(String(n))}</span>`);
+            const mode = String(p.fourEye.mode || "STRICT").toUpperCase();
+            badges.push(`<span class="badge bg-warning-lt" title="${escapeHtml(String(m))}/${escapeHtml(String(n))} approvals required (${escapeHtml(mode)})">4-eye ${escapeHtml(String(m))}/${escapeHtml(String(n))} ${escapeHtml(mode)}</span>`);
         }
 
         return badges.length ? `<div class="d-flex flex-wrap gap-1">${badges.join("")}</div>` : `<span class="text-muted">-</span>`;
@@ -747,12 +829,13 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     function renderFourEyePolicy(fe) {
         const m = Number(fe.m ?? 0);
         const n = Number(fe.n ?? 0);
+        const mode = String(fe.mode || "STRICT").toUpperCase();
         const keys = Array.isArray(fe.keys) ? fe.keys : [];
 
         const keysHtml = keys.map((k, i) => `
       <tr>
         <td class="tk-col-fe-num text-secondary">${escapeHtml(String(i + 1))}</td>
-        <td class="tk-col-fe-curve"><span class="badge bg-secondary-lt">${escapeHtml(String(k.curve || "-"))}</span></td>
+        <td class="tk-col-fe-algorithm"><span class="badge bg-secondary-lt">${escapeHtml(String(k.algorithm || "-"))}</span></td>
         <td class="font-monospace small tk-td-pubkey" title="${escapeHtml(String(k.publicKey64 || ""))}">
           ${escapeHtml(String(k.publicKey64 || "-"))}
         </td>
@@ -764,6 +847,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         <div class="d-flex align-items-center gap-2 mb-3">
           <span class="badge tk-badge-indigo">Four-Eye Control</span>
           <span class="text-secondary small">Requires <strong>${escapeHtml(String(m))}</strong> of <strong>${escapeHtml(String(n))}</strong> approvals</span>
+          <span class="badge bg-secondary-lt">${escapeHtml(mode)}</span>
         </div>
         ${keys.length > 0 ? `
           <div class="table-responsive">
@@ -771,7 +855,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
               <thead>
                 <tr class="text-secondary small text-uppercase">
                   <th class="tk-col-fe-num">#</th>
-                  <th class="tk-col-fe-curve">Curve</th>
+                  <th class="tk-col-fe-algorithm">Algorithm</th>
                   <th>Public Key</th>
                 </tr>
               </thead>
@@ -854,7 +938,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
                 dataEl.value = String(v || "");
                 statusEl.textContent = v ? "" : "No data.";
             } catch (e) {
-                statusEl.textContent = e?.details || e?.message || String(e);
+                statusEl.textContent = e?.message || String(e);
             } finally {
                 busy = false;
             }
@@ -924,7 +1008,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
                 await reload();
                 doClose();
             } catch (e) {
-                statusEl.textContent = e?.details || e?.message || String(e);
+                statusEl.textContent = e?.message || String(e);
             } finally {
                 busy = false;
                 submit.disabled = false;
@@ -976,9 +1060,9 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
                 inventory: snapshot.meta,
                 items: snapshot.items,
             };
-            download(`tkeeper-vault-${timestampForFile()}.json`, JSON.stringify(payload, null, 2), "application/json");
+            download(`tkeeper-identities-${timestampForFile()}.json`, JSON.stringify(payload, null, 2), "application/json");
         } catch (e) {
-            showAlert("danger", e?.details || e?.message || String(e));
+            showAlert("danger", e?.message || String(e));
         }
     }
 
@@ -986,12 +1070,12 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         try {
             const snapshot = await collectExportSnapshot();
             const rows = [
-                ["logicalId", "status", "generation", "curve", "assetOwner", "authorities", "policy", "createdAt", "updatedAt", "tampered"],
+                ["logicalId", "status", "generation", "algorithm", "assetOwner", "authorities", "policy", "createdAt", "updatedAt", "tampered"],
                 ...snapshot.items.map((it) => [
                     it?.logicalId ?? "",
                     it?.status ?? "",
                     it?.currentGeneration ?? "",
-                    it?.curve ?? "",
+                    it?.algorithm ?? "",
                     it?.assetOwner ?? "",
                     extractAuthorities(it).items.map((a) => a.oci ? `${a.id}@${a.oci}` : a.id).join(";"),
                     policyForExport(it?.policy),
@@ -1002,9 +1086,9 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
             ];
 
             const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
-            download(`tkeeper-vault-${timestampForFile()}.csv`, csv, "text/csv");
+            download(`tkeeper-identities-${timestampForFile()}.csv`, csv, "text/csv");
         } catch (e) {
-            showAlert("danger", e?.details || e?.message || String(e));
+            showAlert("danger", e?.message || String(e));
         }
     }
 
@@ -1118,20 +1202,22 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
     }
 
     function emptyStateHtml(filter, owner) {
-        const hint = filter || owner ? "Nothing matched your filters." : "No vault items found.";
+        const filtered = !!(filter || owner);
+        const canCreate = !filtered && Auth.hasPermission?.(Permission.generateKey("create"));
         return `
       <div class="empty py-5">
         <div class="empty-img">
           <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="64" height="64" viewBox="0 0 24 24"
-               stroke-width="1.5" stroke="currentColor" fill="none">
+               stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/>
-            <path d="M12 10l-2 2l2 2l2 -2l-2 -2"/>
-            <path d="M12 13l0 9"/>
+            <rect x="3" y="5" width="18" height="14"/>
+            <circle cx="9" cy="12" r="2.5"/>
+            <path d="M11.5 12h6.5m-2 0v2m-3 -2v2"/>
           </svg>
         </div>
-        <p class="empty-title">No vault items</p>
-        <p class="empty-subtitle text-secondary">${escapeHtml(hint)}</p>
+        <p class="empty-title">${filtered ? "No matches" : "No cryptographic identities"}</p>
+        ${filtered ? `<p class="empty-subtitle text-secondary">Nothing matched your filters.</p>` : ""}
+        ${canCreate ? `<div class="empty-action"><a class="btn btn-primary" href="#/keygen">Create Identity</a></div>` : ""}
       </div>
     `;
     }
@@ -1169,4 +1255,18 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
         if (typeof CSS !== "undefined" && typeof CSS.escape === "function") return CSS.escape(v);
         return v.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll("\n", "\\A ");
     }
+}
+
+function cleanParam(value) {
+    return String(value || "").trim() || null;
+}
+
+function isTextEntry(target) {
+    if (!(target instanceof Element)) return false;
+    return !!target.closest("input, textarea, select, [contenteditable='true']");
+}
+
+function lifecycleHash(keyId, mode) {
+    const query = new URLSearchParams({key: keyId, mode});
+    return `#/keygen?${query}`;
 }

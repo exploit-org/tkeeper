@@ -72,7 +72,7 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
 
                 statusEl.textContent = "Unseal initiated.";
             } catch (e) {
-                showAlert("danger", e?.details || e?.message || String(e));
+                showAlert("danger", e?.message || String(e));
             } finally {
                 submit.disabled = false;
             }
@@ -83,7 +83,6 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
 
     submit.addEventListener("click", async () => {
         if (submit.disabled) return;
-        submit.disabled = true;
 
         statusEl.textContent = "";
         const lines = String(sharesEl.value || "")
@@ -93,9 +92,11 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
 
         if (!lines.length) {
             showAlert("danger", "No unseal shares provided");
+            sharesEl.focus();
             return;
         }
 
+        submit.disabled = true;
         const payload64 = lines[0] || null;
         const payloads64 = lines.length > 1 ? lines.slice(1) : null;
         const reset = !!resetEl.checked;
@@ -117,9 +118,9 @@ export async function init({api, Auth, showAlert, clearAlerts}) {
             sharesEl.value = "";
             statusEl.textContent = "Submitted. Keeper still sealed.";
         } catch (e) {
-            showAlert("danger", e?.details || e?.message || String(e));
+            showAlert("danger", e?.message || String(e));
         } finally {
-            submit.disabled = false
+            submit.disabled = false;
         }
     });
 
@@ -162,7 +163,7 @@ async function safeStatus(api, showAlert) {
         const st = await api.getStatus();
         return st;
     } catch (e) {
-        showAlert("danger", e?.details || e?.message || String(e));
+        showAlert("danger", e?.message || String(e));
         return null;
     }
 }

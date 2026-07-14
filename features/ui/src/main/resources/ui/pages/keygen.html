@@ -11,17 +11,19 @@
                                 d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 12l0 2.5"/></svg>
                     </span>
                     <div class="tk-panel-title-wrap">
-                        <h3 class="card-title tk-panel-title tk-keygen-title">Key Generation</h3>
+                        <h3 class="card-title tk-panel-title tk-keygen-title">Create / Rotate / Refresh</h3>
+                        <div class="text-muted small">Create cryptographic identities and manage their governed generations.</div>
                     </div>
                 </div>
                 <div class="tk-panel-actions">
                     <button id="tk-keygen-reset" type="button" class="btn btn-ghost-secondary">Reset</button>
-                    <button id="tk-keygen-submit" type="button" class="btn btn-primary px-4">Run DKG</button>
+                    <button id="tk-keygen-submit" type="button" class="btn btn-primary px-4"
+                            aria-keyshortcuts="Control+Enter Meta+Enter">Create Identity</button>
                 </div>
             </div>
 
             <div class="card-body p-0">
-                <div id="tk-keygen-disabled" class="alert alert-warning d-flex align-items-center gap-2 d-none m-3"
+                <div id="tk-keygen-disabled" class="alert alert-warning d-flex align-items-center gap-2 d-none mb-4"
                      role="alert">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
                          stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
@@ -30,32 +32,32 @@
                         <path d="M12 9v2m0 4v.01"/>
                         <path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.48 0l-7.1 12.25a2 2 0 0 0 1.84 2.75z"/>
                     </svg>
-                    <div>You do not have permissions for key generation.</div>
+                    <div>You do not have permissions for these identity operations.</div>
                 </div>
 
                 <form id="tk-keygen-form" class="tk-keygen-grid">
                     <section class="tk-keygen-section tk-keygen-section-key">
-                        <div class="tk-keygen-section-title">Key</div>
+                        <div class="tk-keygen-section-title">
+                            <span>Identity</span>
+                            <small>Choose identity, algorithm and lifecycle action.</small>
+                        </div>
                         <div class="tk-keygen-section-body">
                             <div class="row g-3">
                                 <div class="col-12 col-lg-6">
-                                    <label class="form-label">Logical ID</label>
+                                    <label class="form-label" for="tk-keygen-keyId">Identity ID</label>
                                     <input id="tk-keygen-keyId" class="form-control" placeholder="eth-cold-storage"
-                                           autocomplete="off">
+                                           autocomplete="off" required>
                                 </div>
 
                                 <div class="col-6 col-lg-3">
-                                    <label class="form-label">Curve</label>
-                                    <select id="tk-keygen-curve" class="form-select">
-                                        <option value="SECP256K1">SECP256K1</option>
-                                        <option value="ED25519">ED25519</option>
-                                        <option value="P256">P256</option>
-                                    </select>
+                                    <label class="form-label" for="tk-keygen-algorithm">Algorithm</label>
+                                    <select id="tk-keygen-algorithm" class="form-select" required></select>
                                 </div>
 
                                 <div class="col-6 col-lg-3">
-                                    <label class="form-label">Mode</label>
-                                    <select id="tk-keygen-mode" class="form-select">
+                                    <label class="form-label" for="tk-keygen-mode">Mode</label>
+                                    <select id="tk-keygen-mode" class="form-select" required
+                                            aria-describedby="tk-keygen-mode-hint">
                                         <option value="CREATE">CREATE</option>
                                         <option value="ROTATE">ROTATE</option>
                                         <option value="REFRESH">REFRESH</option>
@@ -63,24 +65,31 @@
                                 </div>
 
                                 <div class="col-12">
-                                    <label class="form-label">Asset Owner</label>
+                                    <label class="form-label" for="tk-keygen-assetOwner">Asset Owner</label>
                                     <input id="tk-keygen-assetOwner" class="form-control" placeholder="customer-42"
                                            autocomplete="off">
                                 </div>
 
                                 <div class="col-12">
-                                    <div class="form-hint small" id="tk-keygen-mode-hint"></div>
+                                    <div class="form-hint small" id="tk-keygen-mode-hint" aria-live="polite"></div>
                                 </div>
                             </div>
                         </div>
                     </section>
 
                     <section class="tk-keygen-section">
-                        <div class="tk-keygen-section-title">Authorities</div>
+                        <div class="tk-keygen-section-title">
+                            <span>Authorities</span>
+                            <small>Bind the identity to its execution authorities.</small>
+                        </div>
                         <div class="tk-keygen-section-body">
                             <div class="tk-authority-toolbar">
                                 <button type="button" id="tk-keygen-authority-arbitrary" class="btn btn-outline-secondary">Use arbitrary</button>
                                 <button type="button" id="tk-keygen-authority-add" class="btn btn-outline-dark">Add authority</button>
+                            </div>
+
+                            <div id="tk-keygen-authority-guidance" class="tk-authority-guidance d-none" role="note">
+                                <span class="font-monospace">arbitrary</span> is not recommended: authority-specific policy files cannot govern its operations.
                             </div>
 
                             <div id="tk-keygen-authorities" class="tk-authority-list"></div>
@@ -88,7 +97,10 @@
                     </section>
 
                     <section class="tk-keygen-section">
-                        <div class="tk-keygen-section-title">Policy</div>
+                        <div class="tk-keygen-section-title">
+                            <span>Policy</span>
+                            <small>Set lifecycle limits and historical use.</small>
+                        </div>
                         <div class="tk-keygen-section-body">
                             <div class="tk-keygen-toggle-row">
                                 <span>Access policy</span>
@@ -109,7 +121,7 @@
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label">Block new operations after</label>
+                                        <label class="form-label" for="tk-keygen-apply-value">Block new operations after</label>
                                         <div class="input-clearable" id="tk-keygen-apply-wrapper">
                                             <input id="tk-keygen-apply-value" type="datetime-local"
                                                    class="form-control">
@@ -120,7 +132,7 @@
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label">Block all operations after</label>
+                                        <label class="form-label" for="tk-keygen-process-value">Block all operations after</label>
                                         <div class="input-clearable" id="tk-keygen-process-wrapper">
                                             <input id="tk-keygen-process-value" type="datetime-local"
                                                    class="form-control">
@@ -135,7 +147,10 @@
                     </section>
 
                     <section class="tk-keygen-section">
-                        <div class="tk-keygen-section-title">Approval</div>
+                        <div class="tk-keygen-section-title">
+                            <span>Approval</span>
+                            <small>Require independent approver signatures.</small>
+                        </div>
                         <div class="tk-keygen-section-body">
                             <div class="tk-keygen-toggle-row">
                                 <span>Four-eye control</span>
@@ -149,10 +164,21 @@
                             <div id="tk-keygen-foureye-body" class="tk-keygen-policy d-none">
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-3">
-                                        <label class="form-label">Min approvers</label>
+                                        <label class="form-label" for="tk-keygen-foureye-m">Min approvers</label>
                                         <input id="tk-keygen-foureye-m" type="number" min="2"
                                                max="99"
                                                class="form-control" value="2" autocomplete="off">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="tk-keygen-foureye-mode">Mode</label>
+                                        <select id="tk-keygen-foureye-mode" class="form-select"
+                                                aria-describedby="tk-keygen-foureye-mode-hint">
+                                            <option value="STRICT">Strict</option>
+                                            <option value="LENIENT">Lenient</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <div id="tk-keygen-foureye-mode-hint" class="form-hint small"></div>
                                     </div>
                                 </div>
 
@@ -167,6 +193,11 @@
                         </div>
                     </section>
                 </form>
+
+                <button id="tk-keygen-submit-dock" type="button"
+                        class="btn btn-primary tk-form-submit-dock"
+                        aria-hidden="true" tabindex="-1"
+                        aria-keyshortcuts="Control+Enter Meta+Enter">Create Identity</button>
             </div>
         </div>
     </div>

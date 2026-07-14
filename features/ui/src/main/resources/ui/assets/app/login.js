@@ -1,4 +1,4 @@
-import { api, ApiError } from "../app/api.js";
+import { api } from "../app/api.js";
 import { Auth } from "../app/auth.js";
 
 export async function init({ showAlert, setTitle }) {
@@ -28,19 +28,12 @@ export async function init({ showAlert, setTitle }) {
     return encodeHtml(cleaned);
   }
 
-  const desc = document.getElementById("tk-auth-desc");
   const tokenBox = document.getElementById("tk-auth-token");
   const oidcBox = document.getElementById("tk-auth-oidc");
 
   const tokenInput = document.getElementById("tk-token-input");
   const tokenSave = document.getElementById("tk-token-save");
-  const hint = document.getElementById("tk-auth-type-hint");
-
   const oidcLoginBtn = document.getElementById("tk-oidc-login");
-
-  function setDesc(text) {
-    if (desc) desc.textContent = text;
-  }
 
   let cfg;
   try {
@@ -48,20 +41,17 @@ export async function init({ showAlert, setTitle }) {
     cfg = api.auth.config;
   } catch (e) {
     showAlert("danger", errMsg(e));
-    setDesc("Cannot load auth configuration.");
     return;
   }
 
   if (!cfg?.id) {
     showAlert("danger", "Server did not return ControlPlaneAuthConfig.");
-    setDesc("Auth configuration is missing.");
     return;
   }
 
   if (cfg.id === "TOKEN") {
     tokenBox.classList.remove("d-none");
     oidcBox.classList.add("d-none");
-    setDesc("Enter authentication token.");
 
     tokenSave.addEventListener("click", async () => {
       const t = String(tokenInput?.value || "").trim();
@@ -85,7 +75,6 @@ export async function init({ showAlert, setTitle }) {
   if (cfg.id === "OIDC") {
     tokenBox.classList.add("d-none");
     oidcBox.classList.remove("d-none");
-    setDesc("Login via OpenID Connect.");
 
     oidcLoginBtn.addEventListener("click", async () => {
       try {
@@ -99,7 +88,6 @@ export async function init({ showAlert, setTitle }) {
   }
 
   showAlert("danger", `Unsupported auth mode: ${cfg.id}`);
-  setDesc(`Unknown auth mode: ${cfg.id}`);
 }
 
 async function startOidc(cfg) {
@@ -135,6 +123,5 @@ async function startOidc(cfg) {
 }
 
 function errMsg(e) {
-  if (e instanceof ApiError) return e.details || e.message;
   return e?.message || String(e);
 }

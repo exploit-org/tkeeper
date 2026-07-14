@@ -1,4 +1,4 @@
-import { api, ApiError } from "../app/api.js";
+import { api } from "../app/api.js";
 import { Auth } from "../app/auth.js";
 
 export async function init({ showAlert, setTitle }) {
@@ -62,6 +62,5 @@ export async function init({ showAlert, setTitle }) {
 }
 
 function errMsg(e) {
-  if (e instanceof ApiError) return e.details || e.message;
   return e?.message || String(e);
 }

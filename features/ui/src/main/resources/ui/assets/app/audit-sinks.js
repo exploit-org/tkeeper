@@ -62,7 +62,7 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
       res = await api.getJson("/v1/keeper/control/audit/sinks");
     } catch (e) {
       setBadge(els["tk-sinks-badge"], "Unavailable", "bg-red-lt");
-      showAlert("danger", e?.details || e?.message || String(e));
+      showAlert("danger", e?.message || String(e));
       return;
     }
 
@@ -91,7 +91,7 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
       setBadge(els["tk-sinks-badge"], "Broken", "bg-red-lt");
       showAlert("danger", "No available audit sinks. TKeeper must have at least 1 available sink, otherwise it should refuse operations.");
     } else if (available.length === 1) {
-      setBadge(els["tk-sinks-badge"], "Single sink", "bg-yellow-lt");
+      els["tk-sinks-badge"].classList.add("d-none");
       showAlert("warning", "Only one audit sink is available. That’s a single point of failure. Add a backup sink to avoid request refusal if it goes down.");
     } else if (unavailable.length === 0) {
       setBadge(els["tk-sinks-badge"], "Healthy", "bg-green-lt");
@@ -128,6 +128,7 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
 
   function setBadge(node, text, cls) {
     node.className = `badge ${cls}`;
+    node.classList.remove("d-none");
     node.textContent = text;
   }
 
