@@ -124,7 +124,7 @@ keeper.audit {
 }
 ```
 
-Socket sinks expect an ack. If the sink accepts the line but never acks it, the operation waits until `ack-timeout` and then treats that sink as failed.
+The socket sink marks a line accepted after TKeeper writes and flushes it to the local socket stream. This is not a collector durability acknowledgement. If the local write does not complete before `ack-timeout`, TKeeper treats that sink as failed.
 
 ## Verification
 
