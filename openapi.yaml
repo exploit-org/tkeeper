@@ -1128,6 +1128,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/KeySetPolicy'
           nullable: true
+        assetOwner:
+          allOf:
+            - $ref: '#/components/schemas/AssetOwner'
+          nullable: true
 
     QuorumPromotion:
       type: object
