@@ -44,6 +44,14 @@ If `auth.jwt.oidc` is configured, the UI reads OIDC settings from:
 GET /v1/keeper/control/auth/config
 ```
 
+After authentication, the UI discovers the key algorithms included in the running build from:
+
+```http
+GET /v1/keeper/control/capabilities
+```
+
+Key generation, trusted-dealer import, and four-eye approver forms use this runtime list instead of assuming a fixed platform set.
+
 ## Content Security Policy
 
 The UI feature adds security headers under `/ui`.

@@ -689,6 +689,21 @@ paths:
         default:
           $ref: '#/components/responses/ErrorResponse'
 
+  /v1/keeper/control/capabilities:
+    get:
+      tags: [ControlPlane]
+      operationId: controlPlaneCapabilities
+      summary: Get capabilities exposed by installed cryptographic platforms
+      responses:
+        '200':
+          description: Runtime control-plane capabilities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlPlaneCapabilities'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+
   /v1/keeper/control/audit/sinks:
     get:
       tags: [ControlPlane]
@@ -1915,6 +1930,17 @@ components:
         mapping:
           TOKEN: '#/components/schemas/HeaderTokenAuthConfig'
           OIDC: '#/components/schemas/OIDCAuthConfig'
+
+    ControlPlaneCapabilities:
+      type: object
+      required: [algorithms]
+      properties:
+        algorithms:
+          type: array
+          uniqueItems: true
+          description: Key algorithms registered by the platforms included in this build.
+          items:
+            $ref: '#/components/schemas/KeyAlgorithm'
 
     HeaderTokenAuthConfig:
       type: object
