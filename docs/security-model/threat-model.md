@@ -315,7 +315,7 @@ Mitigation:
 - Key metadata and active generations are integrity-protected.
 - Refresh writes a new signed generation and never overwrites a legacy generation in place.
 - ECC refresh reshapes the existing secret shares without changing the public key. Rotate creates new key material.
-- ML-DSA refresh creates a new generation with the same per-peer share and public key; it does not refresh cryptographic material. ML-DSA rotate runs a new DKG and creates a new key.
+- ML-DSA refresh carries each peer's existing share and public key into the new generation unchanged; it does not replace shares or refresh cryptographic material. ML-DSA rotate runs a new DKG and creates a new key.
 - Consistency repair is an explicit API, not part of normal signing flow.
 
 Residual risk:

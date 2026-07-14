@@ -1,4 +1,4 @@
-# Key Lifecycle
+# Create, Rotate, and Refresh
 
 The key id is the logical identity. A generation is the version of cryptographic material or share state used by that identity.
 
@@ -31,7 +31,7 @@ Modes:
 
 | Mode | Meaning |
 | --- | --- |
-| `CREATE` | new logical key |
+| `CREATE` | new cryptographic identity |
 | `ROTATE` | new generation under the same logical id; the public key changes |
 | `REFRESH` | new generation with the same public key; material behavior is algorithm-specific |
 
@@ -62,7 +62,7 @@ In `threshold` mode, TKeeper coordinates lifecycle changes across peers:
 - `CREATE` creates the first shared key generation
 - `ROTATE` creates a new shared key generation and changes the public key
 - ECC `REFRESH` creates new shares for the same public key
-- ML-DSA `REFRESH` creates a new generation by copying the existing per-peer shares and public key; it does not refresh cryptographic material
+- ML-DSA `REFRESH` carries each peer's existing share and public key into the new generation unchanged; it does not replace shares or refresh cryptographic material
 
 Threshold lifecycle state stores the key share and metadata for each generation. ECC commitments are later used to derive peer public shares for signing, ECIES, consistency checks, and Byzantine detection. ML-DSA stores its aggregate public key as signed side state.
 

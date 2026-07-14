@@ -1,10 +1,10 @@
-# Key Management
+# Cryptographic Identities
 
 In TKeeper, a key is the identity boundary. The key's authorities define what the identity can authorize, and lifecycle operations change the generations through which that identity operates.
 
 Read:
 
-- [Key Lifecycle](key-lifecycle.md)
+- [Create, Rotate, and Refresh](key-lifecycle.md)
 - [Trusted Dealer Import](trusted-dealer-import.md)
 - [Quorum Promotion](quorum-promotion.md)
 - [Asset Inventory](asset-inventory.md)
@@ -20,7 +20,7 @@ Read:
 | Quorum promotion | moving a mono identity into threshold custody | same identity |
 | Destroy | removing an old generation | active generation stays |
 
-Refresh behavior is algorithm-specific. For ML-DSA, refresh creates a new generation with the same share and public key; it does not refresh cryptographic material.
+Refresh behavior is algorithm-specific. Threshold ECC replaces the peer shares while preserving the same aggregate key. ML-DSA advances the generation while carrying each peer's existing share and public key forward unchanged; it performs no cryptographic refresh.
 
 ## Security notes
 

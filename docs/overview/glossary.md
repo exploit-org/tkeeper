@@ -64,7 +64,7 @@ The number of peers required to complete a threshold operation.
 
 ## Refresh
 
-A lifecycle operation that creates a new generation for an existing key. Cryptographic behavior is algorithm-specific. For ML-DSA, refresh currently copies the same share and public key into a new generation.
+A lifecycle operation that creates a new generation without changing the aggregate key. Threshold ECC replaces the peer shares. ML-DSA carries each peer's existing share and public key forward unchanged.
 
 ## Rotate
 

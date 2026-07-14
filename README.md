@@ -114,7 +114,7 @@ See [Build and Features](docs/deployment/build-and-features.md).
 - [Getting Started](docs/getting-started/README.md)
 - [Deployment](docs/deployment/README.md)
 - [Security Model](docs/security-model/README.md)
-- [Key Management](docs/key-management/README.md)
+- [Cryptographic Identities](docs/key-management/README.md)
 - [Signing and Authorities](docs/signing-and-authorities/README.md)
 - [Crypto Platforms](docs/crypto-platforms/README.md)
 - [API Reference](docs/api-reference/README.md)

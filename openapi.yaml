@@ -1085,6 +1085,10 @@ components:
     KeyGenMode:
       type: string
       enum: [CREATE, ROTATE, REFRESH]
+      description: |
+        CREATE starts a new cryptographic identity. ROTATE replaces its key material.
+        REFRESH keeps the aggregate key unchanged: threshold ECC replaces peer shares,
+        while ML-DSA carries the existing shares forward unchanged.
 
     Generate:
       type: object

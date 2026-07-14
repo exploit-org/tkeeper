@@ -9,7 +9,7 @@ TKeeper gives machines, agents, services, and workflows a cryptographic identity
 - [Getting Started](getting-started/README.md)
 - [Deployment](deployment/README.md)
 - [Security Model](security-model/README.md)
-- [Key Management](key-management/README.md)
+- [Cryptographic Identities](key-management/README.md)
 - [Signing and Authorities](signing-and-authorities/README.md)
 - [Crypto Platforms](crypto-platforms/README.md)
 - [API Reference](api-reference/README.md)
@@ -25,7 +25,7 @@ TKeeper gives machines, agents, services, and workflows a cryptographic identity
 | Build an artifact | [Build and Features](deployment/build-and-features.md) |
 | Design backup and recovery | [Backup and Recovery](deployment/backup-and-recovery.md) |
 | Choose mono or threshold | [Quorum Modes](security-model/quorum-modes.md) |
-| Create and operate keys | [Key Lifecycle](key-management/key-lifecycle.md) |
+| Create and govern identities | [Create, Rotate, and Refresh](key-management/key-lifecycle.md) |
 | Govern signing | [Authorities](signing-and-authorities/authorities.md) |
 | Select ECC or PQC | [Platforms](crypto-platforms/platforms.md) |
 | Use the HTTP API | [OpenAPI](api-reference/openapi.md) |

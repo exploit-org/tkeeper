@@ -31,4 +31,4 @@ Without side state, later public-key checks and threshold protocols cannot prove
 
 Use rotate or a new DKG when you need new cryptographic material instead of promoting existing material.
 
-For ML-DSA, refresh creates a new generation with the same share and public key. Use rotate when new ML-DSA material is required.
+For ML-DSA, refresh carries the existing shares and public key into the new generation unchanged. Use rotate when new ML-DSA material is required.

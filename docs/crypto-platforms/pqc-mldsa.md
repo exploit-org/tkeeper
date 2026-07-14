@@ -61,7 +61,7 @@ For production:
 
 ## Refresh and rotate
 
-ML-DSA refresh creates a new generation with the same per-peer share and public key. It does not refresh cryptographic material.
+ML-DSA refresh advances the generation while carrying each peer's existing share and public key forward unchanged. It does not replace shares or refresh cryptographic material.
 
 Use rotate or a new DKG when new ML-DSA material is required.
 

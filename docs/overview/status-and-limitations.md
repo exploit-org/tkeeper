@@ -41,7 +41,7 @@ The default is `12`.
 
 If the cap is exhausted, TKeeper returns `SESSION_MAX_ROUNDS_EXCEEDED`. This is an availability outcome. It does not automatically prove that a peer is dead or malicious.
 
-ML-DSA refresh currently creates a new generation with the same per-peer share and public key. It does not refresh cryptographic material. Use rotate or a new DKG when new ML-DSA material is required.
+ML-DSA refresh advances the generation while carrying each peer's existing share and public key forward unchanged. It does not replace shares or refresh cryptographic material. Use rotate or a new DKG when new ML-DSA material is required.
 
 ## Failure injection
 
