@@ -219,6 +219,10 @@ tasks.named('shadowJar') {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
+tasks.named('build') {
+    dependsOn tasks.named('shadowJar')
+}
+
 tasks.register('shadowJarIntegration', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
     group = 'build'
     description = 'Builds integration fat jar with all feature modules, platforms, and failure-injection.'

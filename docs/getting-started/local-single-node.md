@@ -31,7 +31,7 @@ It does not prove that TKeeper understands a business action or enforces intent 
 Build the jar with all production features and platforms:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=all -Pkeeper.platforms=all
+./gradlew :build -Pkeeper.features=all -Pkeeper.platforms=all
 ```
 
 The jar is:

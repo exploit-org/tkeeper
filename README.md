@@ -97,13 +97,13 @@ A deployable artifact must include at least one platform.
 Build all production features and platforms:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=all -Pkeeper.platforms=all
+./gradlew :build -Pkeeper.features=all -Pkeeper.platforms=all
 ```
 
 Build only what you need:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=authority-evm -Pkeeper.platforms=ecc
+./gradlew :build -Pkeeper.features=authority-evm -Pkeeper.platforms=ecc
 ```
 
 See [Build and Features](docs/deployment/build-and-features.md).

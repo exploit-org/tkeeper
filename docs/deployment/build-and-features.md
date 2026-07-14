@@ -10,13 +10,15 @@ A usable production artifact must include at least one platform.
 ## Build all production modules
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=all -Pkeeper.platforms=all
+./gradlew :build -Pkeeper.features=all -Pkeeper.platforms=all
 ```
+
+The root `build` task runs the normal verification lifecycle and produces the deployable fat jar through `shadowJar`.
 
 Equivalent:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features.all=true -Pkeeper.platforms.all=true
+./gradlew :build -Pkeeper.features.all=true -Pkeeper.platforms.all=true
 ```
 
 The jar lands under:
@@ -32,13 +34,13 @@ TKeeper requires Java 25.
 Example: EVM signing, ECIES, and the UI:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=authority-evm,ecies,ui -Pkeeper.platforms=ecc
+./gradlew :build -Pkeeper.features=authority-evm,ecies,ui -Pkeeper.platforms=ecc
 ```
 
 Example: ML-DSA only:
 
 ```bash
-./gradlew shadowJar -Pkeeper.platforms=pqc
+./gradlew :build -Pkeeper.platforms=pqc
 ```
 
 Feature names match child project names. The module `:features:authority-evm` is selected with `authority-evm`.
@@ -129,7 +131,7 @@ The platform was not included in the artifact.
 Rebuild with the required platform, for example:
 
 ```bash
-./gradlew shadowJar -Pkeeper.features=authority-evm -Pkeeper.platforms=ecc
+./gradlew :build -Pkeeper.features=authority-evm -Pkeeper.platforms=ecc
 ```
 
 ### Native access warning
