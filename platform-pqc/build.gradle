@@ -22,9 +22,7 @@ repositories {
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation(project(':'))
-    implementation ('org.exploit.anvil:t-mldsa:0.2.0-SNAPSHOT') {
-        changing = true
-    }
+    implementation ('org.exploit.anvil:t-mldsa:0.2.0')
     compileOnly(project(':'))
 
     ksp "io.micronaut:micronaut-inject-kotlin:4.10.8"
