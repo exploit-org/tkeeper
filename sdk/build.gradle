@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'org.exploit'
-version = findProperty('releaseVersion') ?: '2.2.0'
+version = findProperty('releaseVersion') ?: '2.2.1'
 
 def projectName = "TKeeper SDK"
 def projectDescription = "API client for TKeeper in Java"
@@ -30,7 +30,7 @@ dependencies {
     api 'org.exploit:jettyx:0.1.7'
     api 'org.exploit:jettyx-jackson:0.1.7'
     api 'org.exploit:jettyx-http2:0.1.7'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.2'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.22.0'
 }
 
 java {
@@ -39,14 +39,6 @@ java {
 
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
-jar {
-    setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE)
-
-    from(configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }) {
-        exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     }
 }
 
