@@ -36,7 +36,7 @@ Rules:
 - `keys.size` must equal `n`
 - duplicate approver keys are rejected
 - approver public keys must decode under the declared algorithm
-- supported approver algorithms are `SECP256K1`, `P256`, and `ED25519`
+- approver algorithms must be present in the runtime artifact; ECC provides `SECP256K1`, `P256`, and `ED25519`, while the optional PQC platform adds `MLDSA44`, `MLDSA65`, and `MLDSA87`
 
 `STRICT` preserves the original behavior: approvals are required for every operation protected by the key policy, including signing, decrypting, rotating, refreshing, and destroying a generation.
 
@@ -64,7 +64,9 @@ Approval payload:
 }
 ```
 
-The nonce is one-time. The timestamp must not be in the future and must fit `keeper.approval.ttl`.
+At the coordinator boundary, the nonce is one-time and is consumed only after enough signatures verify. The timestamp must not be in the future and must fit `keeper.approval.ttl`.
+
+Threshold protocol retries reuse the same approval. Non-coordinator peers therefore verify its signatures and approved request fields without independently consuming the nonce or re-checking its age. If the coordinator is compromised, it can replay a previously valid approval with those same fields; see the threat model.
 
 The coordinator peer id in `approvals.keeperId` must match the peer coordinating the operation.
 
@@ -75,6 +77,9 @@ The coordinator peer id in `approvals.keeperId` must match the peer coordinating
 | `SECP256K1` | ECDSA |
 | `P256` | ECDSA |
 | `ED25519` | EdDSA |
+| `MLDSA44` | ML-DSA |
+| `MLDSA65` | ML-DSA |
+| `MLDSA87` | ML-DSA |
 
 The approver fingerprint is:
 

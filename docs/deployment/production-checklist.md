@@ -23,7 +23,7 @@
 
 - [ ] Public API is reachable only where intended.
 - [ ] Internal API is reachable only by TKeeper peers.
-- [ ] TLS and trust stores match public and internal boundaries; require internal mTLS when peer certificates are available.
+- [ ] Protected internal routes use TLS; configure mTLS with a distinct `tls-spki-sha256` binding for every peer.
 - [ ] Peer URLs use the expected internal addresses.
 - [ ] Public API rate limits and request-size limits are enforced at the edge.
 - [ ] Hosts have synchronized clocks for JWT, approval, expiry, and audit checks.
@@ -62,6 +62,7 @@
 - [ ] Decide whether audit sink failure blocks operations.
 - [ ] Test audit verification.
 - [ ] Alert on audit sink outage.
+- [ ] Restart all peers after an integrity-key rotation so process-local peer pins are re-enrolled.
 
 ## ML-DSA
 

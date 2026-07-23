@@ -11,6 +11,7 @@ Every peer must agree on:
 - peer ids
 - internal peer URLs
 - internal authentication trust
+- mTLS certificate-to-peer SPKI bindings, when enabled
 - selected seal provider behavior
 - artifact feature and platform set
 

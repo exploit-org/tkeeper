@@ -147,13 +147,13 @@ The request signature binds the HTTP method, path, canonical query, body hash, i
 
 The external JWT or dev token is forwarded only on internal operation entrypoints that independently enforce actor permissions, such as signing or DKG initialization, trusted-dealer import, destroy prepare, and consistency mutations. Protocol rounds and marker-bound commit or abort calls use peer authentication and existing session state without repeatedly forwarding the actor credential.
 
-On first contact, a peer proves its key with the shared bootstrap token. After that, the public key is pinned.
+On first contact, a peer proves its integrity key with the shared bootstrap token. After that, the integrity key is pinned for the lifetime of the process. If `keeper.peers[].tls-spki-sha256` is configured, TKeeper first verifies that the mTLS client certificate matches the claimed peer id; this removes network-first bootstrap enrollment from the trust decision.
 
 Authenticated internal responses carry the peer identity, request hash and nonce, response timestamp, body hash, boot proof, and `X-RESPONSE-SIGNATURE`. The caller verifies the raw status, content type, and body before completing the response future used by protocol code. Unsigned, replayed, cross-peer, or request-substituted responses are rejected.
 
-Internal TLS can still be enabled, including mutual TLS, but TLS is transport security. Peer authorization and request or response integrity remain in the signed transport layer.
+Protected internal routes require TLS outside dev mode. Mutual TLS with per-peer SPKI binding authenticates the transport peer; signed requests and responses separately bind protocol content and session intent.
 
-Protect the bootstrap token as cluster enrollment authority. An attacker that can reach an unenrolled peer and knows the token may be able to pin an attacker-controlled peer identity before the legitimate peer connects.
+Protect the bootstrap token as cluster enrollment authority. Without mTLS SPKI binding, an attacker that can reach an unenrolled peer and knows the token may be able to pin an attacker-controlled peer identity before the legitimate peer connects.
 
 Forwarded bearer credentials remain visible to a malicious recipient peer. Use short-lived tokens, restrict protected internal paths, and enable internal mTLS. Sender-constrained external credentials require deployment-specific mTLS, DPoP, or request-signing support and are not inferred from an ordinary bearer token.
 

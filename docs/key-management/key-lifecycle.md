@@ -66,7 +66,7 @@ In `threshold` mode, TKeeper coordinates lifecycle changes across peers:
 
 Threshold lifecycle state stores the key share and metadata for each generation. ECC commitments are later used to derive peer public shares for signing, ECIES, consistency checks, and Byzantine detection. ML-DSA stores its aggregate public key as signed side state.
 
-`REFRESH` is also the online migration path for legacy key generations. TKeeper reads legacy AEAD-protected material, writes the refreshed generation to the signed version store, and activates it through the normal pending-generation workflow. The legacy generation is not overwritten and remains historical until an explicit destroy operation removes it. A storage read never performs an implicit migration.
+`REFRESH` is also the online migration path for legacy key generations. TKeeper reads legacy AEAD-protected material, writes the refreshed generation and its metadata to the signed, location-bound stores, and activates it through the normal pending-generation workflow. The old legacy material remains physically available for consistency rollback and inventory, but it is inactive and cannot be selected for historical processing after migration. A storage read never performs an implicit migration.
 
 ## Public key
 
@@ -154,7 +154,7 @@ Destroy follows the quorum mode too.
 
 In mono mode, destroy is local-only. Any non-current generation can be destroyed. The current generation cannot be destroyed.
 
-In threshold mode, destroy is coordinated across peers. The current generation cannot be destroyed, and a generation must be at least two generations behind the active one. This keeps the cluster away from deleting material that may still be needed while a lifecycle operation is settling.
+In threshold mode, destroy is coordinated across peers. Commit and abort are bound to the peer that prepared the signed destroy session. The current generation cannot be destroyed, and a generation must be at least two generations behind the active one. This keeps the cluster away from deleting material that may still be needed while a lifecycle operation is settling.
 
 ## Consistency fix
 

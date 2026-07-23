@@ -13,7 +13,8 @@ External config can be:
 - a file
 - a directory with `application.conf`, `application.json`, or `application.properties`
 - `classpath:...`
-- `http://...` or `https://...`
+- `https://...`
+- `http://...` only when `-Dkeeper.dev.enabled=true`
 
 Multiple external locations are comma-separated. Earlier locations win because they are loaded first.
 
@@ -164,7 +165,32 @@ keeper.client {
 }
 ```
 
-mTLS limits internal API access and protects forwarded actor credentials from network interception. TKeeper still verifies application-level peer signatures because TLS may terminate at infrastructure boundaries and does not bind protocol messages to TKeeper sessions.
+Give every peer a distinct client certificate, then bind its configured peer id to that certificate's SPKI digest:
+
+```hocon
+keeper.peers = [
+  {
+    id = 2
+    internal-url = "https://keeper-2:9090"
+    tls-spki-sha256 = "base64-sha256-of-peer-2-client-certificate-spki"
+  }
+]
+```
+
+Compute the value from the client certificate:
+
+```bash
+openssl x509 -in peer-2-client.crt -pubkey -noout \
+  | openssl pkey -pubin -outform DER \
+  | openssl dgst -sha256 -binary \
+  | openssl base64 -A
+```
+
+If one peer entry has `tls-spki-sha256`, every peer entry must have a valid, distinct pin. TKeeper also requires internal TLS client authentication and an outbound client key store in that configuration.
+
+mTLS limits internal API access, protects forwarded actor credentials from network interception, and—when SPKI pins are configured—binds the claimed peer id to its certificate. TKeeper still verifies application-level peer signatures because TLS does not bind protocol messages to TKeeper sessions.
+
+Outside dev mode, protected peer protocol routes reject plaintext even if request signatures are otherwise valid. Health and integrity-public-key discovery remain available for deployment health checks and enrollment.
 
 ## Authentication
 
@@ -189,6 +215,8 @@ When `issuer` is configured, it must match the token `iss` claim. Configure it i
 `audience` must be present in the token `aud` claim. Tokens must contain `exp`; `nbf` is honored when present.
 
 `clock-skew` defaults to `15s` and must not be negative.
+
+Outside dev mode, `jwks-location` must not use plain HTTP.
 
 ## Sessions
 

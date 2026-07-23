@@ -74,7 +74,7 @@ Requests are untrusted until authenticated and authorized. JWT mode validates to
 
 Keeper to Keeper:
 
-Internal peer calls happen inside the cluster boundary. Requests and authenticated responses are signed and bound to the peer identities, request nonce, request hash, status, and body. Actor credentials are forwarded only to internal operation entrypoints that enforce their permissions. Peers still verify protocol data. Bad FROST, GG20, ML-DSA, or ECIES contributions are rejected. Protocols report an imposter only where the sender can be identified; a normal ML-DSA rejection-sampling abort is not Byzantine evidence.
+Protected internal routes require TLS outside dev mode. Requests and authenticated responses are signed and bound to the claimed peer id, request nonce, request hash, status, and body. Configure mTLS with a distinct SPKI pin per peer to bind that claimed id to the transport certificate; without it, first enrollment still trusts the shared bootstrap token and network path. Actor credentials are forwarded only to internal operation entrypoints that enforce their permissions. Peers still verify protocol data. Bad FROST, GG20, ML-DSA, or ECIES contributions are rejected. Protocols report an imposter only where the sender can be identified; a normal ML-DSA rejection-sampling abort is not Byzantine evidence.
 
 Keeper to OCI registry:
 
@@ -86,7 +86,7 @@ Seal providers protect the DEK. Built-in providers are Shamir and HSM. External 
 
 Keeper storage:
 
-Stored key material is AEAD-encrypted. New generations use a separate encrypt-then-sign version store whose signature is bound to the record id. Legacy generations remain readable for compatibility and migrate only through an explicit lifecycle operation.
+Stored key material is AEAD-encrypted. Integrity-sensitive records use one of two location-bound formats: signed records bind the column family, record id, and payload, while integrity private keys and audit-HMAC keys use encrypted envelopes bound to their exact record ids. This prevents a valid record or ciphertext from being moved into another storage slot. On a legacy V1 upgrade, rebinding internal secrets, signing the initialization envelope, and advancing the storage marker are one atomic transaction; mixed legacy and bound state is rejected. The signed initialization envelope binds the peer id and quorum tuple after unseal. Integrity and HMAC version pointers are checked against the latest stored version; integrity-key rotation retains historical public keys but removes historical private keys. Legacy key generations remain readable for compatibility and migrate only through an explicit lifecycle operation; after migration they cannot be selected for historical processing.
 
 Browser to UI:
 
@@ -191,11 +191,12 @@ Mitigation:
 - Approvers sign a hash of the exact operation fields.
 - The hash includes nonce and timestamp.
 - Duplicate approver keys are rejected.
+- A coordinator consumes the nonce only after enough signatures have verified.
 - `m` must be at least `2`, and `m` cannot exceed `n`.
 
 Residual risk:
 
-Compromised approver keys can approve malicious requests. Store approver keys separately from TKeeper peers.
+Compromised approver keys can approve malicious requests. Store approver keys separately from TKeeper peers. Protocol retries reuse the same approval, so non-coordinator peers verify its signatures and request-field binding but do not independently consume its nonce or re-check its age. A compromised coordinator that bypasses its own nonce and TTL checks can therefore replay a previously valid approval with the same approved request fields. Current lifecycle and session checks still apply, but independent peer-side replay prevention is not provided.
 
 ### T-7: Byzantine Peer During Signing
 
@@ -250,7 +251,7 @@ Mitigation:
 
 Residual risk:
 
-Memory forensics against an unsealed keeper can expose runtime secrets. A complete rollback or deletion of the local database cannot be detected solely by keys and signatures stored in that same database. Use host storage controls, encrypted swap, durable external audit export, and independently protected backups.
+Memory forensics against an unsealed keeper can expose runtime secrets. Signatures detect altered or relocated records, but they cannot by themselves detect a coherent same-location replay of an older record set. This includes replaying a key head with its matching key and metadata records, or rolling back the complete database. During the first upgrade from legacy V1 storage, TKeeper can validate and bind only the legacy plaintext currently present; it cannot prove that an unbound ciphertext was not substituted before that migration. Pre-2.2 platform side-state and sessionless destroy-marker formats that do not embed their identity remain read-compatible until the corresponding key lifecycle rewrite; relocating one fails later consistency checks or can force a fail-closed denial of service. Verify and protect the existing database and backups before the first 2.2 unseal. Use host storage controls, encrypted swap, durable external audit export, an independently protected monotonic checkpoint where rollback detection is required, and protected backups.
 
 ### T-10: Unseal Material Compromise
 
@@ -314,6 +315,7 @@ Mitigation:
 - Destructive operations are audit-logged.
 - Key metadata and active generations are integrity-protected.
 - Refresh writes a new signed generation and never overwrites a legacy generation in place.
+- Threshold destroy commit and abort messages are accepted only from the peer that prepared the signed destroy session.
 - ECC refresh reshapes the existing secret shares without changing the public key. Rotate creates new key material.
 - ML-DSA refresh carries each peer's existing share and public key into the new generation unchanged; it does not replace shares or refresh cryptographic material. ML-DSA rotate runs a new DKG and creates a new key.
 - Consistency repair is an explicit API, not part of normal signing flow.

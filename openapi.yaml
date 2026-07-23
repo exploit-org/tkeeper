@@ -509,6 +509,9 @@ paths:
       tags: [Integrity]
       operationId: rotateIntegrityKey
       summary: Rotate audit integrity key
+      description: |
+        Rotates this peer's audit and internal-response integrity key.
+        Restart every peer after rotation so process-local peer key pins are re-enrolled.
       x-permissions:
         required: [tkeeper.integrity.rotate]
       responses:

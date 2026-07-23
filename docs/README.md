@@ -27,7 +27,7 @@ TKeeper gives machines, agents, services, and workflows a cryptographic identity
 | Choose mono or threshold | [Quorum Modes](security-model/quorum-modes.md) |
 | Create and govern identities | [Create, Rotate, and Refresh](key-management/key-lifecycle.md) |
 | Govern signing | [Authorities](signing-and-authorities/authorities.md) |
-| Select ECC or PQC | [Platforms](crypto-platforms/platforms.md) |
+| Select cryptographic platforms | [Platforms](crypto-platforms/platforms.md) |
 | Use the HTTP API | [OpenAPI](api-reference/openapi.md) |
 | Run integration tests | [Integration Tests](operations/integration-tests.md) |
 
