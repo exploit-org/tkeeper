@@ -217,10 +217,11 @@ tasks.named('shadowJar') {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     doFirst {
-        if (!enabledPlatformModules.containsKey('platform-ecc')) {
+        if (enabledPlatformModules.isEmpty()) {
             throw new GradleException(
-                    "Runtime artifacts require platform 'ecc' for peer and storage integrity. " +
-                            "Add -Pkeeper.platforms=ecc or -Pkeeper.platforms=ecc,pqc"
+                    "Runtime artifacts require at least one platform module. " +
+                            "Add -Pkeeper.platforms=ecc, -Pkeeper.platforms=pqc, or -Pkeeper.platforms=ecc,pqc"
+
             )
         }
     }

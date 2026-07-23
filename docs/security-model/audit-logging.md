@@ -5,7 +5,13 @@ Audit logs are newline-delimited JSON records.
 Each line contains:
 
 - `event`: audit event payload
-- `signature`: Ed25519 signature over the encoded `event`
+- `signature`: Signature over the encoded `event`
+
+> Signature algorithm depends on the backend
+> - If `platform-ecc` is included signature algorithm always would be `Ed25519`
+> - If **ONLY** `platform-pqc` is included signature algorithm always would be `ML-DSA-44`
+>
+> Ed25519 currently has a higher priority because the present threat model does not yet require post-quantum signatures for every audit event, while ML-DSA signatures would significantly increase audit-log storage and network traffic. The priority can be switched to ML-DSA as the quantum threat becomes more immediate.
 
 The signing key is TKeeper's integrity key. `event.integrityKeyVersion` tells the verifier which integrity public key version to use.
 
