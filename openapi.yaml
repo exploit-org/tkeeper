@@ -1652,7 +1652,8 @@ components:
 
     KeyStatus:
       type: string
-      enum: [ACTIVE, DISABLED, APPLY_EXPIRED, EXPIRED, DESTROYED]
+      description: 'Shows key current status, where UNKNOWN means key is tampered'
+      enum: [ACTIVE, DISABLED, APPLY_EXPIRED, EXPIRED, DESTROYED, UNKNOWN]
 
     SignedLine:
       type: object
