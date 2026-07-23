@@ -154,8 +154,8 @@ dependencies {
     api 'org.exploit:verdict-authority:0.1.1'
     api 'org.exploit:verdict-authority-oci:0.1.1'
 
-    api 'com.linecorp.armeria:armeria:1.39.0'
-    api 'com.linecorp.armeria:armeria-kotlin:1.39.0'
+    api 'com.linecorp.armeria:armeria:1.40.0'
+    api 'com.linecorp.armeria:armeria-kotlin:1.40.0'
 
     implementation 'com.github.ben-manes.caffeine:caffeine:3.2.0'
 
@@ -215,6 +215,15 @@ tasks.named('shadowJar') {
             'META-INF/LICENSE*'
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    doFirst {
+        if (!enabledPlatformModules.containsKey('platform-ecc')) {
+            throw new GradleException(
+                    "Runtime artifacts require platform 'ecc' for peer and storage integrity. " +
+                            "Add -Pkeeper.platforms=ecc or -Pkeeper.platforms=ecc,pqc"
+            )
+        }
+    }
 }
 
 tasks.named('build') {
