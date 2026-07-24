@@ -1,62 +1,75 @@
-# Integration Tests
+# Integration tests
 
-This project uses **Testcontainers** to run integration tests against a multi-node TKeeper cluster defined via Docker Compose.
-
-The test harness starts the Compose stack, waits for the keeper API ports to become available, and collects container logs with per-service prefixes (`keeper-1`, `keeper-2`, `keeper-3`).
-
-The Compose runtime is resolved automatically:
-
-- Prefer `docker-compose` (Compose v1) when available
-- Fallback to `docker compose` (Compose v2)
-
----
+The integration suites run against a multi-node TKeeper cluster managed by Docker Compose and Testcontainers. The harness waits for public API ports and prefixes collected container logs by service name.
 
 ## Requirements
 
+- Java 25
 - Docker Engine
-- Docker Compose:
-  - `docker-compose` **or**
-  - `docker compose`
-- Java **25**
+- `docker-compose` or `docker compose`
+- Colima on macOS; the Gradle harness configures its Docker socket
 
----
+## Build the integration image
 
-## Runing tests
-
-### Build test docker image
-Run from root project directory:
-```bash
-./gradlew dockerBuildIntegration -Pkeeper.docker.features=all
-```
-`keeper.docker.features=all` includes test-only integration helpers such as `feature-failure-injection`.
-Regular runtime builds with `keeper.features=all` do not include those helpers.
-
-Or select only the modules needed for a test run:
-```bash
-./gradlew dockerBuildIntegration -Pkeeper.docker.features=authority-evm,seal-aws,failure-injection
-```
-
-Run the full test suite:
+From the repository root:
 
 ```bash
-./gradlew :integration-tests:test
+./gradlew dockerBuildIntegration
 ```
 
-Run a specific test class:
+Do not pass `keeper.features` or `keeper.platforms`. The dedicated integration classpath always includes:
+
+- every production feature
+- `platform-ecc` and `platform-pqc`
+- the test-only `:integration-tests:failure-injection` module
+
+Regular `shadowJar` and `dockerBuild` artifacts do not include failure injection. Never deploy the integration image as a production runtime.
+
+## Run suites
+
+Functional tests:
 
 ```bash
-./gradlew :integration-tests:test --tests "org.exploit.tkeeper.test.{ClassName}"
+./gradlew :integration-tests:functional:test
 ```
 
-See available test classes in [tests](src/test/kotlin/)
+One class:
 
----
+```bash
+./gradlew :integration-tests:functional:test \
+  --tests 'org.exploit.test.functional.SignatureTests'
+```
 
-## Notes
-Client with `idx = 3` has disabled coordinator (so it can't make generate/rotate/refresh, sign, encrypt/decrypt, destroy & consistency fix requests)
+Performance tests are separate:
 
-Client with `idx = 2` uses `hsm` as seal provider
+```bash
+./gradlew :integration-tests:performance:test
+```
 
-## macOS notes (Colima)
+The functional suite is split by boundary:
 
-On macOS, Docker **MUST** be provided by Colima. If your setup uses a non-default Docker socket, configure it via environment variables (`DOCKER_HOST`) before running tests. See [build.gradle](build.gradle) for details.
+| Class | Coverage |
+| --- | --- |
+| `SignatureTests` | ECC and ML-DSA signing and verification |
+| `KeyLifecycleTests` | create, refresh, rotate, and PQC-specific lifecycle behavior |
+| `AuthorityPolicyTests` | typed authority materialization and policy decisions |
+| `FailureInjectionTests` | corruption, demotion, and consistency recovery |
+| `QuorumPromotionTests` | mono-to-threshold promotion |
+| `KeyImportTests` | trusted-dealer import |
+| `FourEyeControlTests` | approval binding and replay rejection |
+| `SealManagerTests` | seal and unseal providers |
+| `ECIESTests` | optional ECIES paths |
+
+See the [functional test sources](functional/src/test/kotlin/org/exploit/test/functional/) for the complete set.
+
+## Test topology
+
+- client index `3` targets a peer with coordinator endpoints disabled
+- client index `2` targets a peer using the HSM seal provider
+- test execution is single-fork and JUnit parallel execution is disabled
+
+When diagnosing a cluster failure, use the prefixed `keeper-1`, `keeper-2`, and `keeper-3` logs to identify the peer and protocol stage that failed.
+
+## macOS
+
+The current Gradle harness expects Colima. It uses `COLIMA_SOCKET_ENV` when set, otherwise `~/.colima/default/docker.sock`, and configures the Testcontainers socket override automatically.

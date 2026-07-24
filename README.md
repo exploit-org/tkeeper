@@ -4,180 +4,148 @@
 
 # TKeeper
 
-[TKeeper Labs](https://tkeeper.org) • [exploit.org](https://exploit.org) • [Documentation](https://tkeeper.org/docs) • [OpenAPI](openapi.yaml)
+[TKeeper Labs](https://tkeeper.org) • [exploit.org](https://exploit.org) • [Documentation](docs/README.md) • [OpenAPI](openapi.yaml)
 
 </div>
 
-TKeeper controls machine authority.
+TKeeper is a governed cryptographic identity layer for machines, agents, services, and workflows.
 
-A machine becomes risky when it can cause a real effect: move funds, approve a spender, issue a certificate, decrypt data, rotate a key, import key material, or delegate power.
+Each key represents an identity. Its authorities define which actions that identity may authorize, how TKeeper interprets those actions, and which policy must pass before proof is produced.
 
-Classic access control answers who can call an API. TKeeper answers what this call is allowed to cause.
-
-TKeeper places policy on the authority path. Before `sign`, `decrypt`, `rotate`, `refresh`, `destroy`, or `import` starts, it evaluates configured controls: auth, permissions, key lifecycle, time policy, four-eye policy, authority policy, audit, and integrity.
-
-Built on [Anvil](https://github.com/exploit-org/anvil): cryptographic building blocks for threshold ECDSA, FROST, and verifiable threshold ECIES.
-
-See [Documentation](https://tkeeper.org/docs) for deployment, API, protocols, and threat model.
-
----
-
-## Authority Path
-
-TKeeper turns a machine request into a verifiable authority decision.
+For typed authorities, the enforcement contract is:
 
 ```text
-                 1. intent
-┌──────────────┐ ─────────────▶ ┌──────────────┐
-│   Machine    │                │   TKeeper    │
-└──────────────┘ ◀───────────── └──────────────┘
-        │        2. proof
-        │
-        │ 3. request + proof
-        ▼
-┌──────────────┐
-│   Backend    │
-└──────────────┘
-        │
-        │ 4. verify proof, execute effect
-        ▼
-┌──────────────┐
-│    Effect    │
-└──────────────┘
+No understood and approved intent -> no cryptographic proof -> no effect.
 ```
 
-The machine submits the request and proof to the backend. The backend verifies that the proof is valid for the exact intent before executing the effect.
+## What TKeeper governs
 
-No valid proof for this exact intent means no effect.
+TKeeper controls when an identity may produce cryptographic proof or change its own key state:
 
----
+- signatures for governed actions
+- certificate signatures
+- key lifecycle operations
+- optional cryptographic operations such as ECIES decryption
 
-## Intent → Policy → Decision → Proof
+For external actions, enforcement depends on the verifier: the downstream system must reject effects that are not backed by proof for the exact accepted intent.
 
-TKeeper keeps the control path together:
+## Use cases
 
-| Stage    | Meaning                                      |
-|----------|----------------------------------------------|
-| Intent   | Understand the requested action              |
-| Policy   | Evaluate configured controls                 |
-| Decision | Approve or deny the operation                |
-| Proof    | Bind approval to the exact action            |
+| Use case | What TKeeper governs |
+| --- | --- |
+| AI agents | typed tool/action intents, spending, production actions, signed decisions |
+| Crypto assets | EVM and Bitcoin transaction signing, treasury workflows |
+| Certificates | X.509 issuance and workload identity operations |
+| Internal systems | typed commands, privileged automation, break-glass flows |
 
-If intent, policy, decision, or proof split apart, control breaks.
+See [Use Cases](docs/use-cases/README.md).
 
----
+## Authority path
 
-## Quorum Modes
+```text
+request
+-> key identity
+-> authority
+-> understood intent
+-> policy and audit controls
+-> mono or threshold cryptographic operation
+-> proof
+-> downstream verification
+-> effect
+```
 
-TKeeper supports two quorum modes:
+If the action can bypass the governed identity, TKeeper cannot enforce that boundary by itself.
 
-- `mono` (`1-of-1`): local key material, same authority controls, no threshold custody. **Fastest Time-To-Market**.
-- `threshold` (`t-of-n`): key shares across peers, quorum required for operations. **Highest Security**.
+## Quorum modes
 
-Threshold mode removes the single cryptographic control point. Private key material is split across peers and never reconstructed during signing or decryption. TKeeper uses MPC to distribute authority across peers.
+| Mode | Use when |
+| --- | --- |
+| `mono` | one node is acceptable, but TKeeper policy/audit/authority controls are still needed |
+| `threshold` | one compromised node must not be enough to authorize as the identity |
 
-In `threshold` mode, private key material is split into shares. Signing and decryption require quorum participation, and the private key is never reconstructed on any machine.
+In threshold mode, private key authority is split across peers. A coordinator can start an operation, but peers validate the same intent before contributing.
 
-Policy is part of quorum participation.
-
-Each peer validates the intent against its local policy state before contributing to signing or decryption. A coordinator can propose an operation, but it cannot force peers to authorize it.
-
-If enough honest peers reject the intent so that no accepting quorum can be formed, the operation does not complete.
-
-This means authority is not controlled by one instance:
-
-- fewer than `t` compromised peers cannot recover the key
-- fewer than `t` compromised peers cannot produce a signature or decryption
-- fewer than `t` compromised peers cannot bypass policy
-
-- bypassing policy requires compromising at least `t` peers under accepting policy state
-
-TKeeper can start in `mono` mode for policy enforcement and later be promoted to `threshold` mode when distributed authority is required.
-
----
+See [Quorum Modes](docs/security-model/quorum-modes.md).
 
 ## Authorities
 
-Authorities describe what kind of consequence a key may authorize.
-TKeeper materializes command data into a typed intent and evaluates authority policy before key material participates.
+Authorities define what a key identity may authorize.
 
-Currently supported:
-- **`arbitrary`** for ungoverned arbitrary bytes signing
-- **`typed`** for custom schema-based governed data signing (e.g your internal operations, AI agents tools call and etc)
-- **`authority-x509`** for governed certificate issuance
-- **`authority-bitcoin`** for BTC (and forks) governed transaction signing
-- **`authority-evm`** for EVM (Ethereum/BNB and any evm-compatible) governed transaction signing with describable effects.
+| Authority type | Use |
+| --- | --- |
+| `arbitrary` | raw signing; high-risk, no semantic intent in TKeeper |
+| `custom` | typed JSON commands, internal systems, AI-agent actions |
+| `evm.transaction` | governed EVM transaction signing |
+| `bitcoin.transaction` | governed Bitcoin transaction signing |
+| `x509.tbs-certificate` | governed certificate issuance |
 
-`arbitrary` and `typed` are available out of box, while others should be added separately in build. See [Documentation](docs).
+Concrete authorities use digest-pinned authority documents. TKeeper materializes the command into an intent, evaluates policy, and signs only when the final decision is `ALLOW`.
 
----
+See [Signing and Authorities](docs/signing-and-authorities/README.md).
 
-## Cryptographic Core
+## Crypto platforms
 
-TKeeper uses MPC to remove unilateral cryptographic control.
+Cryptographic implementations are selected at build time.
 
-| Capability           | Protocols                                         | Curves                        |
-|----------------------|---------------------------------------------------|-------------------------------|
-| Threshold signing    | GG20 ECDSA, FROST Schnorr, BIP-340, Taproot       | secp256k1, secp256r1, Ed25519 |
-| Threshold decryption | Threshold ECIES                                   | secp256k1, secp256r1          |
-| Key lifecycle        | DKG, import, refresh, rotate, destroy             | secp256k1, secp256r1, Ed25519 |
-| Key derivation       | deterministic scalar tweak                        | supported signing curves      |
+| Platform | Provides |
+| --- | --- |
+| `ecc` | `SECP256K1`, `P256`, `ED25519`, ECDSA, FROST, BIP-340/Taproot, ECIES support |
+| `pqc` | `MLDSA44`, `MLDSA65`, `MLDSA87`, threshold ML-DSA DKG and signing |
 
+A deployable artifact must include at least one platform.
 
-Protocol details live in the documentation and in [Anvil](https://github.com/exploit-org/anvil).
+Build all production features and platforms:
 
----
-
-## Access Control
-
-Every operation is authenticated and authorized against explicit permission identifiers scoped by key and operation:
-
-```text
-tkeeper.key.{keyId}.sign
-tkeeper.key.{keyId}.decrypt
-tkeeper.key.{keyId}.dkg
-tkeeper.key.*.sign
-tkeeper.key.*.*
+```bash
+./gradlew :build -Pkeeper.features=all -Pkeeper.platforms=all
 ```
 
-Permissions are enforced before any threshold operation begins.
+Build only what you need:
 
----
+```bash
+./gradlew :build -Pkeeper.features=authority-evm -Pkeeper.platforms=ecc
+```
 
-## Audit and Compliance
+See [Build and Features](docs/deployment/build-and-features.md).
 
-TKeeper emits signed, tamper-evident audit records for security-relevant actions: sign, decrypt, key generation, import, refresh, rotate, destroy, permission changes, and authority policy changes.
+## Documentation
 
-When sink enforcement is enabled, TKeeper denies operations if no configured audit sink is reachable.
+- [Overview](docs/overview/README.md)
+- [Getting Started](docs/getting-started/README.md)
+- [Deployment](docs/deployment/README.md)
+- [Security Model](docs/security-model/README.md)
+- [Cryptographic Identities](docs/key-management/README.md)
+- [Signing and Authorities](docs/signing-and-authorities/README.md)
+- [Crypto Platforms](docs/crypto-platforms/README.md)
+- [API Reference](docs/api-reference/README.md)
+- [Operations](docs/operations/README.md)
 
-Asset inventory endpoints expose key metadata for governance reviews and operational oversight.
+## Security references
 
----
+- [TKeeper Threat Model](docs/security-model/threat-model.md)
+- [Anvil](https://github.com/exploit-org/anvil) for protocol-level cryptographic components
 
-## Threat Model
+## API
 
-- TKeeper: see [TKeeper Threat Model](docs/threat-model.md)
-- Anvil: see the [Anvil repository](https://github.com/exploit-org/anvil) for protocol-level cryptographic components and security references
+The HTTP contract is described by [openapi.yaml](openapi.yaml).
 
----
+Java integrations can use [`org.exploit:tkeeper-sdk:2.2.0`](sdk/README.md).
 
-## API Reference
+If an SDK helper disagrees with OpenAPI, treat OpenAPI as the source of truth.
 
-The OpenAPI specification describes the HTTP surface, request and response models, and error semantics.
+## Tests
 
-See [OpenAPI Reference](openapi.yaml).
+Integration tests run against a local cluster via Testcontainers.
 
----
+Build the integration image:
 
-## Running Tests
+```bash
+./gradlew dockerBuildIntegration
+```
 
-Integration tests run against a local Docker Compose cluster via [Testcontainers](https://testcontainers.com).
+The integration image includes every production feature, every platform, and the test-only failure-injection module. Do not deploy it as production runtime.
 
-The test suite includes **150+** simulation tests covering quorum behavior, peer failures, protocol aborts, key lifecycle operations, audit enforcement, and permission boundaries.
-
-See [integration-tests](integration-tests) for setup and environment details.
-
----
+See [integration-tests](integration-tests/README.md).
 
 ## License
 

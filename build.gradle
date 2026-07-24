@@ -8,24 +8,43 @@ plugins {
 def mainClassName = 'org.exploit.keeper.TKeeperKt'
 
 group = 'org.exploit'
-version = '2.1.1'
+version = '2.2.0-rc.1'
 
 repositories {
     mavenCentral()
+    maven {
+        name = "sonatypeCentralSnapshots"
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
 }
 
 def featureModules = [
-        'feature-seal-aws'          : 'keeper.feature.seal.aws',
-        'feature-seal-gcloud'       : 'keeper.feature.seal.gcloud',
-        'feature-authority-bitcoin' : 'keeper.feature.authority.bitcoin',
-        'feature-authority-evm'     : 'keeper.feature.authority.evm',
-        'feature-authority-x509'    : 'keeper.feature.authority.x509',
-        'feature-ecies'             : 'keeper.feature.ecies',
-        'feature-ui'                : 'keeper.feature.ui'
+        'features:seal-aws'          : 'keeper.feature.seal.aws',
+        'features:seal-gcloud'       : 'keeper.feature.seal.gcloud',
+        'features:authority-bitcoin' : 'keeper.feature.authority.bitcoin',
+        'features:authority-evm'     : 'keeper.feature.authority.evm',
+        'features:authority-x509'    : 'keeper.feature.authority.x509',
+        'features:ecies'             : 'keeper.feature.ecies',
+        'features:ui'                : 'keeper.feature.ui'
 ]
 
 def testOnlyFeatureModules = [
-        'feature-failure-injection': 'keeper.feature.failure-injection'
+        'integration-tests:failure-injection': 'keeper.feature.failure-injection'
+]
+
+def platformModules = [
+        'platform-ecc': 'keeper.platform.ecc',
+        'platform-pqc': 'keeper.platform.pqc'
+]
+
+def featurePlatformRequirements = [
+        'features:authority-bitcoin'        : ['platform-ecc'],
+        'features:authority-evm'            : ['platform-ecc'],
+        'features:authority-x509'           : ['platform-ecc'],
+        'features:ecies'                    : ['platform-ecc']
 ]
 
 def truthy = { value ->
@@ -48,8 +67,8 @@ def selectedProductionFeatures = [selectedRuntimeFeatures, selectedDockerFeature
         .toSet()
 
 def explicitlySelectedFeature = { Set<String> features, String moduleName ->
-    def shortName = moduleName - 'feature-'
-    features.contains(moduleName) || features.contains(shortName)
+    def shortName = moduleName.tokenize(':').last()
+    features.contains(moduleName) || features.contains(shortName) || features.contains("feature-$shortName")
 }
 
 def allProductionFeaturesSelected =
@@ -65,6 +84,35 @@ def shouldIncludeProductionFeature = { String moduleName, String propertyName ->
 
 def enabledFeatureModules = featureModules.findAll { moduleName, propertyName ->
     shouldIncludeProductionFeature(moduleName, propertyName)
+}
+
+def selectedRuntimePlatforms = parseFeatures(findProperty('keeper.platforms'))
+def selectedDockerPlatforms = parseFeatures(findProperty('keeper.docker.platforms'))
+def selectedProductionPlatforms = [selectedRuntimePlatforms, selectedDockerPlatforms]
+        .flatten()
+        .toSet()
+
+def allProductionPlatformsSelected =
+        truthy(findProperty('keeper.platforms.all')) ||
+                selectedRuntimePlatforms.contains('all') ||
+                selectedDockerPlatforms.contains('all')
+
+def enabledPlatformModules = platformModules.findAll { moduleName, propertyName ->
+    def shortName = moduleName - 'platform-'
+    allProductionPlatformsSelected ||
+            selectedProductionPlatforms.contains(moduleName) ||
+            selectedProductionPlatforms.contains(shortName) ||
+            truthy(findProperty(propertyName))
+}
+
+enabledFeatureModules.keySet().each { moduleName ->
+    featurePlatformRequirements.get(moduleName, []).each { requiredPlatform ->
+        if (!enabledPlatformModules.containsKey(requiredPlatform)) {
+            def featureName = moduleName.tokenize(':').last()
+            def platformName = requiredPlatform - 'platform-'
+            throw new GradleException("Feature '$featureName' requires platform '$platformName'. Add -Pkeeper.platforms=$platformName")
+        }
+    }
 }
 
 configurations {
@@ -95,28 +143,19 @@ dependencies {
     api 'org.rocksdb:rocksdbjni:10.2.1'
     api 'org.exploit:secure-buffer:0.1.0'
 
-    api platform('org.exploit.anvil:bom:0.1.2')
+    api platform('org.exploit.anvil:bom:0.2.0')
     api 'org.exploit.anvil:bigint'
     api 'org.exploit.anvil:shamir'
-    api 'org.exploit.anvil:ecc-secp256k1'
-    api 'org.exploit.anvil:ecc-ed25519'
-    api 'org.exploit.anvil:ecc-p256'
     api 'org.exploit.anvil:xchacha20-poly1305'
     api 'org.exploit.anvil:util'
+    api 'org.exploit.anvil:crypto-spi'
     api 'org.exploit:verdict:0.1.1'
 
     api 'org.exploit:verdict-authority:0.1.1'
     api 'org.exploit:verdict-authority-oci:0.1.1'
 
-    api 'com.linecorp.armeria:armeria:1.39.0'
-    api 'com.linecorp.armeria:armeria-kotlin:1.39.0'
-
-    implementation 'org.exploit.anvil:t-ecdsa'
-    implementation 'org.exploit.anvil:t-schnorr'
-    implementation 'org.exploit.anvil:frost-ed25519'
-    implementation 'org.exploit.anvil:frost-secp256k1'
-    implementation 'org.exploit.anvil:frost-p256'
-    implementation 'org.exploit.anvil:zk-dlog'
+    api 'com.linecorp.armeria:armeria:1.40.0'
+    api 'com.linecorp.armeria:armeria-kotlin:1.40.0'
 
     implementation 'com.github.ben-manes.caffeine:caffeine:3.2.0'
 
@@ -140,11 +179,19 @@ dependencies {
         runtimeOnly project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
+    enabledPlatformModules.keySet().each { moduleName ->
+        runtimeOnly project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
+    }
+
     featureModules.keySet().each { moduleName ->
         integrationFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
     testOnlyFeatureModules.keySet().each { moduleName ->
+        integrationFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
+    }
+
+    platformModules.keySet().each { moduleName ->
         integrationFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 }
@@ -168,11 +215,25 @@ tasks.named('shadowJar') {
             'META-INF/LICENSE*'
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    doFirst {
+        if (enabledPlatformModules.isEmpty()) {
+            throw new GradleException(
+                    "Runtime artifacts require at least one platform module. " +
+                            "Add -Pkeeper.platforms=ecc, -Pkeeper.platforms=pqc, or -Pkeeper.platforms=ecc,pqc"
+
+            )
+        }
+    }
+}
+
+tasks.named('build') {
+    dependsOn tasks.named('shadowJar')
 }
 
 tasks.register('shadowJarIntegration', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
     group = 'build'
-    description = 'Builds integration fat jar with all feature modules and failure-injection.'
+    description = 'Builds integration fat jar with all feature modules, platforms, and failure-injection.'
 
     archiveBaseName.set('tkeeper')
     archiveClassifier.set('integration')
