@@ -19,3 +19,5 @@ include 'integration-tests:failure-injection'
 
 include 'platform-ecc'
 include 'platform-pqc'
+
+include 'features:auth-dev'

@@ -56,10 +56,17 @@ Feature names match child project names. The module `:features:authority-evm` is
 | Control-plane UI | `ui` | any required crypto platform |
 | AWS KMS seal provider | `seal-aws` | any required crypto platform |
 | Google Cloud KMS seal provider | `seal-gcloud` | any required crypto platform |
+| Developer token authentication | `auth-dev` (explicit, non-production) | any required crypto platform |
 | ML-DSA identities | none | `pqc` |
 | Everything production | `all` | `all` |
 
 Features with platform dependencies require the matching platform. The build should fail early instead of producing an artifact with a missing runtime provider.
+
+`auth-dev` is deliberately excluded from `all`. A local-development artifact must request it explicitly:
+
+```bash
+./gradlew :build -Pkeeper.features=auth-dev -Pkeeper.platforms=ecc
+```
 
 ## Selection properties
 
@@ -112,7 +119,7 @@ Build the integration image with:
 ./gradlew dockerBuildIntegration
 ```
 
-Do not pass `keeper.features` or `keeper.platforms` to this task. `dockerBuildIntegration` uses a dedicated classpath containing every production feature, every platform, and the test-only failure-injection module.
+Do not pass `keeper.features` or `keeper.platforms` to this task. `dockerBuildIntegration` uses a dedicated classpath containing every production feature, `auth-dev`, every platform, and the test-only failure-injection module.
 
 Never deploy the integration image as production runtime.
 

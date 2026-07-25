@@ -5,6 +5,7 @@
 - [ ] Build only required production features.
 - [ ] Include required platforms explicitly.
 - [ ] Do not deploy `exploit/tkeeper:dev`.
+- [ ] Confirm the artifact does not contain the `auth-dev` feature.
 - [ ] Do not include failure-injection outside integration tests.
 - [ ] Pin the release artifact used by every peer.
 - [ ] Verify artifact provenance and integrity before rollout.
@@ -13,7 +14,7 @@
 
 ## Authentication and permissions
 
-- [ ] Disable developer authentication.
+- [ ] Do not include developer authentication in the artifact.
 - [ ] Configure production authentication.
 - [ ] Bind JWT tokens to expected issuer and audience when using JWT.
 - [ ] Keep signing, lifecycle, import, destroy, and audit permissions separate.
@@ -22,6 +23,7 @@
 ## Network
 
 - [ ] Public API is reachable only where intended.
+- [ ] Public API TLS is enabled; JWT mode fails startup when the public server is plaintext.
 - [ ] Internal API is reachable only by TKeeper peers.
 - [ ] Protected internal routes use TLS; configure mTLS with a distinct `tls-spki-sha256` binding for every peer.
 - [ ] Peer URLs use the expected internal addresses.

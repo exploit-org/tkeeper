@@ -28,10 +28,10 @@ It does not prove that TKeeper understands a business action or enforces intent 
 - a built TKeeper jar
 - `curl`
 
-Build the jar with all production features and platforms:
+Build the jar with the explicit developer-auth feature:
 
 ```bash
-./gradlew :build -Pkeeper.features=all -Pkeeper.platforms=all
+./gradlew :build -Pkeeper.features=all,auth-dev -Pkeeper.platforms=all
 ```
 
 The jar is:

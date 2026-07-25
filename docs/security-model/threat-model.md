@@ -70,7 +70,7 @@ Audit events are signed with the integrity key. When audit is enabled, at least 
 
 Client to Keeper:
 
-Requests are untrusted until authenticated and authorized. JWT mode validates token signature, `kid`, audience, configured issuer, token lifetime, and subject. Dev token mode is for controlled environments.
+Requests are untrusted until authenticated and authorized. JWT mode validates token signature, `kid`, audience, configured issuer, token lifetime, and subject. JWT mode also requires TLS on the public server so bearer credentials are not accepted over plaintext. Dev token mode is for controlled environments.
 
 Keeper to Keeper:
 

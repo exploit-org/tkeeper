@@ -14,6 +14,7 @@ Do not use developer authentication in production.
 ## Developer authentication
 
 Developer auth loads a separate config file from `keeper.dev.config.location`.
+Its implementation lives in the optional `auth-dev` feature and is absent from normal production artifacts, including builds made with `keeper.features=all`.
 
 Example:
 
@@ -31,7 +32,13 @@ keeper.dev {
 }
 ```
 
-Enable it only in local or test environments:
+Build it only into local or test artifacts:
+
+```bash
+./gradlew :build -Pkeeper.features=auth-dev -Pkeeper.platforms=ecc
+```
+
+Then enable it at runtime:
 
 ```bash
 -Dkeeper.dev.enabled=true

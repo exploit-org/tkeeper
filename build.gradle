@@ -31,9 +31,11 @@ def featureModules = [
         'features:ui'                : 'keeper.feature.ui'
 ]
 
-def testOnlyFeatureModules = [
-        'integration-tests:failure-injection': 'keeper.feature.failure-injection'
+def developmentFeatureModules = [
+        'features:auth-dev': 'keeper.feature.auth.dev'
 ]
+
+def testOnlyFeatureModules = ['integration-tests:failure-injection']
 
 def platformModules = [
         'platform-ecc': 'keeper.platform.ecc',
@@ -84,6 +86,11 @@ def shouldIncludeProductionFeature = { String moduleName, String propertyName ->
 
 def enabledFeatureModules = featureModules.findAll { moduleName, propertyName ->
     shouldIncludeProductionFeature(moduleName, propertyName)
+}
+
+def enabledDevelopmentFeatureModules = developmentFeatureModules.findAll { moduleName, propertyName ->
+    explicitlySelectedFeature(selectedProductionFeatures, moduleName) ||
+            truthy(findProperty(propertyName))
 }
 
 def selectedRuntimePlatforms = parseFeatures(findProperty('keeper.platforms'))
@@ -179,6 +186,10 @@ dependencies {
         runtimeOnly project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
+    enabledDevelopmentFeatureModules.keySet().each { moduleName ->
+        runtimeOnly project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
+    }
+
     enabledPlatformModules.keySet().each { moduleName ->
         runtimeOnly project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
@@ -187,7 +198,11 @@ dependencies {
         integrationFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
-    testOnlyFeatureModules.keySet().each { moduleName ->
+    developmentFeatureModules.keySet().each { moduleName ->
+        integrationFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
+    }
+
+    testOnlyFeatureModules.each { moduleName ->
         integrationFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
@@ -225,6 +240,10 @@ tasks.named('shadowJar') {
             )
         }
     }
+}
+
+tasks.named('jar') {
+    archiveClassifier.set('plain')
 }
 
 tasks.named('build') {

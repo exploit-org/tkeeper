@@ -20,6 +20,7 @@ From the repository root:
 Do not pass `keeper.features` or `keeper.platforms`. The dedicated integration classpath always includes:
 
 - every production feature
+- the non-production `:features:auth-dev` module
 - `platform-ecc` and `platform-pqc`
 - the test-only `:integration-tests:failure-injection` module
 

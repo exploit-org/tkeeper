@@ -13,8 +13,6 @@ External config can be:
 - a file
 - a directory with `application.conf`, `application.json`, or `application.properties`
 - `classpath:...`
-- `https://...`
-- `http://...` only when `-Dkeeper.dev.enabled=true`
 
 Multiple external locations are comma-separated. Earlier locations win because they are loaded first.
 
@@ -22,12 +20,20 @@ Configuration can contain bootstrap tokens, HSM PINs, registry credentials, and 
 
 Profile config uses bundled files named `application-{profile}.conf`, `application-{profile}.json`, or `application-{profile}.properties`.
 
-Dev auth config is separate. Enable it with:
+Dev auth config is separate. Include the feature when building:
+
+```bash
+./gradlew :build -Pkeeper.features=auth-dev -Pkeeper.platforms=ecc
+```
+
+Enable it at runtime with:
 
 ```bash
 -Dkeeper.dev.enabled=true
 -Dkeeper.dev.config.location=/etc/tkeeper
 ```
+
+`auth-dev` is not included by `keeper.features=all`; it must be selected explicitly.
 
 When the dev location is a directory, TKeeper looks for `dev.conf`, `dev.json`, or `dev.properties`. A direct file path also works.
 
@@ -134,6 +140,8 @@ keeper.server.public.tls { enabled = true }
 keeper.server.internal.tls { enabled = true }
 ```
 
+JWT authentication requires public-server TLS and fails startup when it is disabled.
+
 The peer client must trust the internal server certificate when internal TLS is enabled:
 
 ```hocon
@@ -216,7 +224,9 @@ When `issuer` is configured, it must match the token `iss` claim. Configure it i
 
 `clock-skew` defaults to `15s` and must not be negative.
 
-Outside dev mode, `jwks-location` must not use plain HTTP.
+Remote `jwks-location` and OIDC discovery URLs must use HTTPS. A local JWKS file path or
+`file:` URI is also supported. OIDC callbacks must use HTTPS, except for loopback callbacks
+used during local development.
 
 ## Sessions
 
