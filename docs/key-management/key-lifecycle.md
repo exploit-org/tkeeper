@@ -66,7 +66,7 @@ In `threshold` mode, TKeeper coordinates lifecycle changes across peers:
 
 Threshold lifecycle state stores the key share and metadata for each generation. ECC commitments are later used to derive peer public shares for signing, ECIES, consistency checks, and Byzantine detection. ML-DSA stores its aggregate public key as signed side state.
 
-`REFRESH` is also the online migration path for legacy key generations. TKeeper reads legacy AEAD-protected material, writes the refreshed generation and its metadata to the signed, location-bound stores, and activates it through the normal pending-generation workflow. The old legacy material remains physically available for consistency rollback and inventory, but it is inactive and cannot be selected for historical processing after migration. A storage read never performs an implicit migration.
+During the first storage upgrade, marker-gated migration relocates legacy AEAD-protected generations into the isolated key-version store without signing or activating new key material. `REFRESH` is the online conversion path that preserves the public key; `ROTATE` converts by creating a new public key. Both write a new signed generation and activate it through the normal pending-generation workflow. The old legacy generation remains physically available for consistency rollback and inventory, but it is inactive and cannot be selected for historical processing after conversion. A storage read never performs an implicit migration.
 
 ## Public key
 
