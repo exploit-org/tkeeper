@@ -32,6 +32,7 @@ const els = {
 let ROUTE_PARAMS = {};
 let SYSTEM_INFO = null;
 let ROUTE_ABORT = null;
+let ROUTE_RUN = 0;
 
 boot();
 
@@ -42,24 +43,33 @@ async function boot() {
   await api.initAuth().catch(() => {});
 
   await hydrateMe();
-  await refreshSystemInfo();
-  applyNavPermissions();
+  await renderRoute();
 
-  await gateByStatus();
-  await navigate(normalizeRoute(location.hash));
-
-  window.addEventListener("hashchange", async () => {
-    await refreshSystemInfo();
-    applyNavPermissions();
-    await gateByStatus();
-    await navigate(normalizeRoute(location.hash));
-  });
+  window.addEventListener("hashchange", renderRoute);
 
   window.addEventListener("tkeeper:auth-changed", async () => {
     await hydrateMe();
     await refreshSystemInfo();
     applyNavPermissions();
   });
+}
+
+async function renderRoute() {
+  const run = ++ROUTE_RUN;
+
+  await refreshSystemInfo();
+  if (run !== ROUTE_RUN) return;
+
+  applyNavPermissions();
+
+  const redirect = await gateByStatus();
+  if (run !== ROUTE_RUN) return;
+
+  if (redirect && location.hash !== redirect) {
+    history.replaceState(null, "", redirect);
+  }
+
+  await navigate(normalizeRoute(location.hash));
 }
 
 function bridgeOidcCallbackToHash() {
@@ -95,11 +105,10 @@ async function hydrateMe() {
 
 async function gateByStatus() {
   const r = normalizeRoute(location.hash);
-  if (r === "#/login" || r === "#/oidc/callback" || r === "#/welcome") return;
+  if (r === "#/login" || r === "#/oidc/callback" || r === "#/welcome") return null;
 
   if (!Auth.subject) {
-    location.hash = "#/welcome";
-    return;
+    return "#/welcome";
   }
 
   let st;
@@ -109,8 +118,7 @@ async function gateByStatus() {
     ROUTE_PARAMS = {
       message: "Cannot read keeper status. Ask an administrator or check server connectivity."
     };
-    location.hash = "#/unavailable";
-    return;
+    return "#/unavailable";
   }
 
   if (st?.state === "UNINITIALIZED") {
@@ -118,11 +126,9 @@ async function gateByStatus() {
       ROUTE_PARAMS = {
         message: "Keeper is UNINITIALIZED. You don’t have tkeeper.system.init. Find someone who can initialize it."
       };
-      location.hash = "#/unavailable";
-      return;
+      return "#/unavailable";
     }
-    location.hash = "#/init";
-    return;
+    return "#/init";
   }
 
   if (st?.state === "SEALED") {
@@ -130,17 +136,16 @@ async function gateByStatus() {
       ROUTE_PARAMS = {
         message: "Keeper is SEALED. You don’t have tkeeper.system.unseal. Find someone who can unseal it."
       };
-      location.hash = "#/unavailable";
-      return;
+      return "#/unavailable";
     }
-    location.hash = "#/unseal";
-    return;
+    return "#/unseal";
   }
 
   if (r === "#/consistency" && isMonoQuorum()) {
-    location.hash = "#/system";
-    return;
+    return "#/system";
   }
+
+  return null;
 }
 
 function wireLogout() {
@@ -241,7 +246,8 @@ function applyNavPermissions() {
 async function navigate(route) {
   closeMobileNavigation();
   ROUTE_ABORT?.abort();
-  ROUTE_ABORT = new AbortController();
+  const routeAbort = new AbortController();
+  ROUTE_ABORT = routeAbort;
   els.view.before(els.alerts);
 
   const r = ROUTES[route] || ROUTES["#/welcome"];
@@ -252,12 +258,15 @@ async function navigate(route) {
 
   let html;
   try {
-    html = await fetchText(r.page);
+    html = await fetchText(r.page, routeAbort.signal);
   } catch (e) {
+    if (routeAbort.signal.aborted) return;
     showAlert("danger", errorMessage(e));
     els.view.innerHTML = "";
     return;
   }
+
+  if (routeAbort.signal.aborted) return;
 
   els.view.innerHTML = html;
   placeAlertsBelowTitle();
@@ -265,20 +274,23 @@ async function navigate(route) {
   if (r.module) {
     try {
       const mod = await import(r.module);
+      if (routeAbort.signal.aborted) return;
+
       if (typeof mod.init === "function") {
         await mod.init({
           route,
           api,
           Auth,
           params: {...routeParams(location.hash), ...ROUTE_PARAMS},
-          signal: ROUTE_ABORT.signal,
+          signal: routeAbort.signal,
           setTitle: (t) => (els.title.textContent = t),
           showAlert,
           clearAlerts,
         });
-        ROUTE_PARAMS = {};
+        if (!routeAbort.signal.aborted) ROUTE_PARAMS = {};
       }
     } catch (e) {
+      if (routeAbort.signal.aborted) return;
       showAlert("danger", errorMessage(e));
     }
   }
@@ -321,8 +333,8 @@ function routeParams(hash) {
   return Object.fromEntries(new URLSearchParams(value.slice(index + 1)));
 }
 
-async function fetchText(url) {
-  const res = await fetch(url, { credentials: "same-origin" });
+async function fetchText(url, signal) {
+  const res = await fetch(url, { credentials: "same-origin", signal });
   if (!res.ok) throw new ApiError(`Failed to load ${url} (HTTP ${res.status})`, { url, method: "GET", status: res.status });
   return await res.text();
 }
