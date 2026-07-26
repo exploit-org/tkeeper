@@ -133,6 +133,10 @@ keeper.server.public.tls {
 }
 ```
 
+When PEM refresh is enabled, TKeeper validates that the candidate private key matches the leaf
+certificate before publishing it. A partial, malformed, or mismatched update is logged and the last
+valid identity remains active until both files form a valid pair.
+
 Public and internal servers have separate TLS blocks:
 
 ```hocon
