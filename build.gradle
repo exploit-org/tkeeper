@@ -127,6 +127,10 @@ configurations {
         canBeConsumed = false
         canBeResolved = true
     }
+    productionTestRuntime {
+        canBeConsumed = false
+        canBeResolved = true
+    }
 }
 
 dependencies {
@@ -209,6 +213,8 @@ dependencies {
     platformModules.keySet().each { moduleName ->
         integrationFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
+
+    productionTestRuntime project(path: ':platform-ecc', configuration: 'shadowRuntimeElements')
 }
 
 tasks.named('shadowJar') {
@@ -281,6 +287,88 @@ tasks.register('shadowJarIntegration', com.github.jengelman.gradle.plugins.shado
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
+tasks.register('shadowJarProductionTest', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+    group = 'build'
+    description = 'Builds a production-only ECC runtime jar for production transport integration tests.'
+
+    archiveBaseName.set('tkeeper')
+    archiveClassifier.set('production-test')
+
+    from sourceSets.main.output
+
+    configurations = [
+            project.configurations.runtimeClasspath,
+            project.configurations.productionTestRuntime
+    ]
+
+    zip64 true
+    manifest { attributes 'Main-Class': mainClassName }
+
+    mergeServiceFiles()
+    append 'reference.conf'
+
+    exclude 'META-INF/*.SF',
+            'META-INF/*.DSA',
+            'META-INF/*.RSA',
+            'META-INF/INDEX.LIST',
+            'META-INF/DEPENDENCIES',
+            'META-INF/NOTICE',
+            'META-INF/LICENSE*'
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    doLast {
+        def forbidden = [
+                'auth-dev'         : 'org/exploit/keeper/auth/dev/provider/DevAuthProvider.class',
+                'failure-injection': 'org/exploit/keeper/module/failure/FailureInjectionController.class'
+        ]
+        def archive = archiveFile.get().asFile
+        def zip = new java.util.zip.ZipFile(archive)
+        try {
+            forbidden.each { name, entry ->
+                if (zip.getEntry(entry) != null) {
+                    throw new GradleException("Production test jar contains $name marker: $entry")
+                }
+            }
+        } finally {
+            zip.close()
+        }
+    }
+}
+
+tasks.register('artifactIsolationTest') {
+    group = 'verification'
+    description = 'Verifies module boundaries of the production transport test and integration jars.'
+
+    dependsOn tasks.named('shadowJarProductionTest'), tasks.named('shadowJarIntegration')
+
+    doLast {
+        def markers = [
+                'auth-dev'         : 'org/exploit/keeper/auth/dev/provider/DevAuthProvider.class',
+                'failure-injection': 'org/exploit/keeper/module/failure/FailureInjectionController.class'
+        ]
+
+        def productionJar = tasks.named('shadowJarProductionTest').get().archiveFile.get().asFile
+        def integrationJar = tasks.named('shadowJarIntegration').get().archiveFile.get().asFile
+        def productionZip = new java.util.zip.ZipFile(productionJar)
+        def integrationZip = new java.util.zip.ZipFile(integrationJar)
+
+        try {
+            markers.each { name, entry ->
+                if (productionZip.getEntry(entry) != null) {
+                    throw new GradleException("Production transport test jar contains $name marker: $entry")
+                }
+                if (integrationZip.getEntry(entry) == null) {
+                    throw new GradleException("Integration shadow jar is missing $name marker: $entry")
+                }
+            }
+        } finally {
+            productionZip.close()
+            integrationZip.close()
+        }
+    }
+}
+
 tasks.register('prepareDocker', Copy) {
     dependsOn tasks.named('shadowJar')
 
@@ -294,6 +382,14 @@ tasks.register('prepareDockerIntegration', Copy) {
 
     from(tasks.named('shadowJarIntegration').get().archiveFile)
     into("$buildDir/docker")
+    rename { "tkeeper.jar" }
+}
+
+tasks.register('prepareDockerProductionTest', Copy) {
+    dependsOn tasks.named('shadowJarProductionTest')
+
+    from(tasks.named('shadowJarProductionTest').get().archiveFile)
+    into("$buildDir/docker-production-test")
     rename { "tkeeper.jar" }
 }
 
@@ -316,6 +412,25 @@ tasks.register('dockerBuildIntegration', Exec) {
             '-f', 'integration-tests/docker/Dockerfile',
             '-t', 'exploit/tkeeper:dev',
             '.'
+}
+
+tasks.register('dockerBuildProductionTest', Exec) {
+    dependsOn tasks.named('prepareDockerProductionTest')
+
+    executable = 'docker'
+    args 'build',
+            '-f', 'Dockerfile',
+            '--build-arg', "TKEEPER_VERSION=${project.version}",
+            '--build-arg', 'TKEEPER_JAR=build/docker-production-test/tkeeper.jar',
+            '-t', 'exploit/tkeeper:production-it',
+            '.'
+}
+
+tasks.register('buildTestContainers') {
+    group = 'build'
+    description = 'Builds all Docker images required by the functional integration tests.'
+
+    dependsOn tasks.named('dockerBuildIntegration'), tasks.named('dockerBuildProductionTest')
 }
 
 test {
