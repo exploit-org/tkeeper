@@ -17,7 +17,7 @@ Maven:
 Gradle:
 
 ```groovy
-implementation 'org.exploit:tkeeper-sdk:2.2.0'
+implementation 'org.exploit:tkeeper-sdk:2.2.1'
 ```
 
 ## Client

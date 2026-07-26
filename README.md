@@ -10,7 +10,13 @@
 
 TKeeper is a governed cryptographic identity layer for machines, agents, services, and workflows.
 
-Each key represents an identity. Its authorities define which actions that identity may authorize, how TKeeper interprets those actions, and which policy must pass before proof is produced.
+A TKeeper identity combines:
+
+- cryptographic key material, held locally or split across peers
+- an authority manifest that defines which typed actions the identity can authorize
+- controls for callers, policy, approvals, quorum, lifecycle, and audit
+
+Traditional access control decides whether a caller may reach an API. TKeeper also decides whether the selected identity may authorize the exact requested action.
 
 For typed authorities, the enforcement contract is:
 
@@ -18,52 +24,42 @@ For typed authorities, the enforcement contract is:
 No understood and approved intent -> no cryptographic proof -> no effect.
 ```
 
-## What TKeeper governs
-
-TKeeper controls when an identity may produce cryptographic proof or change its own key state:
-
-- signatures for governed actions
-- certificate signatures
-- key lifecycle operations
-- optional cryptographic operations such as ECIES decryption
-
-For external actions, enforcement depends on the verifier: the downstream system must reject effects that are not backed by proof for the exact accepted intent.
-
-## Use cases
-
-| Use case | What TKeeper governs |
-| --- | --- |
-| AI agents | typed tool/action intents, spending, production actions, signed decisions |
-| Crypto assets | EVM and Bitcoin transaction signing, treasury workflows |
-| Certificates | X.509 issuance and workload identity operations |
-| Internal systems | typed commands, privileged automation, break-glass flows |
-
-See [Use Cases](docs/use-cases/README.md).
-
-## Authority path
+## How it works
 
 ```text
 request
--> key identity
--> authority
+-> governed identity
 -> understood intent
--> policy and audit controls
+-> authority and controls
 -> mono or threshold cryptographic operation
 -> proof
 -> downstream verification
 -> effect
 ```
 
-If the action can bypass the governed identity, TKeeper cannot enforce that boundary by itself.
+TKeeper produces a signature, certificate, or key lifecycle result only after the request passes the identity's controls. The downstream system must verify the expected identity and exact intent before executing the effect.
+
+TKeeper is not a generic secrets manager, business risk engine, or replacement for host and network security. If the same effect can bypass the governed proof, TKeeper cannot enforce that path.
+
+## Use cases
+
+| Use case | What the identity governs |
+| --- | --- |
+| AI agents | typed tool and production actions, spending, signed decisions |
+| Crypto assets | exact EVM and Bitcoin transactions, treasury workflows |
+| Certificates | X.509 issuance and workload identity operations |
+| Internal systems | typed commands, privileged automation, break-glass flows |
+
+See [Use Cases](docs/use-cases/README.md).
 
 ## Quorum modes
 
 | Mode | Use when |
 | --- | --- |
-| `mono` | one node is acceptable, but TKeeper policy/audit/authority controls are still needed |
-| `threshold` | one compromised node must not be enough to authorize as the identity |
+| `mono` | local key material is acceptable, while authority, policy, and audit controls are still required |
+| `threshold` | one compromised node must not be able to authorize as the identity |
 
-In threshold mode, private key authority is split across peers. A coordinator can start an operation, but peers validate the same intent before contributing.
+In threshold mode, key authority is split across peers. A coordinator can start an operation, but peers validate the same intent before contributing. Use threshold mode for high-stakes identities that must not depend on one node.
 
 See [Quorum Modes](docs/security-model/quorum-modes.md).
 
@@ -79,11 +75,25 @@ Authorities define what a key identity may authorize.
 | `bitcoin.transaction` | governed Bitcoin transaction signing |
 | `x509.tbs-certificate` | governed certificate issuance |
 
-Concrete authorities use digest-pinned authority documents. TKeeper materializes the command into an intent, evaluates policy, and signs only when the final decision is `ALLOW`.
+Concrete authorities use digest-pinned authority documents that act as capability manifests. TKeeper materializes the command into an intent, evaluates policy, and signs only when the final decision is `ALLOW`.
 
 See [Signing and Authorities](docs/signing-and-authorities/README.md).
 
-## Crypto platforms
+## Documentation
+
+- [Product Overview](docs/overview/README.md)
+- [Use Cases](docs/use-cases/README.md)
+- [Getting Started](docs/getting-started/README.md)
+- [Deployment](docs/deployment/README.md)
+- [Security Model](docs/security-model/README.md)
+- [Status and Limitations](docs/overview/status-and-limitations.md)
+- [Cryptographic Identities](docs/key-management/README.md)
+- [Signing and Authorities](docs/signing-and-authorities/README.md)
+- [Crypto Platforms](docs/crypto-platforms/README.md)
+- [API Reference](docs/api-reference/README.md)
+- [Operations](docs/operations/README.md)
+
+## Build
 
 Cryptographic implementations are selected at build time.
 
@@ -108,18 +118,6 @@ Build only what you need:
 
 See [Build and Features](docs/deployment/build-and-features.md).
 
-## Documentation
-
-- [Overview](docs/overview/README.md)
-- [Getting Started](docs/getting-started/README.md)
-- [Deployment](docs/deployment/README.md)
-- [Security Model](docs/security-model/README.md)
-- [Cryptographic Identities](docs/key-management/README.md)
-- [Signing and Authorities](docs/signing-and-authorities/README.md)
-- [Crypto Platforms](docs/crypto-platforms/README.md)
-- [API Reference](docs/api-reference/README.md)
-- [Operations](docs/operations/README.md)
-
 ## Security references
 
 - [TKeeper Threat Model](docs/security-model/threat-model.md)
@@ -129,11 +127,11 @@ See [Build and Features](docs/deployment/build-and-features.md).
 
 The HTTP contract is described by [openapi.yaml](openapi.yaml).
 
-Java integrations can use [`org.exploit:tkeeper-sdk:2.2.0`](sdk/README.md).
+Java integrations can use [`org.exploit:tkeeper-sdk:2.2.1`](sdk/README.md).
 
 If an SDK helper disagrees with OpenAPI, treat OpenAPI as the source of truth.
 
-## Tests
+## Verification
 
 Build a selected production artifact and run its root, SDK, feature, and platform unit tests:
 
