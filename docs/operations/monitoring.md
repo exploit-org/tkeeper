@@ -69,7 +69,7 @@ If audit enforcement is enabled, alert before sink failure consumes the entire o
 
 ## Page immediately
 
-- a production node starts with developer authentication
+- a production node unexpectedly starts with developer authentication
 - an integration artifact or failure-injection surface appears in production
 - the internal API becomes reachable outside the peer network
 - the cluster is at or below quorum capacity for a high-impact identity

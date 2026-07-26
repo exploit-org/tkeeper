@@ -412,7 +412,7 @@ TKeeper cannot enforce a downstream path that misinterprets or bypasses its proo
 
 - Use short-lived JWTs.
 - Configure the expected JWT issuer and audience explicitly.
-- Keep dev token mode out of production.
+- Do not enable dev token mode in production unless its risk is explicitly accepted and its token and permissions are protected as production credentials.
 - Avoid broad wildcard permissions.
 - Treat `arbitrary` keys as raw signing keys.
 - Use digest-pinned OCI authorities.

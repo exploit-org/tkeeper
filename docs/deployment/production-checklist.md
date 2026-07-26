@@ -5,7 +5,7 @@
 - [ ] Build only required production features.
 - [ ] Include required platforms explicitly.
 - [ ] Do not deploy `exploit/tkeeper:dev`.
-- [ ] Confirm the artifact does not contain the `auth-dev` feature.
+- [ ] Include `auth-dev` only when explicitly required; otherwise confirm it is absent.
 - [ ] Do not include failure-injection outside integration tests.
 - [ ] Pin the release artifact used by every peer.
 - [ ] Verify artifact provenance and integrity before rollout.
@@ -14,8 +14,8 @@
 
 ## Authentication and permissions
 
-- [ ] Do not include developer authentication in the artifact.
-- [ ] Configure production authentication.
+- [ ] If using developer authentication, protect its token and config as production credentials and grant least privilege.
+- [ ] Configure the explicitly selected authenticator for the deployment.
 - [ ] Bind JWT tokens to expected issuer and audience when using JWT.
 - [ ] Keep signing, lifecycle, import, destroy, and audit permissions separate.
 - [ ] Review wildcard permissions.

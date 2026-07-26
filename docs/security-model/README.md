@@ -53,7 +53,7 @@ Ask these questions during review:
 - Are lifecycle/import/destroy permissions separated from signing?
 - Are authority artifacts digest-pinned?
 - Are `arbitrary` identities intentionally accepted as raw-signing identities?
-- Is developer authentication disabled?
+- Is developer authentication disabled, or explicitly accepted and protected as a production credential?
 - Is the internal peer API private?
 - Are audit sinks configured and tested?
 - Is the integration image blocked from production deployment?

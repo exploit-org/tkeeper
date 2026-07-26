@@ -6,15 +6,15 @@ External requests are authenticated before controller logic runs. Authorization 
 
 | Type | Header | Use |
 | --- | --- | --- |
-| `dev` | `X-DEV-TOKEN` | local development only |
+| `dev` | `X-DEV-TOKEN` | explicit opt-in deployments |
 | `jwt` | `X-JWT-TOKEN` | production deployments |
 
-Do not use developer authentication in production.
+Developer authentication is never selected implicitly. The feature may be packaged into a production artifact, but enabling it there is outside the recommended production profile. An operator who accepts that risk must protect its token, configuration, and permissions as production credentials.
 
 ## Developer authentication
 
 Developer auth loads a separate config file from `keeper.dev.config.location`.
-Its implementation lives in the optional `auth-dev` feature and is absent from normal production artifacts, including builds made with `keeper.features=all`.
+Its implementation lives in the optional `auth-dev` feature. It is excluded from `keeper.features=all` but may be explicitly selected for any deployable artifact.
 
 Example:
 
@@ -32,7 +32,7 @@ keeper.dev {
 }
 ```
 
-Build it only into local or test artifacts:
+Build it into an artifact explicitly:
 
 ```bash
 ./gradlew :build -Pkeeper.features=auth-dev -Pkeeper.platforms=ecc

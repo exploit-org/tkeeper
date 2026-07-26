@@ -12,10 +12,12 @@ It is used for scenarios such as:
 - peer demotion and promotion recovery
 - PQC share corruption and consistency repair
 
-Build the integration image with:
+Build the test images with:
 
 ```bash
-./gradlew dockerBuildIntegration
+./gradlew buildTestContainers
 ```
+
+Functional tests reuse the built images and do not rebuild them automatically.
 
 Production builds use `shadowJar` or `dockerBuild` and do not include failure injection.

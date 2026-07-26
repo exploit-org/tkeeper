@@ -135,15 +135,19 @@ If an SDK helper disagrees with OpenAPI, treat OpenAPI as the source of truth.
 
 ## Tests
 
-Integration tests run against a local cluster via Testcontainers.
-
-Build the integration image:
+Build a selected production artifact and run its root, SDK, feature, and platform unit tests:
 
 ```bash
-./gradlew dockerBuildIntegration
+./gradlew build -Pkeeper.features=all -Pkeeper.platforms=all
 ```
 
-The integration image includes every production feature, every platform, and the test-only failure-injection module. Do not deploy it as production runtime.
+Run the complete release gate:
+
+```bash
+./gradlew releaseGate
+```
+
+`releaseGate` runs every module's unit tests, verifies artifact isolation, builds `exploit/tkeeper:dev` and `exploit/tkeeper:production-it`, and runs the functional integration suite. Performance benchmarks remain separate. Do not deploy either test image as production runtime.
 
 See [integration-tests](integration-tests/README.md).
 

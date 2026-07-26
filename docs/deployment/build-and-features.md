@@ -10,8 +10,10 @@ A usable production artifact must include at least one platform.
 ## Build all production modules
 
 ```bash
-./gradlew :build -Pkeeper.features=all -Pkeeper.platforms=all
+./gradlew build -Pkeeper.features=all -Pkeeper.platforms=all
 ```
+
+`build` runs the root and SDK tests plus the unit tests of every selected feature and platform module before producing the artifact.
 
 The root `build` task runs the normal verification lifecycle and produces the deployable fat jar through `shadowJar`.
 
@@ -56,13 +58,13 @@ Feature names match child project names. The module `:features:authority-evm` is
 | Control-plane UI | `ui` | any required crypto platform |
 | AWS KMS seal provider | `seal-aws` | any required crypto platform |
 | Google Cloud KMS seal provider | `seal-gcloud` | any required crypto platform |
-| Developer token authentication | `auth-dev` (explicit, non-production) | any required crypto platform |
+| Developer token authentication | `auth-dev` (explicit opt-in, excluded from `all`) | any required crypto platform |
 | ML-DSA identities | none | `pqc` |
-| Everything production | `all` | `all` |
+| Default production set | `all` | `all` |
 
 Features with platform dependencies require the matching platform. The build should fail early instead of producing an artifact with a missing runtime provider.
 
-`auth-dev` is deliberately excluded from `all`. A local-development artifact must request it explicitly:
+`auth-dev` is deliberately excluded from `all`, but it may be included in any deployable artifact by requesting it explicitly:
 
 ```bash
 ./gradlew :build -Pkeeper.features=auth-dev -Pkeeper.platforms=ecc
@@ -113,15 +115,25 @@ docker run --rm \
 
 ## Integration image
 
-Build the integration image with:
+Run the complete release verification with:
 
 ```bash
-./gradlew dockerBuildIntegration
+./gradlew releaseGate
 ```
 
-Do not pass `keeper.features` or `keeper.platforms` to this task. `dockerBuildIntegration` uses a dedicated classpath containing every production feature, `auth-dev`, every platform, and the test-only failure-injection module.
+This includes every module's unit tests, artifact isolation, both test-container builds, and the functional integration suite. Performance benchmarks are separate.
 
-Never deploy the integration image as production runtime.
+Build both images used by functional integration tests with:
+
+```bash
+./gradlew buildTestContainers
+```
+
+The test task reuses these images. Re-run the build after changing application code, dependencies, or Dockerfiles.
+
+Do not pass `keeper.features` or `keeper.platforms` to this task. The development integration image uses a dedicated classpath containing every production feature, `auth-dev`, every platform, and the test-only failure-injection module.
+
+Never deploy either test image as production runtime.
 
 ## Common failures
 

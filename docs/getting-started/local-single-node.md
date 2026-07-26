@@ -91,7 +91,7 @@ keeper.dev {
 }
 ```
 
-Developer authentication is for local development only. Do not use it in production.
+This guide uses developer authentication locally. The feature may be selected for any build, but enabling it in production is an explicit operator risk decision and requires production-grade token protection and least-privilege permissions.
 
 ## Run TKeeper
 

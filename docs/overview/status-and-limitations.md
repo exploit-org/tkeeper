@@ -67,7 +67,7 @@ It cannot prevent an action if:
 - the caller can bypass the governed proof
 - policy is checked but not bound to the signed intent
 - broad permissions allow unintended operations
-- operators deploy dev authentication in production
+- operators enable dev authentication without protecting its token and permissions as production credentials
 
 Cryptographic validity alone does not establish business validity, freshness, or replay safety. The verifier must accept the expected key, validate the exact governed payload, and enforce any nonce, expiry, environment, or idempotency rules required by the action.
 
