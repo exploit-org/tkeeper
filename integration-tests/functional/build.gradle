@@ -1,5 +1,3 @@
-import groovy.json.JsonSlurper
-
 plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'java-test-fixtures'
@@ -39,30 +37,30 @@ test {
     maxParallelForks = 1
     systemProperty("junit.jupiter.execution.parallel.enabled", "false")
 
-    def home = System.getProperty("user.home")
-
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
-        def colimaSockEnv = System.getenv("COLIMA_SOCKET_ENV")
+        doFirst {
+            def home = System.getProperty("user.home")
+            def colimaSock = System.getenv("COLIMA_SOCKET_ENV") ?: "${home}/.colima/default/docker.sock"
 
-        def colimaSock = colimaSockEnv ?: "${home}/.colima/default/docker.sock"
-        environment "DOCKER_HOST", "unix://${colimaSock}"
-        environment "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", "/var/run/docker.sock"
+            try {
+                def proc = new ProcessBuilder("colima", "status", "--json")
+                        .redirectErrorStream(true)
+                        .start()
+                def out = proc.inputStream.getText("UTF-8")
 
-        try {
-            def proc = new ProcessBuilder("colima", "status", "--json")
-                    .redirectErrorStream(true)
-                    .start()
-
-            def out = proc.inputStream.getText("UTF-8")
-            if (proc.waitFor() == 0) {
-                def json = new JsonSlurper().parseText(out)
-                def ip = (json?.ip_address ?: "").toString().trim()
-                if (ip) {
-                    environment "TESTCONTAINERS_HOST_OVERRIDE", ip
+                if (proc.waitFor() != 0) {
+                    throw new GradleException("Colima must be running before functional tests: ${out.trim()}")
                 }
+
+                environment "DOCKER_HOST", "unix://${colimaSock}"
+                environment "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", "/var/run/docker.sock"
+                environment "TESTCONTAINERS_HOST_OVERRIDE",
+                        System.getenv("TESTCONTAINERS_HOST_OVERRIDE") ?: "127.0.0.1"
+            } catch (GradleException e) {
+                throw e
+            } catch (Exception e) {
+                throw new GradleException("Failed to configure Colima for functional tests", e)
             }
-        } catch (Exception ignored) {
-            throw new GradleException("Use Colima VM ro run ")
         }
     }
 

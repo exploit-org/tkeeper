@@ -117,4 +117,10 @@ Run only this class with:
 
 ## macOS
 
-The current Gradle harness expects Colima. It uses `COLIMA_SOCKET_ENV` when set, otherwise `~/.colima/default/docker.sock`, and configures the Testcontainers socket override automatically.
+The current Gradle harness expects Colima. Use Colima 0.10+ with its gRPC port forwarder:
+
+```bash
+colima start --port-forwarder grpc
+```
+
+Gradle uses `COLIMA_SOCKET_ENV` when set, otherwise `~/.colima/default/docker.sock`, and routes published Testcontainers ports through `127.0.0.1`. Set `TESTCONTAINERS_HOST_OVERRIDE` explicitly only when using a different reachable host.

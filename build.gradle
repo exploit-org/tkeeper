@@ -460,18 +460,30 @@ tasks.register('buildTestContainers') {
     dependsOn tasks.named('dockerBuildIntegration'), tasks.named('dockerBuildProductionTest')
 }
 
+def releaseChecksBeforeContainers = [
+        tasks.named('test'),
+        ':sdk:test',
+        ':integration-tests:test',
+        featureModules.keySet().collect { ":$it:test" },
+        explicitFeatureModules.keySet().collect { ":$it:test" },
+        testOnlyFeatureModules.collect { ":$it:test" },
+        platformModules.keySet().collect { ":$it:test" },
+        tasks.named('artifactIsolationTest')
+].flatten()
+
+tasks.named('dockerBuildIntegration') {
+    mustRunAfter releaseChecksBeforeContainers
+}
+
+tasks.named('dockerBuildProductionTest') {
+    mustRunAfter releaseChecksBeforeContainers
+}
+
 tasks.register('releaseGate') {
     group = 'verification'
     description = 'Runs the complete release verification suite, excluding performance benchmarks.'
 
-    dependsOn tasks.named('test')
-    dependsOn ':sdk:test'
-    dependsOn ':integration-tests:test'
-    dependsOn featureModules.keySet().collect { ":$it:test" }
-    dependsOn explicitFeatureModules.keySet().collect { ":$it:test" }
-    dependsOn testOnlyFeatureModules.collect { ":$it:test" }
-    dependsOn platformModules.keySet().collect { ":$it:test" }
-    dependsOn tasks.named('artifactIsolationTest')
+    dependsOn releaseChecksBeforeContainers
     dependsOn tasks.named('buildTestContainers')
     dependsOn ':integration-tests:functional:test'
 }
