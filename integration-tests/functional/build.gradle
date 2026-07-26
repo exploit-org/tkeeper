@@ -29,7 +29,12 @@ kotlin {
 }
 
 test {
+    mustRunAfter rootProject.tasks.named('buildTestContainers')
+
     useJUnitPlatform()
+
+    outputs.upToDateWhen { false }
+    outputs.cacheIf { false }
 
     maxParallelForks = 1
     systemProperty("junit.jupiter.execution.parallel.enabled", "false")

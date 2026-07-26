@@ -31,7 +31,7 @@ def featureModules = [
         'features:ui'                : 'keeper.feature.ui'
 ]
 
-def developmentFeatureModules = [
+def explicitFeatureModules = [
         'features:auth-dev': 'keeper.feature.auth.dev'
 ]
 
@@ -41,6 +41,20 @@ def platformModules = [
         'platform-ecc': 'keeper.platform.ecc',
         'platform-pqc': 'keeper.platform.pqc'
 ]
+
+def shadowedRuntimeModules =
+        featureModules.keySet() +
+                explicitFeatureModules.keySet() +
+                testOnlyFeatureModules
+
+shadowedRuntimeModules.each { moduleName ->
+    def moduleProject = project(":$moduleName")
+    moduleProject.pluginManager.withPlugin('java') {
+        moduleProject.tasks.named('jar') {
+            archiveClassifier.set('plain')
+        }
+    }
+}
 
 def featurePlatformRequirements = [
         'features:authority-bitcoin'        : ['platform-ecc'],
@@ -88,7 +102,7 @@ def enabledFeatureModules = featureModules.findAll { moduleName, propertyName ->
     shouldIncludeProductionFeature(moduleName, propertyName)
 }
 
-def enabledDevelopmentFeatureModules = developmentFeatureModules.findAll { moduleName, propertyName ->
+def enabledExplicitFeatureModules = explicitFeatureModules.findAll { moduleName, propertyName ->
     explicitlySelectedFeature(selectedProductionFeatures, moduleName) ||
             truthy(findProperty(propertyName))
 }
@@ -123,6 +137,10 @@ enabledFeatureModules.keySet().each { moduleName ->
 }
 
 configurations {
+    productionFeatureRuntime {
+        canBeConsumed = false
+        canBeResolved = true
+    }
     integrationFeatureRuntime {
         canBeConsumed = false
         canBeResolved = true
@@ -187,22 +205,22 @@ dependencies {
     implementation 'io.sentry:sentry:8.35.0'
 
     enabledFeatureModules.keySet().each { moduleName ->
-        runtimeOnly project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
+        productionFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
-    enabledDevelopmentFeatureModules.keySet().each { moduleName ->
-        runtimeOnly project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
+    enabledExplicitFeatureModules.keySet().each { moduleName ->
+        productionFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
     enabledPlatformModules.keySet().each { moduleName ->
-        runtimeOnly project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
+        productionFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
     featureModules.keySet().each { moduleName ->
         integrationFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
-    developmentFeatureModules.keySet().each { moduleName ->
+    explicitFeatureModules.keySet().each { moduleName ->
         integrationFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
@@ -220,6 +238,11 @@ dependencies {
 tasks.named('shadowJar') {
     archiveBaseName.set('tkeeper')
     archiveClassifier.set('')
+
+    configurations = [
+            project.configurations.runtimeClasspath,
+            project.configurations.productionFeatureRuntime
+    ]
 
     zip64 true
     manifest { attributes 'Main-Class': mainClassName }
@@ -254,6 +277,10 @@ tasks.named('jar') {
 
 tasks.named('build') {
     dependsOn tasks.named('shadowJar')
+    dependsOn ':sdk:test'
+    dependsOn enabledFeatureModules.keySet().collect { ":$it:test" }
+    dependsOn enabledExplicitFeatureModules.keySet().collect { ":$it:test" }
+    dependsOn enabledPlatformModules.keySet().collect { ":$it:test" }
 }
 
 tasks.register('shadowJarIntegration', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
@@ -431,6 +458,22 @@ tasks.register('buildTestContainers') {
     description = 'Builds all Docker images required by the functional integration tests.'
 
     dependsOn tasks.named('dockerBuildIntegration'), tasks.named('dockerBuildProductionTest')
+}
+
+tasks.register('releaseGate') {
+    group = 'verification'
+    description = 'Runs the complete release verification suite, excluding performance benchmarks.'
+
+    dependsOn tasks.named('test')
+    dependsOn ':sdk:test'
+    dependsOn ':integration-tests:test'
+    dependsOn featureModules.keySet().collect { ":$it:test" }
+    dependsOn explicitFeatureModules.keySet().collect { ":$it:test" }
+    dependsOn testOnlyFeatureModules.collect { ":$it:test" }
+    dependsOn platformModules.keySet().collect { ":$it:test" }
+    dependsOn tasks.named('artifactIsolationTest')
+    dependsOn tasks.named('buildTestContainers')
+    dependsOn ':integration-tests:functional:test'
 }
 
 test {
