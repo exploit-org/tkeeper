@@ -234,7 +234,7 @@ Required permission:
 tkeeper.integrity.rotate
 ```
 
-Restart every peer after rotating an integrity key. Peer integrity-key pins are process-local in 2.2.0; until restart, callers that previously contacted the rotated peer continue to reject its new signed responses.
+Restart every peer after rotating an integrity key. Peer integrity-key pins are process-local in 2.2.0+; until restart, callers that previously contacted the rotated peer continue to reject its new signed responses.
 
 Rotation keeps historical public keys for log verification and removes the corresponding historical private keys. Replaying only the current-version pointer fails closed when it no longer matches the stored history. A coordinated same-location replay of the pointer and its matching records can still pass local verification, as can a complete database rollback. Detecting that class of rollback requires an independently protected monotonic checkpoint or external audit anchor.
 

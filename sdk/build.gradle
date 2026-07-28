@@ -87,19 +87,20 @@ publishing {
 
 mavenCentral {
     repoDir = layout.buildDirectory.dir('repos/central-bundles')
-    authToken = centralMavenToken
+    authToken = providers.gradleProperty('centralMavenToken')
     publishingType = 'USER_MANAGED'
 }
 
 signing {
-    if (signingKey) {
-        def decodedSigningKey = new String(Base64.mimeDecoder.decode(signingKey.toString()), 'UTF-8')
+    def signingKeyValue = providers.gradleProperty('signingKey').orNull
+    if (signingKeyValue) {
+        def decodedSigningKey = new String(Base64.mimeDecoder.decode(signingKeyValue), 'UTF-8')
 
         if (!decodedSigningKey.startsWith('-----BEGIN PGP PRIVATE KEY BLOCK-----')) {
             throw new GradleException('signingKey is not base64 of an armored private key')
         }
 
-        useInMemoryPgpKeys(decodedSigningKey, signingPassword?.toString())
+        useInMemoryPgpKeys(decodedSigningKey, providers.gradleProperty('signingPassword').orNull)
     }
 
     required {
