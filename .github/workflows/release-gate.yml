@@ -34,3 +34,20 @@ jobs:
 
       - name: Run release gate
         run: ./gradlew releaseGate --no-daemon --stacktrace
+
+      - name: Dump failed container logs
+        if: failure()
+        shell: bash
+        run: |
+          docker version
+          docker compose version
+          docker ps -a --no-trunc
+
+          while IFS= read -r container_id; do
+            name="$(docker inspect --format '{{.Name}}' "$container_id" 2>/dev/null || true)"
+            [[ -n "$name" ]] || continue
+            echo "::group::${name#/}"
+            docker inspect --format '{{json .State}}' "$container_id" || true
+            docker logs "$container_id" 2>&1 || true
+            echo "::endgroup::"
+          done < <(docker ps -aq --filter label=com.docker.compose.service)
