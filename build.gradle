@@ -21,6 +21,12 @@ repositories {
     }
 }
 
+allprojects {
+    tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+        jvmArgs '--enable-native-access=ALL-UNNAMED'
+    }
+}
+
 def featureModules = [
         'features:seal-aws'          : 'keeper.feature.seal.aws',
         'features:seal-gcloud'       : 'keeper.feature.seal.gcloud',

@@ -1,14 +1,19 @@
 services:
   registry:
     image: registry:2
+    ports:
+      - "5000"
     environment:
       REGISTRY_STORAGE_DELETE_ENABLED: "true"
 
   keeper-1:
     image: exploit/tkeeper:dev
+    ports:
+      - "8080"
     environment:
       JAVA_TOOL_OPTIONS: >-
         -Djava.library.path=/usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
+        --enable-native-access=ALL-UNNAMED
       LD_LIBRARY_PATH: /usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
     volumes:
       - ./conf/keeper-1:/etc/tkeeper:ro
@@ -17,9 +22,12 @@ services:
 
   keeper-2:
     image: exploit/tkeeper:dev
+    ports:
+      - "8080"
     environment:
       JAVA_TOOL_OPTIONS: >-
         -Djava.library.path=/usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
+        --enable-native-access=ALL-UNNAMED
       LD_LIBRARY_PATH: /usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
       HSM_ENABLED: "true"
       SOFTHSM2_CONF: /etc/softhsm2/softhsm2.conf
@@ -31,10 +39,13 @@ services:
 
   keeper-3:
     image: exploit/tkeeper:dev
+    ports:
+      - "8080"
     environment:
       JAVA_TOOL_OPTIONS: >-
         -Djava.library.path=/usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
         -Dkeeper.coordinator.enabled=false
+        --enable-native-access=ALL-UNNAMED
       LD_LIBRARY_PATH: /usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
     volumes:
       - ./conf/keeper-3:/etc/tkeeper:ro
@@ -44,10 +55,11 @@ services:
   keeper-4:
     image: exploit/tkeeper:dev
     ports:
-      - "8084:8080"
+      - "8080"
     environment:
       JAVA_TOOL_OPTIONS: >-
         -Djava.library.path=/usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
+        --enable-native-access=ALL-UNNAMED
       LD_LIBRARY_PATH: /usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
     volumes:
       - ./conf/keeper-4:/etc/tkeeper:ro
@@ -56,9 +68,12 @@ services:
 
   keeper-5:
     image: exploit/tkeeper:dev
+    ports:
+      - "8080"
     environment:
       JAVA_TOOL_OPTIONS: >-
         -Djava.library.path=/usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
+        --enable-native-access=ALL-UNNAMED
       LD_LIBRARY_PATH: /usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
     volumes:
       - ./conf/keeper-5:/etc/tkeeper:ro
@@ -67,9 +82,12 @@ services:
 
   keeper-6:
     image: exploit/tkeeper:dev
+    ports:
+      - "8080"
     environment:
       JAVA_TOOL_OPTIONS: >-
         -Djava.library.path=/usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
+        --enable-native-access=ALL-UNNAMED
       LD_LIBRARY_PATH: /usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
     volumes:
       - ./conf/keeper-6:/etc/tkeeper:ro
