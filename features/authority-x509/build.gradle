@@ -33,6 +33,7 @@ configurations.matching { it.name.toLowerCase(java.util.Locale.ROOT).contains('r
 
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    testImplementation(project(':'))
     compileOnly(project(':'))
     compileOnly(project(':platform-ecc'))
 
