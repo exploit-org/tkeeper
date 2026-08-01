@@ -150,7 +150,7 @@ X-BOOT-PROOF
 X-SIGNATURE
 ```
 
-The request signature binds the HTTP method, path, canonical query, body hash, intended peer, timestamp, nonce, boot proof, and any forwarded actor token. The nonce must be unique and the timestamp must be fresh.
+The request signature binds the HTTP method, path, canonical query, body hash, intended peer, timestamp, nonce, boot proof, and any forwarded actor token. The nonce must be unique and the timestamp must be fresh. Accepted nonces share the persistent RocksDB replay store with four-eye approvals and are retained for `keeper.approval.ttl`.
 
 The external JWT or dev token is forwarded only on internal operation entrypoints that independently enforce actor permissions, such as signing or DKG initialization, trusted-dealer import, destroy prepare, and consistency mutations. Protocol rounds and marker-bound commit or abort calls use peer authentication and existing session state without repeatedly forwarding the actor credential.
 

@@ -191,12 +191,12 @@ Mitigation:
 - Approvers sign a hash of the exact operation fields.
 - The hash includes nonce and timestamp.
 - Duplicate approver keys are rejected.
-- A coordinator consumes the nonce only after enough signatures have verified.
+- A coordinator consumes the nonce only after enough signatures have verified and persists it across restarts for the configured approval TTL.
 - `m` must be at least `2`, and `m` cannot exceed `n`.
 
 Residual risk:
 
-Compromised approver keys can approve malicious requests. Store approver keys separately from TKeeper peers. Protocol retries reuse the same approval, so non-coordinator peers verify its signatures and request-field binding but do not independently consume its nonce or re-check its age. A compromised coordinator that bypasses its own nonce and TTL checks can therefore replay a previously valid approval with the same approved request fields. Current lifecycle and session checks still apply, but independent peer-side replay prevention is not provided.
+Compromised approver keys can approve malicious requests. Store approver keys separately from TKeeper peers. Protocol retries reuse the same approval, so non-coordinator peers verify its signatures, request-field binding, and TTL but do not independently consume its nonce. A compromised coordinator that bypasses its own nonce check can therefore replay a still-fresh approval with the same approved request fields. Current lifecycle and session checks still apply, but independent peer-side replay prevention is not provided.
 
 ### T-7: Byzantine Peer During Signing
 

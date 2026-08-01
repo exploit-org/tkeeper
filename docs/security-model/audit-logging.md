@@ -75,7 +75,7 @@ Some fields depend on the operation. `approvers` appears only for approved opera
 
 `auth.subject` is the identity authenticated on the current HTTP hop. For a direct public request it is the external principal. For a protected peer request it is the keeper peer that signed the internal request, while optional `auth.actor` preserves the original external principal. Peer-only protocol rounds omit `actor`.
 
-The policy object is Verdict's `PolicyEvaluation`: `decision` plus matched rules.
+The policy object is Verdict's `PolicyEvaluation`: `decision`, matched rules, and any `approvalRequirements`. `ALLOW_WITH_REQUIREMENTS` remains visible after proofs satisfy the requirements. A rejected challenge records the redacted groups in `outcome.approvals`.
 
 ## Integrity boundary
 

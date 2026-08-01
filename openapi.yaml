@@ -807,6 +807,11 @@ components:
           type: array
           items:
             type: string
+        approvals:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/RequiredApprovalDetails'
 
     ErrorType:
       type: string
@@ -872,6 +877,7 @@ components:
         - MISSING_EXPIRE_TYPE
         - IDENTIFIABLE_ABORT
         - DEV_MODE_VIOLATION
+        - APPROVAL_REQUIRED
         - ACCESS_DENIED
         - UNAUTHENTICATED
         - DESTROY_FORBIDDEN
@@ -1342,7 +1348,7 @@ components:
         keyId:
           $ref: '#/components/schemas/KeyId'
         command:
-          $ref: '#/components/schemas/Command'
+          $ref: '#/components/schemas/AuthorityCommand'
         tweak:
           allOf:
             - $ref: '#/components/schemas/Tweak'
@@ -1353,7 +1359,11 @@ components:
     Verify:
       type: object
       additionalProperties: false
-      description: Verify request. If generation is omitted, the active generation is used.
+      description: |
+        Pure cryptographic verification request. If generation is omitted, the active generation is used.
+        The command type selects material validation and serialization; no authority or policy is resolved.
+        Any supported material type, including typed or arbitrary material, may be verified independently
+        of the key's current authority manifest. A valid result proves cryptographic validity only.
       required: [keyId, command, signature64]
       properties:
         keyId:
@@ -1363,7 +1373,7 @@ components:
             - $ref: '#/components/schemas/Generation'
           nullable: true
         command:
-          $ref: '#/components/schemas/Command'
+          $ref: '#/components/schemas/VerificationCommand'
         signature64:
           $ref: '#/components/schemas/NonEmptyBase64'
         tweak:
@@ -1371,7 +1381,7 @@ components:
             - $ref: '#/components/schemas/Tweak'
           nullable: true
 
-    Command:
+    AuthorityCommand:
       type: object
       additionalProperties: false
       required: [type, authorityId, artifact]
@@ -1385,6 +1395,21 @@ components:
           example: arbitrary
         authorityId:
           $ref: '#/components/schemas/AuthorityId'
+        artifact:
+          $ref: '#/components/schemas/Artifact'
+
+    VerificationCommand:
+      type: object
+      additionalProperties: false
+      required: [type, artifact]
+      properties:
+        type:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+          description: Material type registered by the core or an enabled feature.
+          example: arbitrary
         artifact:
           $ref: '#/components/schemas/Artifact'
 
@@ -1844,19 +1869,64 @@ components:
         details:
           type: string
           nullable: true
+        approvals:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/RequiredApprovalDetails'
+
+    RequiredApprovalDetails:
+      type: object
+      additionalProperties: false
+      required: [policyId, source, threshold]
+      properties:
+        policyId:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          minLength: 1
+        threshold:
+          type: integer
+          format: int32
+          minimum: 1
 
     PolicyEvaluation:
       type: object
       additionalProperties: false
-      required: [decision, matches]
+      required: [decision, matches, approvalRequirements]
       properties:
         decision:
           type: string
-          enum: [ALLOW, DENY]
+          enum: [ALLOW, ALLOW_WITH_REQUIREMENTS, DENY]
         matches:
           type: array
           items:
             $ref: '#/components/schemas/RuleMatch'
+        approvalRequirements:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApprovalRequirement'
+
+    ApprovalRequirement:
+      type: object
+      additionalProperties: false
+      required: [policyId, source, threshold, approvers]
+      properties:
+        policyId:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          minLength: 1
+        threshold:
+          type: integer
+          format: int32
+          minimum: 1
+        approvers:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ApproverPublicKey'
 
     RuleMatch:
       type: object
@@ -1868,7 +1938,7 @@ components:
           minLength: 1
         effect:
           type: string
-          enum: [ALLOW, DENY]
+          enum: [ALLOW, ALLOW_WITH_REQUIREMENTS, DENY]
 
     ConsistencyCheck:
       type: object
