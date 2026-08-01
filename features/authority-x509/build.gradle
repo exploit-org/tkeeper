@@ -37,7 +37,7 @@ dependencies {
     compileOnly(project(':platform-ecc'))
 
     ksp "io.micronaut:micronaut-inject-kotlin:4.10.8"
-    implementation 'org.exploit:verdict-intent-x509:0.1.2-SNAPSHOT'
+    implementation 'org.exploit:verdict-intent-x509:0.1.2'
 }
 
 tasks.named('shadowJar') {
