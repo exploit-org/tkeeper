@@ -93,7 +93,7 @@ Common fields:
 | `keeper.peers` | Other peers in the cluster; self is omitted |
 | `keeper.providers.selected` | Seal provider id |
 | `keeper.client.tls` | TLS for peer clients |
-| `keeper.approval.ttl` | Four eye approval lifetime |
+| `keeper.approval.ttl` | Four-eye approval lifetime and persistent nonce replay-retention window |
 | `keeper.session.*` | DKG, FROST, GG20, ML-DSA, ECIES, destroy session limits |
 
 Coordinator-only endpoints can be disabled on a node:

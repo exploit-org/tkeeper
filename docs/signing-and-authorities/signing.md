@@ -30,7 +30,7 @@ command
 
 For `arbitrary`, TKeeper signs bytes after checking the key identity allows `arbitrary`.
 
-For concrete authorities, TKeeper loads the authority document, materializes the command into an intent, extracts effects where supported, evaluates policy, and signs only when the final decision is `ALLOW`.
+For concrete authorities, TKeeper loads the authority document, materializes the command into an intent, extracts effects where supported, and evaluates policy. It signs for `ALLOW`, or after every requirement from `ALLOW_WITH_REQUIREMENTS` is satisfied.
 
 ## Quorum modes
 
@@ -149,6 +149,27 @@ Verify response:
 
 `generation` is optional on verify. If omitted, TKeeper uses the active generation.
 
+Verify is purely cryptographic. Its command contains only `type` and `artifact`; it does not contain `authorityId`, load an authority manifest, or evaluate policy. A caller may verify any supported material type, including `custom` typed data or `arbitrary` bytes, even when that type or payload would not be authorized for signing by the key's current manifest. The type still selects structural material validation and canonical serialization before the signature is checked, and a successful result proves only cryptographic validity, not current policy authorization.
+
+```json
+{
+  "keyId": "payments-key",
+  "generation": 1,
+  "command": {
+    "type": "custom",
+    "artifact": {
+      "scheme": "ECDSA",
+      "hash": "SHA256",
+      "typed": {
+        "amount": 100,
+        "currency": "USD"
+      }
+    }
+  },
+  "signature64": "..."
+}
+```
+
 ## ML-DSA availability
 
 Threshold ML-DSA uses probabilistic rejection sampling. A complete attempt can abort even when peers are healthy. TKeeper retries with fresh session state up to:
@@ -167,7 +188,7 @@ Signature validity alone is insufficient. The acceptance contract should cover:
 
 - expected key identity or public key
 - canonical command and every field that changes the effect
-- authority, generation, and tweak context required by the integration
+- generation and tweak context required by the integration
 - environment or domain separation between test and production
 - nonce, expiry, sequence, or idempotency where replay matters
 
@@ -177,7 +198,7 @@ If context is enforced outside the signed payload, the verifier must reject mism
 
 ### Verify returns false
 
-Check that `command`, `tweak`, `generation`, and `signature64` match the original sign request. For arbitrary commands, also check `hash` and `scheme` inside the command artifact.
+Check that the command type and artifact, `tweak`, `generation`, and `signature64` match the signed material. `authorityId` is signing policy context and is not part of Verify. For arbitrary commands, also check `hash` and `scheme` inside the command artifact.
 
 ### Authority rejects the command
 

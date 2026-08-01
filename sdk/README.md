@@ -46,7 +46,8 @@ This example assumes the digest-pinned `payments-small` custom authority already
 import org.exploit.tkeeper.sdk.TKeeperClient;
 import org.exploit.tkeeper.sdk.auth.JwtTokenAuth;
 import org.exploit.tkeeper.sdk.model.*;
-import org.exploit.tkeeper.sdk.model.command.Command;
+import org.exploit.tkeeper.sdk.model.command.AuthorityCommand;
+import org.exploit.tkeeper.sdk.model.command.VerificationCommand;
 import org.exploit.tkeeper.sdk.model.command.artifact.TypedData;
 import org.exploit.tkeeper.sdk.util.TKeeperJackson;
 
@@ -67,7 +68,7 @@ try (var keeper = new TKeeperClient(baseUrl, new JwtTokenAuth(jwt))) {
             .put("amount", 5000)
             .put("currency", "USD");
 
-    var command = Command.of(
+    var command = AuthorityCommand.of(
             "payments-small",
             new TypedData(SignatureSchemes.ECDSA, HashMethod.SHA256, payload)
     );
@@ -76,7 +77,7 @@ try (var keeper = new TKeeperClient(baseUrl, new JwtTokenAuth(jwt))) {
     var verified = keeper.signature().verify(new Verify(
             "payments-key",
             signature.generation(),
-            command,
+            VerificationCommand.from(command),
             signature.signature64(),
             null
     ));
@@ -88,6 +89,8 @@ try (var keeper = new TKeeperClient(baseUrl, new JwtTokenAuth(jwt))) {
 ```
 
 The short `Generate` constructors that omit `KeySetAuthorities` default to `arbitrary` raw signing. Pass authorities explicitly for governed identities.
+
+`Verify` is a cryptographic operation, not a policy reassessment. Its `VerificationCommand` may contain any supported material type, including typed or arbitrary material, regardless of the key's current authority manifest. The server still validates the material shape and key/scheme compatibility; `valid: true` proves only that the signature matches that material and key generation.
 
 ## Modules
 
@@ -115,6 +118,7 @@ Non-success responses throw `TKeeperException`. Branch on the stable `ErrorType`
 | Error family | Handling |
 | --- | --- |
 | `ACCESS_DENIED`, `POLICY_VIOLATION` | reject; do not retry unchanged input |
+| `APPROVAL_REQUIRED` | collect every group from `TKeeperException.getApprovals()` and resubmit once |
 | validation and authority errors | fix the request, authority, or server artifact |
 | `SESSION_MAX_ROUNDS_EXCEEDED`, quorum, audit, or timeout errors | retry only under a bounded availability policy |
 | non-empty `imposters` | preserve as security evidence and investigate the named peers |

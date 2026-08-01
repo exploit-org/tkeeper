@@ -215,11 +215,11 @@ Rules:
 - a rule does not match when any `unless` expression is `true`
 - empty `where` and empty `unless` match unconditionally
 - policy variables are available as root CEL variables
-- policy variables override runtime variables with the same name
+- policy variables must not collide with declared intent roots
 - deny matches override allow matches
 - if no rule matches, `fallback` is returned
 
-TKeeper allows signing only when the final decision is `ALLOW`.
+TKeeper starts signing when the decision is `ALLOW`, or when every approval group from `ALLOW_WITH_REQUIREMENTS` is satisfied. `DENY` never starts signing.
 
 The audit event stores the policy decision and matched rules.
 
@@ -320,7 +320,7 @@ Command:
 }
 ```
 
-Only declared fields become CEL variables. Unknown JSON fields are ignored. `effects` is reserved.
+Only declared fields become CEL variables. Unknown JSON fields are rejected before signing. `effects` is reserved.
 
 This has an important integration consequence: a backend must not act on unknown fields that were invisible to policy. Reject extra fields before calling TKeeper, or construct the executed action exclusively from declared, governed fields.
 

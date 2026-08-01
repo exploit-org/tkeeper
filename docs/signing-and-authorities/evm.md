@@ -8,7 +8,7 @@ Build example:
 ./gradlew shadowJar -Pkeeper.features=authority-evm -Pkeeper.platforms=ecc
 ```
 
-An EVM authority lets TKeeper parse an unsigned serialized transaction, decode configured contract calls, expose normalized effects to policy, and sign only when the final decision is `ALLOW`.
+An EVM authority lets TKeeper parse an unsigned serialized transaction, decode configured contract calls, expose normalized effects to policy, and sign after the resulting allow decision and any approval requirements are satisfied.
 
 Use EVM authorities for:
 

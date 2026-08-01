@@ -196,7 +196,6 @@ curl -s \
     "keyId": "demo-identity",
     "command": {
       "type": "arbitrary",
-      "authorityId": "arbitrary",
       "artifact": {
         "scheme": "ECDSA",
         "hash": "SHA256",

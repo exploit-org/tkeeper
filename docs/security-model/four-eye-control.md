@@ -64,9 +64,9 @@ Approval payload:
 }
 ```
 
-At the coordinator boundary, the nonce is one-time and is consumed only after enough signatures verify. The timestamp must not be in the future and must fit `keeper.approval.ttl`.
+At the coordinator boundary, the nonce is one-time and is consumed only after enough signatures verify. Consumed nonces are persisted in RocksDB for `keeper.approval.ttl`, so a coordinator restart does not reopen the replay window. The timestamp must not be in the future and must fit the same TTL.
 
-Threshold protocol retries reuse the same approval. Non-coordinator peers therefore verify its signatures and approved request fields without independently consuming the nonce or re-checking its age. If the coordinator is compromised, it can replay a previously valid approval with those same fields; see the threat model.
+Threshold protocol retries reuse the same approval. Non-coordinator peers therefore verify its signatures, approved request fields, and TTL without independently consuming the nonce. If the coordinator is compromised, it can replay an approval with those same fields only while it remains fresh; see the threat model.
 
 The coordinator peer id in `approvals.keeperId` must match the peer coordinating the operation.
 

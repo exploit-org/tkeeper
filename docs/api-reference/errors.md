@@ -11,7 +11,8 @@ Error responses include:
   "error": "ACCESS_DENIED",
   "details": "...",
   "imposters": [],
-  "dead": []
+  "dead": [],
+  "approvals": []
 }
 ```
 
@@ -23,6 +24,7 @@ Fields:
 | `details` | optional diagnostic detail |
 | `imposters` | peers identified as bad where the protocol can identify them |
 | `dead` | peers that were unavailable or failed to respond where tracked |
+| `approvals` | approval groups required to resubmit an operation; omitted for ordinary errors |
 
 `imposters` is not guaranteed for every failure. Threshold ML-DSA can abort normally during rejection sampling without identifying an imposter.
 
@@ -32,6 +34,7 @@ Fields:
 | --- | --- | --- |
 | `UNAUTHENTICATED` | no accepted client identity | token/header/JWKS |
 | `ACCESS_DENIED` | client lacks required permission | permission claim and negative grants |
+| `APPROVAL_REQUIRED` | an authority decision requires external proofs | `approvals`, canonical request hash, nonce, and timestamp |
 | `KEEPER_SEALED` | node is sealed | unseal state |
 | `NOT_COORDINATOR` | request sent to non-coordinator | coordinator config |
 | `INVALID_AUTHORITY` | invalid authority list, id, OCI reference, document, or policy | key authority configuration and artifact digest |
