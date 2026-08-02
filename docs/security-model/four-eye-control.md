@@ -143,15 +143,57 @@ base64(sha256(encoded-public-key))
 
 ## Building `hashForSigning`
 
-`APPROVAL_REQUIRED` describes the required groups; it does not return a ready-to-sign hash. After receiving the challenge:
+### One format for key-bound and policy-bound approvals
 
-1. Create one approval envelope with the coordinator peer id, a fresh nonce, and the current Unix timestamp in milliseconds.
-2. Put that envelope on the exact request that will be submitted, initially with an empty `proofs` array.
-3. Calculate `hashForSigning` from the request fields and the envelope metadata as described below.
-4. Have the required approvers sign the raw 32-byte hash.
-5. Add every proof to the same envelope and submit the request unchanged. Adding `proofs` does not change `hashForSigning`.
+Key-bound Four-Eye loads approval keys from the policy stored with the selected key generation. Policy-bound Four-Eye loads approval groups from every matching authority allow rule. The guard merges both sources before verification.
 
-With the Java SDK, the request model constructs the preimage:
+All approvers sign one `hashForSigning`. All proofs travel in one `approvals.proofs` array with one `keeperId`, nonce, and timestamp. Combined enforcement requires every key-bound and policy-bound group; it creates no second request or hash.
+
+Policy-bound groups currently apply to typed `Sign` requests. Key-bound groups apply according to their mode:
+
+| Key policy mode | Protected operations |
+| --- | --- |
+| `STRICT` | `Sign`, `ROTATE`, `REFRESH`, ECIES `Decrypt`, and `Destroy` |
+| `LENIENT` | `ROTATE`, `REFRESH`, and `Destroy` |
+
+Initial `CREATE` has no stored key policy. A `fourEye` policy carried by `CREATE` starts protecting the key after generation 1 becomes active.
+
+A policy-only request with an empty proof list returns `APPROVAL_REQUIRED` and the required `policyId`, rule or fallback `source`, and `threshold`. The caller supplies the approval envelope and calculates the hash.
+
+### Request transformation
+
+Add this field to the exact operation request:
+
+```json
+{
+  "approvals": {
+    "keeperId": 1,
+    "nonce": "018f-example-unique-nonce",
+    "timestamp": 1760000000000,
+    "proofs": []
+  }
+}
+```
+
+Build the hash preimage with this transformation:
+
+1. Copy every operation field except the top-level `approvals` field.
+2. Copy `approvals.keeperId`, `approvals.nonce`, and `approvals.timestamp` into the preimage root.
+3. Leave `approvals.proofs` outside the preimage.
+4. Recursively canonicalize the preimage and hash its UTF-8 bytes with SHA-256.
+5. Sign the resulting 32 bytes with enough keys from every required group.
+6. Add the proofs to the original request and submit it with the same operation fields, keeper id, nonce, and timestamp.
+
+Each proof contains:
+
+```text
+fingerprint = base64(sha256(encoded-public-key))
+signature64 = base64(signature-bytes)
+```
+
+ECDSA signatures use compact `r || s` bytes with an optional recovery-id byte. Ed25519 uses its 64-byte detached signature. ML-DSA uses the encoded detached signature for the declared parameter set.
+
+The Java SDK models `Sign`, `Generate`, `Decrypt`, and `KeyDestroyReference` implement `Approvable`:
 
 ```java
 var approvals = Approvals.template(
@@ -164,22 +206,23 @@ var request = Sign.builder(keyId, command)
         .build();
 
 byte[] hashForSigning = request.hashForSigning();
-byte[] signature = signWithApproverKey(hashForSigning);
+byte[] signatureBytes = approvalSigner.signDigest(hashForSigning);
 
 request.addProof(new Approvals.Proof(
         approverFingerprint64,
-        Base64.getEncoder().encodeToString(signature)
+        Base64.getEncoder().encodeToString(signatureBytes)
 ));
 client.signature().sign(request);
 ```
 
-`signWithApproverKey` represents the caller's key-custody or signing system; it is not an SDK method.
+`approvalSigner` denotes the application's HSM, wallet, or external approval service.
 
-For a sign request, non-Java clients construct this preimage object directly:
+### Sign
+
+The same request supports key-bound approvals, policy-bound approvals, or both:
 
 ```json
 {
-  "keeperId": 1,
   "keyId": "payments-key",
   "command": {
     "type": "custom",
@@ -193,55 +236,188 @@ For a sign request, non-Java clients construct this preimage object directly:
       }
     }
   },
+  "approvals": {
+    "keeperId": 1,
+    "nonce": "018f-example-unique-nonce",
+    "timestamp": 1760000000000,
+    "proofs": []
+  }
+}
+```
+
+Hash preimage:
+
+```json
+{
+  "keyId": "payments-key",
+  "command": {
+    "type": "custom",
+    "authorityId": "payments",
+    "artifact": {
+      "scheme": "ECDSA",
+      "hash": "SHA256",
+      "typed": {
+        "purpose": "payment",
+        "amount": "1000"
+      }
+    }
+  },
+  "keeperId": 1,
   "nonce": "018f-example-unique-nonce",
   "timestamp": 1760000000000
 }
 ```
 
-This is not the complete HTTP request: the `approvals` wrapper and `approvals.proofs` are deliberately absent. `keeperId`, `nonce`, and `timestamp` are copied from `approvals`; every other field is copied from the submitted operation. Optional fields such as `tweak`, `generation`, `policy`, and `assetOwner` are included only when non-null.
+Copy a non-null request `tweak` into the preimage root.
 
-## Canonical encoding
+### DKG: `CREATE`, `ROTATE`, and `REFRESH`
 
-TKeeper uses canonical JSON for approval hashes.
+`Generate.hashForSigning()` covers all three modes. The `mode` string belongs to the signed data, so a proof for one mode fails for the other two.
 
-Canonicalization rules for SDKs and non-Java clients:
+Example `ROTATE` request:
+
+```json
+{
+  "keyId": "lifecycle-key",
+  "algorithm": "SECP256K1",
+  "authorities": [
+    {"id": "arbitrary"}
+  ],
+  "mode": "ROTATE",
+  "approvals": {
+    "keeperId": 1,
+    "nonce": "rotate-unique-nonce",
+    "timestamp": 1760000000000,
+    "proofs": []
+  }
+}
+```
+
+Hash preimage:
+
+```json
+{
+  "keyId": "lifecycle-key",
+  "algorithm": "SECP256K1",
+  "authorities": [
+    {"id": "arbitrary"}
+  ],
+  "mode": "ROTATE",
+  "keeperId": 1,
+  "nonce": "rotate-unique-nonce",
+  "timestamp": 1760000000000
+}
+```
+
+Optional request fields `policy` and `assetOwner` enter the preimage recursively. This binds approval to the resulting generation's authorities, policy, and owner.
+
+| Mode | Approval source and result |
+| --- | --- |
+| `CREATE` | No previous generation supplies a key-bound group. The request's `policy` and `assetOwner` become generation 1 metadata. |
+| `ROTATE` | The active generation's policy authorizes replacement. The request's optional `policy` and `assetOwner` become metadata for the new key material. |
+| `REFRESH` | The active generation's policy authorizes refreshed shares. The request's optional `policy` and `assetOwner` become metadata for the refreshed generation. |
+
+For Java SDK requests, pass `KeyGenMode.CREATE`, `KeyGenMode.ROTATE`, or `KeyGenMode.REFRESH` to `Generate.builder(...)`, attach `.approvals(approvals)`, and call `hashForSigning()` before adding proofs.
+
+### ECIES decrypt
+
+ECIES encryption uses public key material and carries no approvals. Decrypt uses the key-bound policy stored with the requested generation. An omitted `generation` selects the active generation and leaves `generation` out of the preimage.
+
+Request:
+
+```json
+{
+  "keyId": "ecies-key",
+  "algorithm": "AES_GCM",
+  "generation": 3,
+  "ciphertext64": "AQIDBA==",
+  "tweak": "invoice-42",
+  "approvals": {
+    "keeperId": 1,
+    "nonce": "decrypt-unique-nonce",
+    "timestamp": 1760000000000,
+    "proofs": []
+  }
+}
+```
+
+Hash preimage:
+
+```json
+{
+  "keyId": "ecies-key",
+  "algorithm": "AES_GCM",
+  "generation": 3,
+  "ciphertext64": "AQIDBA==",
+  "tweak": "invoice-42",
+  "keeperId": 1,
+  "nonce": "decrypt-unique-nonce",
+  "timestamp": 1760000000000
+}
+```
+
+The server resolves an omitted `algorithm` to `AES_GCM` and includes that value in the preimage. Clients should send `algorithm` explicitly. A non-null `tweak` and an explicit `generation` enter the preimage.
+
+For the Java SDK, build `Decrypt` with `.generation(...)`, `.tweak(...)`, and `.approvals(approvals)`, then call `hashForSigning()`.
+
+### Destroy
+
+Destroy uses the key-bound policy stored with the target generation. Both `STRICT` and `LENIENT` protect this operation.
+
+Request:
+
+```json
+{
+  "keyId": "lifecycle-key",
+  "generation": 1,
+  "approvals": {
+    "keeperId": 1,
+    "nonce": "destroy-unique-nonce",
+    "timestamp": 1760000000000,
+    "proofs": []
+  }
+}
+```
+
+Hash preimage:
+
+```json
+{
+  "keyId": "lifecycle-key",
+  "generation": 1,
+  "keeperId": 1,
+  "nonce": "destroy-unique-nonce",
+  "timestamp": 1760000000000
+}
+```
+
+Java SDK clients use `new KeyDestroyReference(keyId, generation, approvals)`, call `hashForSigning()`, add proofs, and pass the request to `client.destroy().destroy(request)`.
+
+### Canonical encoding
+
+Canonicalization rules:
 
 - serialize compact UTF-8 JSON with no insignificant whitespace
 - omit fields whose value is `null`
 - sort JSON object field names lexicographically at every object level
 - sort map entries by key
-- preserve JSON array element order exactly as supplied
-- apply the same object-field sorting to objects inside arrays
-- keep string values byte-exact, including base64 strings, enum names, nonce, and tweak
-
-Do not sort arrays globally. Arrays are ordered data.
-
-The canonical UTF-8 payload for the sign example above is:
-
-```json
-{"command":{"artifact":{"hash":"SHA256","scheme":"ECDSA","typed":{"amount":"1000","purpose":"payment"}},"authorityId":"payments","type":"custom"},"keeperId":1,"keyId":"payments-key","nonce":"018f-example-unique-nonce","timestamp":1760000000000}
-```
-
-Its SHA-256 digest in hexadecimal is `ad0a5caa1cf84dcfb4b0012ac5af306ebb8938b1cafe4f0ab0d4e6232b135e9b`. Implementations can use this as a conformance vector.
-
-The approval hash is:
+- preserve array order
+- canonicalize objects inside arrays recursively
+- preserve scalar types and string bytes, including Base64 text, enum names, nonce, and tweak
 
 ```text
 hashForSigning = SHA-256(UTF-8(canonical-json))
 ```
 
-Approvers sign those raw 32 bytes, not their hexadecimal or base64 representation. Do not add another application-level SHA-256 pass. For ECDSA this means signing the supplied digest directly; Ed25519 and ML-DSA receive the 32 bytes as their message.
+Feed those 32 bytes directly to the approver algorithm. Hexadecimal and Base64 encodings serve display and transport. ECDSA consumes the supplied digest; Ed25519 and ML-DSA consume the 32 bytes as their message.
 
-## Signed fields
+Canonical Sign vector:
 
-| Operation | Fields |
-| --- | --- |
-| DKG | `keeperId`, `keyId`, `algorithm`, `authorities`, `mode`, optional `policy`, optional `assetOwner`, `nonce`, `timestamp` |
-| Sign | `keeperId`, `keyId`, `command`, optional `tweak`, `nonce`, `timestamp` |
-| ECIES decrypt | `keeperId`, `keyId`, optional `generation`, `algorithm`, `ciphertext64`, optional `tweak`, `nonce`, `timestamp` |
-| Destroy | `keeperId`, `keyId`, `generation`, `nonce`, `timestamp` |
+```json
+{"command":{"artifact":{"hash":"SHA256","scheme":"ECDSA","typed":{"amount":"1000","purpose":"payment"}},"authorityId":"payments","type":"custom"},"keeperId":1,"keyId":"payments-key","nonce":"018f-example-unique-nonce","timestamp":1760000000000}
+```
 
-Each row is the complete top-level preimage field set for that operation. Nested values such as `command`, `authorities`, and `policy` are recursively canonicalized. The table describes logical fields, not serialization order; serialization order is defined by canonicalization.
+Expected SHA-256: `ad0a5caa1cf84dcfb4b0012ac5af306ebb8938b1cafe4f0ab0d4e6232b135e9b`.
 
 ## Security notes
 

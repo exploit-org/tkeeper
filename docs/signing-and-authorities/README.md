@@ -6,6 +6,7 @@ Read:
 
 - [Signing](signing.md)
 - [Authorities](authorities.md)
+- [CEL Functions](cel-functions.md)
 - [Arbitrary and Typed Authorities](arbitrary-and-typed.md)
 - [EVM Authorities](evm.md)
 - [Bitcoin Authorities](bitcoin.md)

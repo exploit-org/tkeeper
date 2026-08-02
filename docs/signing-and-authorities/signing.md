@@ -73,38 +73,32 @@ Typed command:
 
 ```json
 {
-  "keyId": "payments-key",
+  "keyId": "deployment-signing",
   "command": {
     "type": "custom",
-    "authorityId": "payments-small",
+    "authorityId": "production-deployment",
     "artifact": {
       "scheme": "ECDSA",
       "hash": "SHA256",
       "typed": {
-        "amount": 100,
-        "currency": "USD"
+        "action": "deploy",
+        "service": "billing-api",
+        "environment": "production",
+        "releaseVersion": "2.3.1",
+        "sequence": 10000000000000000001,
+        "riskScore": 0.20,
+        "roles": ["release-manager", "production"],
+        "sourceIp": "10.20.4.17",
+        "requestedAt": "2030-01-02T03:04:05Z",
+        "expiresAt": "2030-01-02T03:09:05Z",
+        "changeProof": "AQIDBA=="
       }
     }
   }
 }
 ```
 
-EVM command:
-
-```json
-{
-  "keyId": "evm-key",
-  "command": {
-    "type": "evm.transaction",
-    "authorityId": "evm-mainnet-erc20-usdc",
-    "artifact": {
-      "message64": "..."
-    }
-  }
-}
-```
-
-Bitcoin and X.509 commands follow the authority type selected by their feature modules.
+See the [typed authority example](authorities.md#custom-authority-example) for the matching schema, payload, effects, and policy. EVM, Bitcoin, and X.509 commands are documented on their intent-specific pages.
 
 ## Schemes and algorithms
 

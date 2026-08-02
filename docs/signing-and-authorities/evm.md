@@ -25,4 +25,106 @@ TKeeper signs the approved transaction. The surrounding wallet or custody servic
 
 External risk verdicts must be bound to the same transaction intent; a verdict for an address or amount outside the signed transaction is only advisory metadata.
 
-See [Authorities](authorities.md) for authority documents and policy format.
+## Authority config
+
+```yaml
+type: evm.transaction
+config:
+  chainId: 1
+  contracts:
+    - standard: erc20
+      address: "0x1111111111111111111111111111111111111111"
+```
+
+Custom contract calls declare their ABI signature, argument names, and effects:
+
+```yaml
+config:
+  chainId: 1
+  contracts:
+    - name: vault
+      address: "0x4444444444444444444444444444444444444444"
+      functions:
+        - signature: "withdraw(address,uint256)"
+          arguments: [to, amount]
+          effects:
+            - type: vault.withdraw
+              fields:
+                vault: "$transaction.to"
+                to: "$to"
+                amount: "$amount"
+```
+
+`chainId` comes from trusted config. Typed transactions must match it; legacy unsigned transactions carry no chain id.
+
+Built-in effects:
+
+- `native.transfer`
+- `erc20.transfer`
+- `erc20.approval`
+- `erc20.transferFrom`
+
+Strict CEL roots:
+
+- `type`, `chainId`, `nonce`
+- `gasPrice`, `gasLimit`, `maxPriorityFeePerGas`, `maxFeePerGas`
+- `to`, `value`, `data`, `selector`
+- `transaction`, `call`, `effects`
+
+Intent validation rejects unsigned-data violations, chain mismatch, unlisted contracts or functions, calldata decoding failures, and effects that the trusted config cannot describe.
+
+## Authority example: treasury USDC transfer
+
+This authority represents one logical action: transfer mainnet USDC from the treasury to one operating wallet. It allows transfers up to 100 USDC directly and requires one treasury approval above 100 and up to 1,000 USDC. Other recipients, effects, contracts, chains, and larger amounts fall through to `DENY`.
+
+```yaml
+schemaVersion: verdict.authority/v1
+id: evm-usdc-operating-transfer
+type: evm.transaction
+version: 1.0.0
+
+metadata:
+  title: Treasury USDC transfer to operating wallet
+
+config:
+  chainId: 1
+  contracts:
+    - standard: erc20
+      address: "0x1111111111111111111111111111111111111111"
+
+policy:
+  id: evm-usdc-operating-transfer
+  fallback: DENY
+  approvers:
+    treasury-reviewer:
+      algorithm: ED25519
+      publicKey64: "BASE64_ENCODED_ED25519_PUBLIC_KEY"
+  variables:
+    recipientAddress: "0x2222222222222222222222222222222222222222"
+    automaticLimit: "100000000"
+    reviewedLimit: "1000000000"
+  allow:
+    - id: automatic-transfer
+      where:
+        - "chainId == 1"
+        - "effect.onlyTypes(effects, ['erc20.transfer'])"
+        - "effect.one(effects, 'erc20.transfer')"
+        - "effect.any(effects, 'erc20.transfer', {'to': recipientAddress})"
+        - "bigint.lte(effect.amount(effects, 'erc20.transfer'), automaticLimit)"
+    - id: reviewed-transfer
+      where:
+        - "chainId == 1"
+        - "effect.onlyTypes(effects, ['erc20.transfer'])"
+        - "effect.one(effects, 'erc20.transfer')"
+        - "effect.any(effects, 'erc20.transfer', {'to': recipientAddress})"
+        - "bigint.gt(effect.amount(effects, 'erc20.transfer'), automaticLimit)"
+        - "bigint.lte(effect.amount(effects, 'erc20.transfer'), reviewedLimit)"
+      approvals:
+        threshold: 1
+        approvers: [treasury-reviewer]
+  deny: []
+```
+
+Replace the token contract, recipient, limits, and `publicKey64` with trusted production values. A transfer to another wallet should use another authority id and document.
+
+See [Authorities](authorities.md) for the document and policy schema and [CEL Functions](cel-functions.md) for policy helpers.

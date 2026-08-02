@@ -52,13 +52,13 @@ Response shape:
     "totalPeers": 3,
     "items": [
       {
-        "logicalId": "eth-cold-storage",
+        "logicalId": "deployment-signing",
         "status": "ACTIVE",
         "currentGeneration": 1,
         "authorities": [
           {
-            "id": "evm-mainnet-usdc",
-            "oci": "oci://registry.example/verdict/authorities/evm-mainnet-usdc@sha256:..."
+            "id": "production-deployment",
+            "oci": "oci://registry.example/verdict/authorities/production-deployment@sha256:..."
           }
         ],
         "algorithm": "SECP256K1",

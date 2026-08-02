@@ -12,14 +12,14 @@ Body:
 
 ```json
 {
-  "keyId": "eth-cold-storage",
+  "keyId": "deployment-signing",
   "algorithm": "SECP256K1",
   "mode": "CREATE",
   "assetOwner": "customer-42",
   "authorities": [
     {
-      "id": "evm-mainnet-usdc",
-      "oci": "oci://registry.example/verdict/authorities/evm-mainnet-usdc@sha256:..."
+      "id": "production-deployment",
+      "oci": "oci://registry.example/verdict/authorities/production-deployment@sha256:..."
     }
   ]
 }
@@ -71,9 +71,9 @@ During the first storage upgrade, marker-gated migration relocates legacy AEAD-p
 ## Public key
 
 ```http
-GET /v1/keeper/publicKey?keyId=eth-cold-storage
-GET /v1/keeper/publicKey?keyId=eth-cold-storage&generation=1
-GET /v1/keeper/publicKey?keyId=eth-cold-storage&tweak=user-42
+GET /v1/keeper/publicKey?keyId=deployment-signing
+GET /v1/keeper/publicKey?keyId=deployment-signing&generation=1
+GET /v1/keeper/publicKey?keyId=deployment-signing&tweak=user-42
 ```
 
 Required permission:
@@ -131,11 +131,11 @@ Body:
 
 ```json
 {
-  "keyId": "eth-cold-storage",
+  "keyId": "deployment-signing",
   "generation": 1,
   "approvals": {
     "keeperId": 1,
-    "nonce": "destroy-eth-cold-storage-1",
+    "nonce": "destroy-deployment-signing-1",
     "timestamp": 1760000000000,
     "proofs": []
   }
@@ -159,7 +159,7 @@ In threshold mode, destroy is coordinated across peers. Commit and abort are bou
 ## Consistency fix
 
 ```http
-POST /v1/keeper/consistency/fix?keyId=eth-cold-storage
+POST /v1/keeper/consistency/fix?keyId=deployment-signing
 ```
 
 Required permission:
@@ -203,7 +203,7 @@ Response:
   "items": [
     {
       "type": "APPLY",
-      "logicalId": "eth-cold-storage",
+      "logicalId": "deployment-signing",
       "generation": 1,
       "expiresAt": 1893456000
     }

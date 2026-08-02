@@ -6,9 +6,13 @@ With concrete authorities, TKeeper checks the requested effect before signing st
 
 An authority document is security policy and an intent schema. Review changes to either with the same care as changes to signing code.
 
-Full Verdict syntax lives here:
+TKeeper validates the document, intent config, public approver material, and CEL policy before creating or importing a key. The policy compiles against the selected intent's strict root schema.
 
-[github.com/exploit-org/verdict](https://github.com/exploit-org/verdict)
+## Threshold-backed authorization
+
+In threshold mode, authority enforcement is backed by the same `t-of-n` boundary as key use: fewer than `t` compromised peers cannot complete a threshold signature for an action rejected by the honest peers. This makes the governed identity the strongest authorization boundary in the stack.
+
+Treat authority documents accordingly: keep them narrow, review every schema and policy change, and attach them through digest-pinned references. See [Quorum Modes](../security-model/quorum-modes.md) and the [Threat Model](../security-model/threat-model.md) for detailed guarantees, assumptions, and residual risks.
 
 ## Key authorities
 
@@ -19,12 +23,8 @@ Concrete authorities use OCI references:
 ```json
 [
   {
-    "id": "payments-small",
-    "oci": "oci://registry.example/verdict/authorities/payments-small@sha256:..."
-  },
-  {
-    "id": "evm-mainnet-usdc",
-    "oci": "oci://registry.example/verdict/authorities/evm-mainnet-usdc@sha256:..."
+    "id": "production-deployment",
+    "oci": "oci://registry.example/verdict/authorities/production-deployment@sha256:..."
   }
 ]
 ```
@@ -50,41 +50,107 @@ Rules:
 - tags are for local development, not production trust anchors
 - authority ids must be unique on the same key
 
+### Design advice: one action per authority
+
+Treat one authority document as one logical action. A document can technically contain rules for several unrelated actions, but doing so mixes intent meaning, limits, approvers, and audit interpretation. Multiple rules are useful when they express conditions for the same action, such as automatic and reviewed amount ranges. Keep different actions, destinations, networks, and certificate profiles under separate authority ids and separately reviewed OCI digests.
+
 ## Authority document
 
-Concrete authorities are Verdict authority documents.
+Concrete authorities are Verdict authority documents. `custom` defines a typed JSON request directly in the document and is the neutral starting point for a new integration.
+
+### Custom authority example
+
+This example defines a custom typed authority and a matching command. Its policy shows standard CEL and at least one function from each helper category: effects, decimal, bigint, lists, network, semver, crypto, and time.
 
 ```yaml
 schemaVersion: verdict.authority/v1
-id: evm-mainnet-usdc
-type: evm.transaction
+id: production-deployment
+type: custom
 version: 1.0.0
 
 metadata:
-  title: Mainnet USDC policy
+  title: Reviewed production deployment
 
 config:
-  chainId: 1
-  contracts:
-    - standard: erc20
-      address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+  fields:
+    action:
+      type: string
+    service:
+      type: string
+    environment:
+      type: string
+    releaseVersion:
+      type: string
+    sequence:
+      type: bigint
+    riskScore:
+      type: decimal
+    roles:
+      type: list
+      items:
+        type: string
+    sourceIp:
+      type: string
+    requestedAt:
+      type: time
+    expiresAt:
+      type: time
+    changeProof:
+      type: bytes
+  effects:
+    - type: deployment.release
+      fields:
+        action: "$action"
+        service: "$service"
+        environment: "$environment"
+        version: "$releaseVersion"
+        sequence: "$sequence"
 
 policy:
-  id: usdc-transfer
+  id: production-deployment
   fallback: DENY
-  allow:
-    - id: allow-small-usdc-transfer
-      where:
-        - "effect.one(effects, 'erc20.transfer')"
-        - "effect.any(effects, 'erc20.transfer', {'token': tokenAddress})"
-        - "bigint.lte(effect.amount(effects, 'erc20.transfer'), maxAmount)"
-  deny: []
   variables:
-    tokenAddress: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-    maxAmount: "100000000"
+    allowedEnvironments: [production]
+    requiredRoles: [release-manager, production]
+    allowedCidrs: ["10.20.0.0/16", "fd00:20::/48"]
+    minimumReleaseVersion: "2.3.1"
+    maximumRiskScore: "0.25"
+    minimumSequence: "10000000000000000000"
+    maximumWindowSeconds: 300
+    expectedProofHash: "9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a"
+  allow:
+    - id: allow-reviewed-deployment
+      where:
+        - "action == 'deploy' && environment in allowedEnvironments"
+        - "roles.exists(role, role == 'release-manager')"
+        - "effect.one(effects, 'deployment.release')"
+        - "decimal.lte(riskScore, maximumRiskScore)"
+        - "bigint.gte(sequence, minimumSequence)"
+        - "lists.containsAll(roles, requiredRoles)"
+        - "ip.isValid(sourceIp) && cidr.matchesAny(sourceIp, allowedCidrs)"
+        - "semver.isValid(releaseVersion) && semver.gte(releaseVersion, minimumReleaseVersion)"
+        - "crypto.sha256(changeProof) == expectedProofHash"
+        - "time.before(requestedAt, expiresAt) && time.durationSeconds(requestedAt, expiresAt) <= maximumWindowSeconds"
+  deny: []
 ```
 
-Fields:
+Each expression demonstrates a policy surface:
+
+| Category | Expression in the example | Purpose |
+| --- | --- | --- |
+| Standard CEL | `action == ...`, `in`, `roles.exists(...)` | operators, membership, and macros |
+| Effects | `effect.one(...)` | normalized consequence count |
+| Decimal | `decimal.lte(...)` | exact risk-score comparison |
+| Bigint | `bigint.gte(...)` | integer comparison beyond 64-bit range |
+| Lists | `lists.containsAll(...)` | required role set |
+| Network | `ip.isValid(...)`, `cidr.matchesAny(...)` | source address validation |
+| Semver | `semver.isValid(...)`, `semver.gte(...)` | release version floor |
+| Crypto | `crypto.sha256(...)` | digest binding for Base64-decoded bytes |
+| Time | `time.before(...)`, `time.durationSeconds(...)` | bounded request window |
+
+The matching command in [Request matching](#request-matching) passes every condition. `changeProof` is Base64 for bytes `01 02 03 04`; its SHA-256 value is the `expectedProofHash` constant above.
+
+### Document fields
 
 | Field | Required | Meaning |
 | --- | --- | --- |
@@ -104,12 +170,26 @@ For a concrete authority, the sign command must reference an authority attached 
 
 ```json
 {
-  "keyId": "evm-treasury",
+  "keyId": "deployment-signing",
   "command": {
-    "type": "evm.transaction",
-    "authorityId": "evm-mainnet-usdc",
+    "type": "custom",
+    "authorityId": "production-deployment",
     "artifact": {
-      "message64": "..."
+      "scheme": "ECDSA",
+      "hash": "SHA256",
+      "typed": {
+        "action": "deploy",
+        "service": "billing-api",
+        "environment": "production",
+        "releaseVersion": "2.3.1",
+        "sequence": 10000000000000000001,
+        "riskScore": 0.20,
+        "roles": ["release-manager", "production"],
+        "sourceIp": "10.20.4.17",
+        "requestedAt": "2030-01-02T03:04:05Z",
+        "expiresAt": "2030-01-02T03:09:05Z",
+        "changeProof": "AQIDBA=="
+      }
     }
   }
 }
@@ -131,10 +211,10 @@ Authority `type` selects the payload format and policy context.
 
 | Authority type | Build feature | Command data | Main policy surface |
 | --- | --- | --- | --- |
-| `custom` | core | typed JSON | declared fields and configured `effects` |
-| `evm.transaction` | `authority-evm` | unsigned serialized EVM transaction | transaction fields, decoded call, `effects` |
-| `bitcoin.transaction` | `authority-bitcoin` | unsigned tx, previous txs, signing input, sighash | inputs, outputs, fee, sighash, `effects` |
-| `x509.tbs-certificate` | `authority-x509` | DER-encoded TBS certificate | subject, issuer, validity, extensions |
+| [`custom`](arbitrary-and-typed.md) | core | typed JSON | declared fields and configured `effects` |
+| [`evm.transaction`](evm.md) | `authority-evm` | unsigned serialized EVM transaction | transaction fields, decoded call, `effects` |
+| [`bitcoin.transaction`](bitcoin.md) | `authority-bitcoin` | unsigned tx, previous txs, signing input, sighash | inputs, outputs, fee, sighash, `effects` |
+| [`x509.tbs-certificate`](x509.md) | `authority-x509` | DER-encoded TBS certificate | subject, issuer, validity, extensions |
 | `arbitrary` | core | raw bytes | no Verdict policy |
 
 If a feature module is missing, TKeeper cannot process that command type and returns `INVALID_AUTHORITY_ARTIFACT`.
@@ -155,23 +235,24 @@ Example effect:
 
 ```json
 {
-  "type": "erc20.transfer",
-  "token": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-  "to": "0x2222222222222222222222222222222222222222",
-  "amount": "1000000"
+  "type": "deployment.release",
+  "action": "deploy",
+  "service": "billing-api",
+  "environment": "production",
+  "version": "2.3.1",
+  "sequence": 10000000000000000001
 }
 ```
 
 Common CEL pattern:
 
 ```cel
-effect.onlyTypes(effects, ['erc20.transfer']) &&
-effect.one(effects, 'erc20.transfer') &&
-effect.any(effects, 'erc20.transfer', {
-  'token': tokenAddress,
-  'to': recipientAddress
-}) &&
-bigint.lte(effect.amount(effects, 'erc20.transfer'), maxAmount)
+effect.onlyTypes(effects, ['deployment.release']) &&
+effect.one(effects, 'deployment.release') &&
+effect.any(effects, 'deployment.release', {
+  'service': expectedService,
+  'environment': 'production'
+})
 ```
 
 Native intent modules fail closed when they cannot describe a consequence.
@@ -187,24 +268,24 @@ Typed JSON authorities produce only the effects declared in authority config.
 
 ## Policy format
 
-Verdict policies use `allow`, `deny`, and `fallback`:
+Authority policies use `allow`, `deny`, and `fallback`:
 
 ```yaml
 policy:
   id: policy-id
   fallback: DENY
   variables:
-    maxAmount: "1000000"
+    expectedService: billing-api
   allow:
     - id: allow-example
       where:
-        - "effect.one(effects, 'erc20.transfer')"
+        - "effect.one(effects, 'deployment.release')"
       unless:
         - "time.after(time.now(), expiresAt)"
   deny:
     - id: deny-example
       where:
-        - "effect.has(effects, 'erc20.approval')"
+        - "action == 'delete'"
 ```
 
 Rules:
@@ -219,7 +300,92 @@ Rules:
 - deny matches override allow matches
 - if no rule matches, `fallback` is returned
 
-TKeeper starts signing when the decision is `ALLOW`, or when every approval group from `ALLOW_WITH_REQUIREMENTS` is satisfied. `DENY` never starts signing. See [Policy-driven approvals](../security-model/four-eye-control.md#policy-driven-approvals) for the manifest shape and challenge flow.
+Decision order:
+
+1. Evaluate every deny and allow rule.
+2. Return `DENY` when at least one deny rule matches.
+3. Collect approval groups from every matching allow rule that declares `approvals`.
+4. Return `ALLOW_WITH_REQUIREMENTS` when the collected list is non-empty; otherwise return `ALLOW`.
+5. Apply `fallback` when no allow rule matches.
+
+`ALLOW` starts signing. `ALLOW_WITH_REQUIREMENTS` starts signing after every collected group passes. `DENY` stops the operation before threshold signing.
+
+### Policy-driven approval groups
+
+Declare named approver keys once and reference their names from allow rules:
+
+```yaml
+policy:
+  id: payment-policy
+  fallback: DENY
+  approvers:
+    operator-a:
+      algorithm: SECP256K1
+      publicKey64: "..."
+    operator-b:
+      algorithm: P256
+      publicKey64: "..."
+    compliance:
+      algorithm: ED25519
+      publicKey64: "..."
+  allow:
+    - id: approve-payment
+      where: ["purpose == 'payment'"]
+      approvals:
+        threshold: 2
+        approvers: [operator-a, operator-b]
+    - id: compliance-review
+      where: ["purpose == 'payment'"]
+      approvals:
+        threshold: 1
+        approvers: [compliance]
+```
+
+Both groups apply when both rules match. Every group receives the same signed request hash and all proofs travel in one `approvals.proofs` array.
+
+Conditional fallback:
+
+```yaml
+policy:
+  id: guarded-fallback
+  fallback: ALLOW_WITH_REQUIREMENTS
+  approvers:
+    operator:
+      algorithm: ED25519
+      publicKey64: "..."
+  fallbackApprovals:
+    threshold: 1
+    approvers: [operator]
+```
+
+Approval validation:
+
+- approvals are valid on allow rules
+- `fallbackApprovals` requires `fallback: ALLOW_WITH_REQUIREMENTS`
+- every selected approver name must exist in `policy.approvers`
+- names within a group must be unique
+- `threshold` must be between `1` and the number of selected approvers
+- one group may select at most 256 approvers
+- declared algorithms must exist in the runtime artifact
+- public keys must decode under their declared algorithms
+- public key material must be distinct across named approvers
+
+Key-bound and policy-bound groups share the same request format, hash, proof array, timestamp, and nonce. Combined enforcement requires every group from both sources. See [Four Eye Control](../security-model/four-eye-control.md) for the signed request format and replay rules.
+
+### Strict CEL roots
+
+TKeeper compiles each authority policy with the root schema produced by its intent type and trusted config.
+
+- intent roots and their CEL types come from the selected authority type
+- `policy.variables` add constant root values
+- policy variables cannot reuse an intent root name
+- any external root missing from the intent schema rejects the authority during key creation or import
+- compilation errors identify the policy, rule, and expression location
+- nested key access must follow the type exposed by the intent schema
+
+For example, `purpoze == 'payment'` fails authority creation when the custom schema declares `purpose`. Native schemas similarly reject misspelled roots such as `chainID` when the EVM intent exposes `chainId`.
+
+See [CEL functions](cel-functions.md) for the standard macros and installed `effect`, decimal, bigint, list, network, semver, crypto, and time helpers.
 
 The audit event stores the policy decision and matched rules.
 
@@ -236,7 +402,7 @@ An authority OCI artifact contains one authority document:
 Use digest-pinned references:
 
 ```text
-oci://registry.example/verdict/authorities/evm-mainnet-usdc@sha256:...
+oci://registry.example/verdict/authorities/production-deployment@sha256:...
 ```
 
 Tags are mutable. They are fine for local development, but not as a production trust anchor.
@@ -258,67 +424,9 @@ oras {
 }
 ```
 
-## Custom typed authority
+## Custom typed authorities
 
-Use `custom` when the request is JSON and no native intent exists.
-
-Authority:
-
-```yaml
-schemaVersion: verdict.authority/v1
-id: payments-small
-type: custom
-version: 1.0.0
-
-config:
-  fields:
-    amount:
-      type: bigint
-    currency:
-      type: string
-    customer:
-      type: object
-      fields:
-        id:
-          type: string
-  effects:
-    - type: payment.transfer
-      fields:
-        asset: "$currency"
-        amount: "$amount"
-        customerId: "$customer.id"
-
-policy:
-  id: payments
-  fallback: DENY
-  allow:
-    - id: small-usd-payment
-      where:
-        - "currency == 'USD'"
-        - "effect.one(effects, 'payment.transfer')"
-        - "bigint.lte(effect.amount(effects, 'payment.transfer'), '10000')"
-  deny: []
-```
-
-Command:
-
-```json
-{
-  "type": "custom",
-  "authorityId": "payments-small",
-  "artifact": {
-    "scheme": "ECDSA",
-    "hash": "SHA256",
-    "typed": {
-      "amount": 5000,
-      "currency": "USD",
-      "customer": {
-        "id": "customer-42"
-      }
-    }
-  }
-}
-```
+Use `custom` when the request is JSON and no native intent exists. The [custom authority example](#custom-authority-example) above includes a configured authority and matching command.
 
 Only declared fields become CEL variables. Unknown JSON fields are rejected before signing. `effects` is reserved.
 
@@ -326,9 +434,7 @@ This has an important integration consequence: a backend must not act on unknown
 
 Schema evolution should be explicit. Changing field meaning, effect mapping, or policy requires a new reviewed artifact digest; the human-readable `version` field is not a trust anchor.
 
-For all supported field types, effect mapping rules, and CEL helpers, use the Verdict docs:
-
-[github.com/exploit-org/verdict](https://github.com/exploit-org/verdict)
+Supported custom field types and validation rules are documented in [Arbitrary and Typed Authorities](arbitrary-and-typed.md). CEL helpers are documented in [CEL functions](cel-functions.md).
 
 ## Common problems
 
