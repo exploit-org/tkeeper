@@ -83,6 +83,8 @@ The functional suite is split by boundary:
 
 See the [functional test sources](functional/src/test/kotlin/org/exploit/test/functional/) for the complete set.
 
+The corrupted-share Schnorr and ECDSA scenarios make up to ten signing attempts because a 2-of-3 coordinator may select the other healthy peer. Assuming independent 50/50 peer selection, there is still about a 0.1% chance that the corrupted peer is never selected and either test fails; stable latency bias can make the actual probability higher.
+
 ## Test topology
 
 - client index `3` targets a peer with coordinator endpoints disabled
