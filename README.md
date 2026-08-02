@@ -127,7 +127,7 @@ See [Build and Features](docs/deployment/build-and-features.md).
 
 The HTTP contract is described by [openapi.yaml](openapi.yaml).
 
-Java integrations can use [`org.exploit:tkeeper-sdk:2.2.1`](sdk/README.md).
+Java integrations can use [`org.exploit:tkeeper-sdk:2.3.0`](sdk/README.md).
 
 If an SDK helper disagrees with OpenAPI, treat OpenAPI as the source of truth.
 
