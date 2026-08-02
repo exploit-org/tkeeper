@@ -118,7 +118,7 @@ Non-success responses throw `TKeeperException`. Branch on the stable `ErrorType`
 | Error family | Handling |
 | --- | --- |
 | `ACCESS_DENIED`, `POLICY_VIOLATION` | reject; do not retry unchanged input |
-| `APPROVAL_REQUIRED` | collect every group from `TKeeperException.getApprovals()` and resubmit once |
+| `APPROVAL_REQUIRED` | collect every group from `TKeeperException.getApprovals()`, [build and sign `hashForSigning`](../docs/security-model/four-eye-control.md#building-hashforsigning), and resubmit once |
 | validation and authority errors | fix the request, authority, or server artifact |
 | `SESSION_MAX_ROUNDS_EXCEEDED`, quorum, audit, or timeout errors | retry only under a bounded availability policy |
 | non-empty `imposters` | preserve as security evidence and investigate the named peers |
