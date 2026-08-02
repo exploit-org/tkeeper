@@ -1261,16 +1261,16 @@ components:
           type: integer
           format: int32
           minimum: 2
-          maximum: 255
+          maximum: 256
         n:
           type: integer
           format: int32
           minimum: 2
-          maximum: 255
+          maximum: 256
         keys:
           type: array
           minItems: 2
-          maxItems: 255
+          maxItems: 256
           uniqueItems: true
           items:
             $ref: '#/components/schemas/ApproverPublicKey'
@@ -1279,6 +1279,7 @@ components:
       type: string
       enum: [STRICT, LENIENT]
       default: STRICT
+      description: STRICT protects every supported operation. LENIENT protects ROTATE, REFRESH, and generation destruction.
 
     ApproverPublicKey:
       type: object
@@ -1309,7 +1310,7 @@ components:
           format: int64
         proofs:
           type: array
-          maxItems: 255
+          maxItems: 256
           items:
             $ref: '#/components/schemas/Proof'
           default: []

@@ -34,7 +34,7 @@ Fields:
 | --- | --- | --- |
 | `UNAUTHENTICATED` | no accepted client identity | token/header/JWKS |
 | `ACCESS_DENIED` | client lacks required permission | permission claim and negative grants |
-| `APPROVAL_REQUIRED` | an authority decision requires external proofs | `approvals`, canonical request hash, nonce, and timestamp |
+| `APPROVAL_REQUIRED` | an authority decision requires external proofs | required `approvals` groups, then [construct a fresh approval envelope and hash](../security-model/four-eye-control.md#building-hashforsigning) |
 | `KEEPER_SEALED` | node is sealed | unseal state |
 | `NOT_COORDINATOR` | request sent to non-coordinator | coordinator config |
 | `INVALID_AUTHORITY` | invalid authority list, id, OCI reference, document, or policy | key authority configuration and artifact digest |

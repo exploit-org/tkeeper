@@ -114,7 +114,7 @@ Fields:
 | --- | --- |
 | `apply` | deadline for operations that create a new effect |
 | `process` | deadline for operations that process existing material |
-| `fourEye` | m-of-n approval policy; `STRICT` protects every supported operation, `LENIENT` only `ROTATE` and `REFRESH` |
+| `fourEye` | m-of-n approval policy; `STRICT` protects every supported operation, `LENIENT` protects `ROTATE`, `REFRESH`, and generation destruction |
 | `allowHistoricalProcess` | allow process operations against historical generations |
 
 `unit` can be `SECONDS` or `MILLISECONDS`.

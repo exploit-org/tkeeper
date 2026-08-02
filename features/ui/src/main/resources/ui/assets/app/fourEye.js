@@ -42,7 +42,7 @@ export function initFourEyeUI({ enabledEl, bodyEl, keysContainerEl, addBtnEl, al
     const syncModeHint = () => {
         if (!modeEl || !modeHintEl) return;
         modeHintEl.textContent = modeEl.value === "LENIENT"
-            ? "Four-eye approval is required only for rotate and refresh, not for signing or decryption."
+            ? "Four-eye approval is required for rotate, refresh, and destroy. Signing and decryption remain direct."
             : "Approvals are required for every operation protected by this policy.";
     };
     const syncVisibility = () => {

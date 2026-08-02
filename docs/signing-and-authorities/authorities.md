@@ -219,7 +219,7 @@ Rules:
 - deny matches override allow matches
 - if no rule matches, `fallback` is returned
 
-TKeeper starts signing when the decision is `ALLOW`, or when every approval group from `ALLOW_WITH_REQUIREMENTS` is satisfied. `DENY` never starts signing.
+TKeeper starts signing when the decision is `ALLOW`, or when every approval group from `ALLOW_WITH_REQUIREMENTS` is satisfied. `DENY` never starts signing. See [Policy-driven approvals](../security-model/four-eye-control.md#policy-driven-approvals) for the manifest shape and challenge flow.
 
 The audit event stores the policy decision and matched rules.
 
