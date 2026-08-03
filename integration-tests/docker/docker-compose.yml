@@ -17,8 +17,7 @@ services:
       LD_LIBRARY_PATH: /usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
     volumes:
       - ./conf/keeper-1:/etc/tkeeper:ro
-    tmpfs:
-      - /var/lib/tkeeper:rw,exec,nosuid,size=512m,uid=185,gid=0
+      - keeper-1-data:/var/lib/tkeeper
 
   keeper-2:
     image: exploit/tkeeper:dev
@@ -33,9 +32,8 @@ services:
       SOFTHSM2_CONF: /etc/softhsm2/softhsm2.conf
     volumes:
       - ./conf/keeper-2:/etc/tkeeper:ro
-    tmpfs:
-      - /var/lib/tkeeper:rw,exec,nosuid,size=512m,uid=185,gid=0
-      - /var/lib/softhsm/tokens:rw,nosuid,size=64m,uid=185,gid=0
+      - keeper-2-data:/var/lib/tkeeper
+      - keeper-2-hsm:/var/lib/softhsm/tokens
 
   keeper-3:
     image: exploit/tkeeper:dev
@@ -49,8 +47,7 @@ services:
       LD_LIBRARY_PATH: /usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
     volumes:
       - ./conf/keeper-3:/etc/tkeeper:ro
-    tmpfs:
-      - /var/lib/tkeeper:rw,exec,nosuid,size=512m,uid=185,gid=0
+      - keeper-3-data:/var/lib/tkeeper
 
   keeper-4:
     image: exploit/tkeeper:dev
@@ -93,3 +90,9 @@ services:
       - ./conf/keeper-6:/etc/tkeeper:ro
     tmpfs:
       - /var/lib/tkeeper:rw,exec,nosuid,size=512m,uid=185,gid=0
+
+volumes:
+  keeper-1-data:
+  keeper-2-data:
+  keeper-2-hsm:
+  keeper-3-data:

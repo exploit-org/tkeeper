@@ -73,7 +73,7 @@ The functional suite is split by boundary:
 | `SignatureTests` | ECC and ML-DSA signing and verification |
 | `KeyLifecycleTests` | create, refresh, rotate, and PQC-specific lifecycle behavior |
 | `AuthorityPolicyTests` | typed authority materialization and policy decisions |
-| `FailureInjectionTests` | corruption, demotion, and consistency recovery |
+| `FailureInjectionTests` | corruption, sequential and concurrent malicious signing packages, FROST commitment/share/nonce-state inputs, threshold ML-DSA commit/reveal and state-reuse inputs, GG20 Paillier/ZK-proof inputs, in-flight protocol restart checkpoints, demotion, and consistency recovery |
 | `ProductionTransportSecurityTests` | generated PKI, public HTTPS/JWT, HTTPS JWKS rotation, internal mTLS/SPKI, and fail-closed startup variants |
 | `QuorumPromotionTests` | mono-to-threshold promotion |
 | `KeyImportTests` | trusted-dealer import |
