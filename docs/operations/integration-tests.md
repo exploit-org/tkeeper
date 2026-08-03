@@ -29,6 +29,80 @@ Run one class with:
   --tests 'org.exploit.test.functional.ProductionTransportSecurityTests'
 ```
 
+Run only the audit-inspired malicious protocol-input probes with:
+
+```bash
+./gradlew :integration-tests:functional:test \
+  --tests 'org.exploit.test.functional.FailureInjectionTests.frostRejectsInvalidSigningPackage' \
+  --tests 'org.exploit.test.functional.FailureInjectionTests.validFrostSigningTranscriptPasses' \
+  --tests 'org.exploit.test.functional.FailureInjectionTests.frostSigningTranscriptRejectsMaliciousInput' \
+  --tests 'org.exploit.test.functional.FailureInjectionTests.gg20RejectsInvalidSigningPackage' \
+  --tests 'org.exploit.test.functional.FailureInjectionTests.validGg20MtATranscriptsPassOnSupportedCurves' \
+  --tests 'org.exploit.test.functional.FailureInjectionTests.mldsaRejectsInvalidSigningPackage' \
+  --tests 'org.exploit.test.functional.FailureInjectionTests.validMLDSASigningTranscriptPasses' \
+  --tests 'org.exploit.test.functional.FailureInjectionTests.mldsaSigningTranscriptRejectsMaliciousInput' \
+  --tests 'org.exploit.test.functional.FailureInjectionTests.gg20MtARejectsMaliciousInput' \
+  --tests 'org.exploit.test.functional.FailureInjectionTests.maliciousCoordinatorCannotInjectInvalidEciesParticipantSet'
+```
+
+Run the in-flight FROST, GG20, and ML-DSA crash-recovery checkpoints with:
+
+```bash
+./gradlew buildTestContainers
+./gradlew :integration-tests:functional:test \
+  --tests 'org.exploit.test.functional.FailureInjectionTests.inFlightProtocolStateDoesNotSurviveKeeperRestart*'
+```
+
+The development topology uses compose volumes for keeper-1 through keeper-3 so
+RocksDB and the keeper-2 SoftHSM token survive a container restart. Signing
+sessions remain process-local and must not survive it.
+
+Run the deterministic property and fuzz-seed regressions for security-sensitive
+binary formats with:
+
+```bash
+./gradlew :platform-ecc:test \
+  --tests 'org.exploit.keeper.platform.ecc.property.SecuritySerializationProperties' \
+  --tests 'org.exploit.keeper.platform.ecc.fuzz.SecurityBinaryParserFuzzTest'
+```
+
+Run the coverage-guided parser fuzzer for 30 seconds with:
+
+```bash
+./gradlew :platform-ecc:fuzzSecurityParsers
+```
+
+Run the deterministic protocol-state properties and fuzz seeds with:
+
+```bash
+./gradlew :platform-ecc:test \
+  --tests 'org.exploit.keeper.platform.ecc.property.ProtocolStateMachineProperties' \
+  --tests 'org.exploit.keeper.platform.ecc.fuzz.SecurityProtocolStateFuzzTest'
+./gradlew :platform-pqc:test \
+  --tests 'org.exploit.keeper.platform.pqc.property.MLDSAStateMachineProperties' \
+  --tests 'org.exploit.keeper.platform.pqc.fuzz.MLDSAStateMachineFuzzTest'
+./gradlew :test \
+  --tests 'org.exploit.keeper.tests.temporary.InMemoryTemporaryMapConcurrencyTest'
+```
+
+Run the coverage-guided FROST/GG20 and ML-DSA state-machine campaigns with:
+
+```bash
+./gradlew securityFuzz
+```
+
+Override the time budget when running a longer local or scheduled campaign:
+
+```bash
+./gradlew :platform-ecc:fuzzSecurityParsers -Pkeeper.fuzz.duration=5m
+./gradlew :platform-ecc:fuzzProtocolStateMachines -Pkeeper.fuzz.duration=5m
+./gradlew :platform-pqc:fuzzMLDSAStateMachine -Pkeeper.fuzz.duration=5m
+```
+
+The generated `.cifuzz-corpus/` is local build state and is ignored. Minimize
+any finding and retain it as an explicit seed or property regression before
+merging the fix.
+
 Do not pass `keeper.features` or `keeper.platforms` to `buildTestContainers`. The development integration artifact uses its own classpath and includes:
 
 - every production feature
@@ -39,3 +113,5 @@ Do not pass `keeper.features` or `keeper.platforms` to `buildTestContainers`. Th
 The production transport test image uses the production UBI Dockerfile and excludes development authentication and failure injection. Regular `shadowJar` and `dockerBuild` also exclude failure injection.
 
 See [`../../integration-tests/README.md`](../../integration-tests/README.md) for local requirements and Testcontainers setup.
+
+See [Security Assurance](../security-model/security-assurance.md) for the security vectors exercised by the functional suite and the limits of that evidence.

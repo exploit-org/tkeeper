@@ -11,6 +11,7 @@ This boundary is effective only when the downstream system refuses to execute th
 Read:
 
 - [Threat Model](threat-model.md)
+- [Security Assurance](security-assurance.md)
 - [Quorum Modes](quorum-modes.md)
 - [Authentication and Authorization](authentication-authorization.md)
 - [Audit Logging](audit-logging.md)

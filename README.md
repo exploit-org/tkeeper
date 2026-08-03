@@ -120,6 +120,11 @@ See [Build and Features](docs/deployment/build-and-features.md).
 
 ## Security references
 
+**Security assurance:** 346 automated scenarios, including 81 failure-injection
+scenarios, run for every pull request and commit to `main`. See
+[Security Assurance](docs/security-model/security-assurance.md) for tested attack
+vectors and executable evidence.
+
 - [TKeeper Threat Model](docs/security-model/threat-model.md)
 - [Anvil](https://github.com/exploit-org/anvil) for protocol-level cryptographic components
 

@@ -30,12 +30,13 @@ TKeeper gives machines, agents, services, and workflows a cryptographic identity
 | Select cryptographic platforms | [Platforms](crypto-platforms/platforms.md) |
 | Use the HTTP API | [OpenAPI](api-reference/openapi.md) |
 | Run integration tests | [Integration Tests](operations/integration-tests.md) |
+| Review executable security evidence | [Security Assurance](security-model/security-assurance.md) |
 
 ## By audience
 
 | Reader | Recommended path |
 | --- | --- |
 | Application integrator | [Getting Started](getting-started/README.md) -> [Signing](signing-and-authorities/signing.md) -> [Java SDK](api-reference/sdk.md) or [OpenAPI](api-reference/openapi.md) |
-| Security reviewer | [Security Model](security-model/README.md) -> [Threat Model](security-model/threat-model.md) -> [Status and Limitations](overview/status-and-limitations.md) |
+| Security reviewer | [Security Model](security-model/README.md) -> [Threat Model](security-model/threat-model.md) -> [Security Assurance](security-model/security-assurance.md) -> [Status and Limitations](overview/status-and-limitations.md) |
 | Platform operator | [Deployment](deployment/README.md) -> [Production Checklist](deployment/production-checklist.md) -> [Operations](operations/README.md) |
 | Cryptography reviewer | [Crypto Platforms](crypto-platforms/README.md) -> [Quorum Modes](security-model/quorum-modes.md) -> [Anvil threat model](https://github.com/exploit-org/anvil/blob/main/THREAT_MODEL.md) |

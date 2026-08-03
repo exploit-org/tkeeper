@@ -30,6 +30,20 @@ The same identity rules apply:
 
 Use `MLDSA` as the signature scheme for ML-DSA algorithms.
 
+## Threshold protocol
+
+Threshold signing follows the three-round construction in
+[Efficient Threshold ML-DSA](https://inria.hal.science/hal-05442192v1/document):
+parties commit to their sampled value, reveal it after all commitments are
+fixed, and produce per-party rejection-sampled responses for a challenge bound
+to the aggregate commitment and message. The combiner applies the ML-DSA norm
+and hint bounds and verifies the final standard ML-DSA signature before release.
+
+TKeeper additionally binds each attempt to an exact configured signer set, the
+stored aggregate public key, materialized message, and one-shot session state.
+The adversarial regressions and their limits are listed in
+[Security Assurance](../security-model/security-assurance.md).
+
 ## Signing availability
 
 Threshold ML-DSA signing can abort during rejection sampling even when peers are healthy. TKeeper retries with fresh session state up to:
