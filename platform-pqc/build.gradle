@@ -21,8 +21,11 @@ repositories {
 
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.3'
+    testImplementation 'io.kotest:kotest-property:6.1.11'
+    testImplementation 'com.code-intelligence:jazzer-junit:0.30.0'
     testImplementation(project(':'))
-    implementation ('org.exploit.anvil:t-mldsa:0.2.0')
+    implementation ('org.exploit.anvil:t-mldsa:0.2.1')
     compileOnly(project(':'))
 
     ksp "io.micronaut:micronaut-inject-kotlin:4.10.8"
@@ -34,4 +37,19 @@ kotlin {
 
 test {
     useJUnitPlatform()
+}
+
+tasks.register('fuzzMLDSAStateMachine', Test) {
+    group = 'verification'
+    description = 'Runs coverage-guided action sequences against the threshold ML-DSA round state machine.'
+    outputs.upToDateWhen { false }
+
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'org.exploit.keeper.platform.pqc.fuzz.MLDSAStateMachineFuzzTest'
+    }
+    environment 'JAZZER_FUZZ', '1'
+    systemProperty 'jazzer.max_duration', providers.gradleProperty('keeper.fuzz.duration').getOrElse('30s')
 }

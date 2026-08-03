@@ -22,19 +22,21 @@ repositories {
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.3'
+    testImplementation 'io.kotest:kotest-property:6.1.11'
+    testImplementation 'com.code-intelligence:jazzer-junit:0.30.0'
     testImplementation(project(':'))
     compileOnly(project(':'))
 
-    api 'org.exploit.anvil:ecc-secp256k1:0.2.0'
-    api 'org.exploit.anvil:ecc-ed25519:0.2.0'
-    api 'org.exploit.anvil:ecc-p256:0.2.0'
+    api 'org.exploit.anvil:ecc-secp256k1:0.2.1'
+    api 'org.exploit.anvil:ecc-ed25519:0.2.1'
+    api 'org.exploit.anvil:ecc-p256:0.2.1'
 
-    implementation 'org.exploit.anvil:t-ecdsa:0.2.0'
-    implementation 'org.exploit.anvil:t-schnorr:0.2.0'
-    implementation 'org.exploit.anvil:frost-ed25519:0.2.0'
-    implementation 'org.exploit.anvil:frost-secp256k1:0.2.0'
-    implementation 'org.exploit.anvil:frost-p256:0.2.0'
-    implementation 'org.exploit.anvil:zk-dlog:0.2.0'
+    implementation 'org.exploit.anvil:t-ecdsa:0.2.1'
+    implementation 'org.exploit.anvil:t-schnorr:0.2.1'
+    implementation 'org.exploit.anvil:frost-ed25519:0.2.1'
+    implementation 'org.exploit.anvil:frost-secp256k1:0.2.1'
+    implementation 'org.exploit.anvil:frost-p256:0.2.1'
+    implementation 'org.exploit.anvil:zk-dlog:0.2.1'
 
     ksp "io.micronaut:micronaut-inject-kotlin:4.10.8"
 }
@@ -45,4 +47,34 @@ kotlin {
 
 test {
     useJUnitPlatform()
+}
+
+tasks.register('fuzzSecurityParsers', Test) {
+    group = 'verification'
+    description = 'Runs the coverage-guided Jazzer target for security-sensitive binary parsers.'
+    outputs.upToDateWhen { false }
+
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'org.exploit.keeper.platform.ecc.fuzz.SecurityBinaryParserFuzzTest'
+    }
+    environment 'JAZZER_FUZZ', '1'
+    systemProperty 'jazzer.max_duration', providers.gradleProperty('keeper.fuzz.duration').getOrElse('30s')
+}
+
+tasks.register('fuzzProtocolStateMachines', Test) {
+    group = 'verification'
+    description = 'Runs coverage-guided action sequences against threshold protocol state machines.'
+    outputs.upToDateWhen { false }
+
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'org.exploit.keeper.platform.ecc.fuzz.SecurityProtocolStateFuzzTest'
+    }
+    environment 'JAZZER_FUZZ', '1'
+    systemProperty 'jazzer.max_duration', providers.gradleProperty('keeper.fuzz.duration').getOrElse('30s')
 }
