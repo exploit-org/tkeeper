@@ -34,6 +34,8 @@ def featureModules = [
         'features:authority-evm'     : 'keeper.feature.authority.evm',
         'features:authority-x509'    : 'keeper.feature.authority.x509',
         'features:ecies'             : 'keeper.feature.ecies',
+        'features:recovery-ecc'      : 'keeper.feature.recovery.ecc',
+        'features:recovery-pqc'      : 'keeper.feature.recovery.pqc',
         'features:ui'                : 'keeper.feature.ui'
 ]
 
@@ -66,7 +68,9 @@ def featurePlatformRequirements = [
         'features:authority-bitcoin'        : ['platform-ecc'],
         'features:authority-evm'            : ['platform-ecc'],
         'features:authority-x509'           : ['platform-ecc'],
-        'features:ecies'                    : ['platform-ecc']
+        'features:ecies'                    : ['platform-ecc'],
+        'features:recovery-ecc'             : ['platform-ecc'],
+        'features:recovery-pqc'             : ['platform-pqc']
 ]
 
 def truthy = { value ->
