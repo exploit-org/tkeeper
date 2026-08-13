@@ -39,8 +39,7 @@ def featureModules = [
 
 def explicitFeatureModules = [
         'features:auth-dev'          : 'keeper.feature.auth.dev',
-        'features:recovery-ecc'      : 'keeper.feature.recovery.ecc',
-        'features:recovery-pqc'      : 'keeper.feature.recovery.pqc',
+        'features:recovery'          : 'keeper.feature.recovery',
 ]
 
 def testOnlyFeatureModules = ['integration-tests:failure-injection']
@@ -50,9 +49,15 @@ def platformModules = [
         'platform-pqc': 'keeper.platform.pqc'
 ]
 
+def recoveryPlatformModules = [
+        'platform-ecc': 'features:recovery:ecc',
+        'platform-pqc': 'features:recovery:pqc'
+]
+
 def shadowedRuntimeModules =
         featureModules.keySet() +
                 explicitFeatureModules.keySet() +
+                recoveryPlatformModules.values() +
                 testOnlyFeatureModules
 
 shadowedRuntimeModules.each { moduleName ->
@@ -68,9 +73,7 @@ def featurePlatformRequirements = [
         'features:authority-bitcoin'        : ['platform-ecc'],
         'features:authority-evm'            : ['platform-ecc'],
         'features:authority-x509'           : ['platform-ecc'],
-        'features:ecies'                    : ['platform-ecc'],
-        'features:recovery-ecc'             : ['platform-ecc'],
-        'features:recovery-pqc'             : ['platform-pqc']
+        'features:ecies'                    : ['platform-ecc']
 ]
 
 def truthy = { value ->
@@ -136,7 +139,13 @@ def enabledPlatformModules = platformModules.findAll { moduleName, propertyName 
             truthy(findProperty(propertyName))
 }
 
-enabledFeatureModules.keySet().each { moduleName ->
+def enabledRecoveryPlatformModules = enabledExplicitFeatureModules.containsKey('features:recovery')
+        ? recoveryPlatformModules.findAll { platformName, ignored ->
+            enabledPlatformModules.containsKey(platformName)
+        }.values()
+        : []
+
+(enabledFeatureModules.keySet() + enabledExplicitFeatureModules.keySet()).each { moduleName ->
     featurePlatformRequirements.get(moduleName, []).each { requiredPlatform ->
         if (!enabledPlatformModules.containsKey(requiredPlatform)) {
             def featureName = moduleName.tokenize(':').last()
@@ -222,6 +231,10 @@ dependencies {
         productionFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
+    enabledRecoveryPlatformModules.each { moduleName ->
+        productionFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
+    }
+
     enabledPlatformModules.keySet().each { moduleName ->
         productionFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
@@ -231,6 +244,10 @@ dependencies {
     }
 
     explicitFeatureModules.keySet().each { moduleName ->
+        integrationFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
+    }
+
+    recoveryPlatformModules.values().each { moduleName ->
         integrationFeatureRuntime project(path: ":$moduleName", configuration: 'shadowRuntimeElements')
     }
 
@@ -290,6 +307,7 @@ tasks.named('build') {
     dependsOn ':sdk:test'
     dependsOn enabledFeatureModules.keySet().collect { ":$it:test" }
     dependsOn enabledExplicitFeatureModules.keySet().collect { ":$it:test" }
+    dependsOn enabledRecoveryPlatformModules.collect { ":$it:test" }
     dependsOn enabledPlatformModules.keySet().collect { ":$it:test" }
 }
 
@@ -357,7 +375,10 @@ tasks.register('shadowJarProductionTest', com.github.jengelman.gradle.plugins.sh
     doLast {
         def forbidden = [
                 'auth-dev'         : 'org/exploit/keeper/auth/dev/provider/DevAuthProvider.class',
-                'failure-injection': 'org/exploit/keeper/module/failure/FailureInjectionController.class'
+                'failure-injection': 'org/exploit/keeper/module/failure/FailureInjectionController.class',
+                'recovery'         : 'org/exploit/keeper/controller/external/RecoveryController.class',
+                'recovery-ecc'     : 'org/exploit/keeper/module/recovery/ecc/service/ECCRecoveryService.class',
+                'recovery-pqc'     : 'org/exploit/keeper/module/recovery/pqc/service/PQCRecoveryService.class',
         ]
         def archive = archiveFile.get().asFile
         def zip = new java.util.zip.ZipFile(archive)
@@ -382,7 +403,10 @@ tasks.register('artifactIsolationTest') {
     doLast {
         def markers = [
                 'auth-dev'         : 'org/exploit/keeper/auth/dev/provider/DevAuthProvider.class',
-                'failure-injection': 'org/exploit/keeper/module/failure/FailureInjectionController.class'
+                'failure-injection': 'org/exploit/keeper/module/failure/FailureInjectionController.class',
+                'recovery'         : 'org/exploit/keeper/controller/external/RecoveryController.class',
+                'recovery-ecc'     : 'org/exploit/keeper/module/recovery/ecc/service/ECCRecoveryService.class',
+                'recovery-pqc'     : 'org/exploit/keeper/module/recovery/pqc/service/PQCRecoveryService.class',
         ]
 
         def productionJar = tasks.named('shadowJarProductionTest').get().archiveFile.get().asFile
@@ -476,6 +500,7 @@ def releaseChecksBeforeContainers = [
         ':integration-tests:test',
         featureModules.keySet().collect { ":$it:test" },
         explicitFeatureModules.keySet().collect { ":$it:test" },
+        recoveryPlatformModules.values().collect { ":$it:test" },
         testOnlyFeatureModules.collect { ":$it:test" },
         platformModules.keySet().collect { ":$it:test" },
         tasks.named('artifactIsolationTest')
