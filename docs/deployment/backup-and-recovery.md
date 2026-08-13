@@ -88,7 +88,7 @@ Legacy unversioned generation zero is outside the recovery boundary.
 
 4. Unseal the keepers if required and confirm health and status.
 5. Call the recovery endpoint on the damaged keeper with a principal that has
-   `tkeeper.recovery`:
+   `tkeeper.recover`:
 
    ```bash
    curl --fail-with-body \

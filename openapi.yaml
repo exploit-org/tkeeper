@@ -557,7 +557,7 @@ paths:
         After all operator-selected helpers agree, the target discards and atomically rebuilds the
         logical key's shares, metadata, policies, destroy state, public side-state, and derived indexes.
       x-permissions:
-        required: [tkeeper.recovery]
+        required: [tkeeper.recover]
       requestBody:
         required: true
         content:

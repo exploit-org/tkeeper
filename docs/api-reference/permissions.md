@@ -40,7 +40,7 @@ tkeeper.key.*.sign
 | `tkeeper.storage.write` | trusted-dealer import |
 | `tkeeper.quorum.promote` | promote mono to threshold |
 | `tkeeper.consistency.fix` | repair threshold state |
-| `tkeeper.recovery` | run share-recovery protocols |
+| `tkeeper.recover` | run share-recovery protocols |
 | `tkeeper.expired.view` | read key-expiration indexes |
 | `tkeeper.compliance.inventory` | read asset inventory |
 | `tkeeper.integrity.rotate` | rotate audit integrity key |
