@@ -529,7 +529,11 @@ tasks.register('securityFuzz') {
 
     dependsOn ':platform-ecc:fuzzSecurityParsers'
     dependsOn ':platform-ecc:fuzzProtocolStateMachines'
+    dependsOn ':platform-ecc:fuzzKeeperProtocolStateMachines'
     dependsOn ':platform-pqc:fuzzMLDSAStateMachine'
+    dependsOn ':platform-pqc:fuzzKeeperMLDSAProtocols'
+    dependsOn ':features:recovery:ecc:fuzzRecoveryProtocol'
+    dependsOn ':features:recovery:pqc:fuzzRecoveryPayloads'
 }
 
 test {
