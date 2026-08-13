@@ -34,13 +34,13 @@ def featureModules = [
         'features:authority-evm'     : 'keeper.feature.authority.evm',
         'features:authority-x509'    : 'keeper.feature.authority.x509',
         'features:ecies'             : 'keeper.feature.ecies',
-        'features:recovery-ecc'      : 'keeper.feature.recovery.ecc',
-        'features:recovery-pqc'      : 'keeper.feature.recovery.pqc',
         'features:ui'                : 'keeper.feature.ui'
 ]
 
 def explicitFeatureModules = [
-        'features:auth-dev': 'keeper.feature.auth.dev'
+        'features:auth-dev'          : 'keeper.feature.auth.dev',
+        'features:recovery-ecc'      : 'keeper.feature.recovery.ecc',
+        'features:recovery-pqc'      : 'keeper.feature.recovery.pqc',
 ]
 
 def testOnlyFeatureModules = ['integration-tests:failure-injection']
