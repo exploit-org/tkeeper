@@ -21,6 +21,7 @@ repositories {
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     compileOnly(project(':'))
+    compileOnly(project(':features:recovery'))
     compileOnly(project(':platform-ecc'))
     compileOnly(project(':platform-pqc'))
     compileOnly(project(':features:ecies'))
