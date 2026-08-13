@@ -104,7 +104,7 @@ Cryptographic implementations are selected at build time.
 
 A deployable artifact must include at least one platform.
 
-Build all production features and platforms:
+Build all default production features and platforms:
 
 ```bash
 ./gradlew :build -Pkeeper.features=all -Pkeeper.platforms=all
@@ -120,8 +120,9 @@ See [Build and Features](docs/deployment/build-and-features.md).
 
 ## Security references
 
-**Security assurance:** 346 automated scenarios, including 81 failure-injection
-scenarios, run for every pull request and commit to `main`. See
+**Security assurance:** 356 automated functional scenarios, including 90
+protocol and corruption failure-injection scenarios plus one 3-of-5 share-recovery scenario, run
+for every pull request and commit to `main`. See
 [Security Assurance](docs/security-model/security-assurance.md) for tested attack
 vectors and executable evidence.
 

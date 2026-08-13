@@ -21,6 +21,7 @@ tags:
   - name: Inventory
   - name: ControlPlane
   - name: Consistency
+  - name: Recovery
   - name: Expiration
   - name: Integrity
 
@@ -181,6 +182,7 @@ paths:
       tags: [Keys]
       operationId: publicKey
       summary: Get public key
+      description: Read-only key operation that remains available in recovery mode for generation comparison.
       x-permissions:
         template: tkeeper.key.{keyId}.public
       parameters:
@@ -539,6 +541,39 @@ paths:
         default:
           $ref: '#/components/responses/ErrorResponse'
 
+  /v1/keeper/recovery/recover:
+    post:
+      tags: [Recovery]
+      operationId: recover
+      summary: Rebuild key-scoped state on this peer
+      description: |
+        Call this endpoint on the damaged keeper. The keeper asks exactly `threshold` remote helpers
+        for the key description, requires them to agree on the algorithm and current generation, and
+        selects the matching recovery flow locally. Available only when the artifact includes the
+        corresponding recovery feature and every participating keeper runs with
+        `keeper.recovery=true`. Supports any configured quorum with `1 < threshold < total`.
+        All non-destroyed generations must belong to one crypto platform; mixed ECC/PQC rotation
+        history fails closed without installing a partial recovery.
+        After all operator-selected helpers agree, the target discards and atomically rebuilds the
+        logical key's shares, metadata, policies, destroy state, public side-state, and derived indexes.
+      x-permissions:
+        required: [tkeeper.recovery]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoverRequest'
+      responses:
+        '200':
+          description: All non-destroyed generations are present and verified on the target peer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoverResult'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+
   /v1/keeper/expires:
     get:
       tags: [Expiration]
@@ -823,6 +858,10 @@ components:
         - KEEPER_NOT_INITIALIZED
         - KEEPER_SEALED
         - RESTART_REQUIRED
+        - RECOVERY_MODE_ACTIVE
+        - RECOVERY_NOT_ENABLED
+        - RECOVERY_NOT_POSSIBLE
+        - RECOVERY_FAILED
         - KEY_NOT_FOUND
         - SESSION_MANAGER_NOT_FOUND
         - SESSION_NOT_FOUND
@@ -1958,7 +1997,48 @@ components:
 
     ConsistencyVerdict:
       type: string
-      enum: [OK, SYNC_NEEDED, ROTATE_NEEDED, MISSING]
+      enum: [OK, SYNC_NEEDED, ROTATE_NEEDED, RECOVER_NEEDED, MISSING]
+
+    RecoverRequest:
+      type: object
+      additionalProperties: false
+      required: [keyId, helperIds]
+      properties:
+        keyId:
+          $ref: '#/components/schemas/KeyId'
+        helperIds:
+          type: array
+          description: Operator-selected canonical list of exactly `threshold` remote peer IDs.
+          minItems: 1
+          items:
+            type: integer
+            format: int32
+            minimum: 1
+
+    RecoverResult:
+      type: object
+      required: [keyId, algorithm, targetPeerId, currentGeneration, recoveredGenerations, helpers]
+      properties:
+        keyId:
+          $ref: '#/components/schemas/KeyId'
+        algorithm:
+          type: string
+          description: Algorithm selected from the helper consensus.
+        targetPeerId:
+          type: integer
+          format: int32
+        currentGeneration:
+          $ref: '#/components/schemas/Generation'
+        recoveredGenerations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Generation'
+        helpers:
+          type: array
+          items:
+            type: integer
+            format: int32
+            minimum: 1
 
     KeyVersion:
       type: object

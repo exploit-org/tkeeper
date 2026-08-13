@@ -16,6 +16,7 @@ TKeeper currently provides:
 - build-time cryptographic platform selection
 - ECC and ML-DSA platform support
 - optional ECIES support when the ECIES feature is built
+- optional ECC and ML-DSA peer-share recovery when the recovery feature is built
 
 ## Build-time module limits
 
@@ -47,7 +48,10 @@ ML-DSA refresh advances the generation while carrying each peer's existing share
 
 Failure injection is only for integration tests.
 
-The integration image includes every production feature, every platform, and the test-only failure-injection module. Regular production builds do not include failure injection.
+The integration image includes every default production feature, the explicit recovery and
+development-authentication features, every platform, both recovery platform modules, and the
+test-only failure-injection module. Regular production builds do not include failure injection;
+recovery is included only when selected.
 
 Do not deploy the integration image as a production runtime.
 

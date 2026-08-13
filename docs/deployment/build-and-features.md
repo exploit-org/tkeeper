@@ -7,7 +7,7 @@ TKeeper has two build-time selectors:
 
 A usable production artifact must include at least one platform.
 
-## Build all production modules
+## Build default production modules
 
 ```bash
 ./gradlew build -Pkeeper.features=all -Pkeeper.platforms=all
@@ -26,7 +26,7 @@ Equivalent:
 The jar lands under:
 
 ```text
-build/libs/tkeeper-2.3.1.jar
+build/libs/tkeeper-2.3.2.jar
 ```
 
 TKeeper requires Java 25.
@@ -55,6 +55,7 @@ Feature names match child project names. The module `:features:authority-evm` is
 | Bitcoin transaction authority | `authority-bitcoin` | `ecc` |
 | X.509 certificate authority | `authority-x509` | `ecc` |
 | ECIES | `ecies` | `ecc` |
+| Peer share recovery | `recovery` (explicit opt-in) | `ecc`, `pqc`, or both |
 | Control-plane UI | `ui` | any required crypto platform |
 | AWS KMS seal provider | `seal-aws` | any required crypto platform |
 | Google Cloud KMS seal provider | `seal-gcloud` | any required crypto platform |
@@ -63,6 +64,24 @@ Feature names match child project names. The module `:features:authority-evm` is
 | Default production set | `all` | `all` |
 
 Features with platform dependencies require the matching platform. The build should fail early instead of producing an artifact with a missing runtime provider.
+
+Recovery is an explicit artifact capability. Selecting it adds the base recovery API and the
+recovery module for each selected platform:
+
+```bash
+./gradlew :build -Pkeeper.features=recovery -Pkeeper.platforms=ecc
+./gradlew :build -Pkeeper.features=recovery -Pkeeper.platforms=pqc
+./gradlew :build -Pkeeper.features=recovery -Pkeeper.platforms=ecc,pqc
+```
+
+The first command includes `:features:recovery` and `:features:recovery:ecc`; the second includes
+`:features:recovery` and `:features:recovery:pqc`; the third includes all three. The platform modules
+are not selected separately. Recovery and `auth-dev` are excluded from `keeper.features=all` and
+must be requested explicitly.
+
+Treat this as a maintenance artifact. After recovery, rebuild and redeploy the normal production
+artifact without the `recovery` selector; setting `keeper.recovery=false` alone leaves the recovery
+code and routes in the artifact.
 
 `auth-dev` is deliberately excluded from `all`, but it may be included in any deployable artifact by requesting it explicitly:
 
@@ -78,7 +97,9 @@ Features with platform dependencies require the matching platform. The build sho
 | Docker build | `keeper.docker.features` | `keeper.docker.platforms` |
 | Select all | `keeper.features.all=true` | `keeper.platforms.all=true` |
 
-Comma-separated selectors accept short names such as `ecies`, `ecc`, and `pqc`. `all` selects every production module in that category.
+Comma-separated selectors accept short names such as `ecies`, `ecc`, and `pqc`. `all` selects every
+default production module in that category. Explicit features such as `recovery` and `auth-dev` are
+not included.
 
 ## Docker
 
@@ -88,10 +109,18 @@ Build the production Docker image:
 ./gradlew dockerBuild -Pkeeper.features=all -Pkeeper.platforms=all
 ```
 
+Build a recovery image with both platform implementations:
+
+```bash
+./gradlew dockerBuild \
+  -Pkeeper.docker.features=recovery \
+  -Pkeeper.docker.platforms=ecc,pqc
+```
+
 Production image tags:
 
 ```text
-exploit/tkeeper:2.3.1
+exploit/tkeeper:2.3.2
 exploit/tkeeper:latest
 ```
 
@@ -110,7 +139,7 @@ docker run --rm \
   -v "$PWD/config:/etc/tkeeper:ro" \
   -v "$PWD/data:/var/lib/tkeeper" \
   -e KEEPER_CONFIG_LOCATION=/etc/tkeeper \
-  exploit/tkeeper:2.3.1
+  exploit/tkeeper:2.3.2
 ```
 
 ## Integration image
@@ -131,7 +160,10 @@ Build both images used by functional integration tests with:
 
 The test task reuses these images. Re-run the build after changing application code, dependencies, or Dockerfiles.
 
-Do not pass `keeper.features` or `keeper.platforms` to this task. The development integration image uses a dedicated classpath containing every production feature, `auth-dev`, every platform, and the test-only failure-injection module.
+Do not pass `keeper.features` or `keeper.platforms` to this task. The development integration image
+uses a dedicated classpath containing every default production feature, the explicit `auth-dev` and
+`recovery` features, both recovery platform modules, every platform, and the test-only
+failure-injection module.
 
 Never deploy either test image as production runtime.
 
@@ -142,6 +174,12 @@ Never deploy either test image as production runtime.
 The feature was not included in the artifact.
 
 Rebuild with the required feature and platform.
+
+For recovery, select the base feature and the required platforms:
+
+```bash
+./gradlew :build -Pkeeper.features=recovery -Pkeeper.platforms=ecc,pqc
+```
 
 ### No provider for algorithm
 

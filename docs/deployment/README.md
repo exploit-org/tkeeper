@@ -32,6 +32,7 @@ Mono and threshold use the same public API model. The difference is where key au
 For production:
 
 - build only required features
+- include recovery only in temporary maintenance artifacts and replace them after repair
 - include every required platform explicitly
 - use a production authenticator
 - keep the internal API private to the cluster

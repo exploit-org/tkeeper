@@ -1,25 +1,25 @@
 # Security Assurance
 
-TKeeper security assurance currently comprises **346 automated scenarios**,
-including **81 failure-injection scenarios**, executed against multi-node
-Keeper deployments.
+TKeeper security assurance currently comprises **356 automated functional scenarios across 17 test
+classes**, including **90 protocol and corruption failure-injection scenarios** and one 3-of-5
+share-recovery scenario, executed against multi-node Keeper deployments.
 
-The Testcontainers topology runs a 2-of-3 quorum with peer
-communication, storage, SoftHSM, restarts, and malicious protocol injection. A
-three-node production topology exercises TLS, mTLS, JWT/JWKS, peer
-authentication, and SPKI pinning with per-run PKI.
+The standard Testcontainers topology runs a 2-of-3 quorum with peer communication, storage,
+SoftHSM, restarts, and malicious protocol injection. Production integration uses a three-node
+transport cluster and a 3-of-5 recovery cluster with per-run PKI, TLS, mTLS, peer authentication,
+and SPKI pinning. The transport cluster also exercises JWT and JWKS behavior.
 
-Every pull request targeting `main` and every commit pushed to `main` runs the
-Release Gate. A passing revision completes all 346 scenarios, artifact
-isolation, and both container builds.
+Every pull request targeting `main` and every commit pushed to `main` runs the Release Gate. A
+passing revision completes the module test tasks, all 356 functional scenarios, artifact isolation,
+and both container builds.
 
 > **In short:** TKeeper tests cover production identity and transport,
 > authorization and four-eye policy, malicious coordinators and Byzantine
 > peers, FROST/GG20/ML-DSA transcript attacks, ECIES contribution integrity,
 > tamper-evident key state and lifecycle, generative and coverage-guided binary
-> parser and protocol-state testing, concurrent duplicate delivery, crash-safe
-> session cleanup, audit persistence, recovery after rejected contributions,
-> and production artifact isolation.
+> parser and protocol-state testing, invalid transition order, concurrent
+> duplicate delivery, crash-safe session cleanup, audit persistence, ECC and
+> ML-DSA share recovery, and production artifact isolation.
 
 Every claim below maps to an executable scenario, generated property, fuzz
 target, or release check.
@@ -42,8 +42,8 @@ The tests demonstrate these properties:
 - **Tamper-evident state.** Signed metadata, location-bound key records,
   generation pointers, migrations, and audit records fail closed under the
   tested storage mutations.
-- **Production build separation.** Development authentication and
-  failure-injection capabilities are verified absent from production artifacts.
+- **Production build separation.** Development authentication, failure injection, and recovery are
+  verified absent from the default production test artifact. Recovery appears only when selected.
 
 ## Evidence quality
 
@@ -51,20 +51,20 @@ The tests demonstrate these properties:
 | --- | --- | --- |
 | Distributed execution | Functional tests run multi-node Keeper clusters with key generation, shares, network calls, storage, and cryptographic implementations. | Exercises system boundaries and protocol composition across deployed components. |
 | Production transport topology | The production image runs with generated PKI, TLS, mTLS, certificate pins, JWT, JWKS rotation, and connection-rejection cases. | Exercises deployed authentication and transport failure modes. |
-| Protocol failure injection | A test-only module introduces one security-relevant mutation at a time into FROST, GG20, ML-DSA, and ECIES flows. | Demonstrates rejection at the peer that consumes untrusted protocol data. |
+| Protocol failure injection | A test-only module introduces one security-relevant mutation at a time into FROST, GG20, ML-DSA, ECIES, and keeper protocol transitions. | Demonstrates rejection at the peer that consumes untrusted protocol data. |
 | Failure contracts | Negative cases assert rejection reason and, where the protocol supports it, attribution of the malicious peer. | Detects regressions that crash or reject for the wrong reason. |
-| Recovery checks | Every FROST and ML-DSA transcript-mutation case is followed by a distributed signature and verification. | Confirms that the stored key and cluster remain usable after rejection. |
+| Recovery checks | Every FROST, ML-DSA, and keeper-transition mutation is followed by a distributed signature. A separate 3-of-5 topology rebuilds ECC and ML-DSA histories on two damaged peers. | Confirms continued key use after rejected protocol input and checks full key-scoped state reconstruction. |
 | Generative parser testing | Five serialization properties generate 2,500 cases per run with shrinking; a seeded Jazzer target coverage-guides malformed inputs through five security-sensitive binary decoders. | Checks round-trip, canonical encoding, record binding, key-kind preservation, bounded parsing, and controlled rejection beyond hand-written examples. |
-| Stateful protocol modeling | Fifteen lifecycle and protocol-state properties exercise 7,350 generated participant topologies, action sequences, and concurrent schedules per run. Jazzer targets coverage-guide participant validation, FROST share, GG20 MtA, and ML-DSA round-store transitions. | Compares protocol state containers against explicit legal-transition, uniqueness, operation-isolation, order-independence, single-winner consumption, and destroy-state models. |
-| Concurrency and crash recovery | Eight simultaneous signing-package deliveries race for one session id on each threshold protocol. Container-restart cases stop a keeper after FROST nonce generation, GG20 ephemeral initialization, or ML-DSA round 1. | Proves exactly one session creator wins, stale round state cannot resume after restart, durable key state survives, the same session id can be safely recreated, and a signature still verifies. |
-| Release isolation | The release gate checks module tests, functional behavior, container builds, and separation of integration-only code from production artifacts. | Prevents the security test harness from becoming a production attack surface. |
+| Stateful protocol modeling | Fifteen lifecycle and protocol-state properties exercise 7,350 generated participant topologies, action sequences, and concurrent schedules per run. Jazzer targets cover the protocol state containers used by ECC DKG, PQC DKG, FROST, GG20, threshold ML-DSA signing, and ECC/PQC recovery payload handling. | Compares state containers against legal-transition, uniqueness, operation-isolation, order-independence, single-winner consumption, destroy-state, transcript-binding, and recovery-payload models. |
+| Concurrency and crash recovery | Eight simultaneous deliveries race for one signing session or one keeper protocol transition. Container-restart cases stop a keeper after FROST nonce generation, GG20 ephemeral initialization, or ML-DSA round 1. | Checks one-winner transitions, terminal session state, durable key state, safe session recreation, and post-failure signing. |
+| Release isolation | The release gate checks module tests, functional behavior, container builds, and separation of integration-only and explicit recovery code from the default production artifact. | Prevents the security harness from entering production and prevents recovery endpoints from appearing unless selected. |
 
 ## Assurance by domain
 
 | Security domain | Demonstrated assurance | Detailed evidence |
 | --- | --- | --- |
-| Threshold protocol integrity | Malformed signer sets, sequential or concurrent session replay, invalid proofs, transcript mutations, bad partial contributions, and consumed-state reuse fail closed across FROST, GG20, and threshold ML-DSA. Generated and concurrent action schedules additionally check the protocol state containers against explicit transition models. | [Threshold protocols](#threshold-protocols) |
-| Byzantine tolerance and recovery | Invalid attributable FROST, GG20, and ECIES contributions identify the responsible peer; an honest quorum continues where the protocol permits retry. Mismatched ML-DSA quorum shares cannot produce a signature. | [Byzantine peers](#byzantine-peers-and-recovery) |
+| Threshold protocol integrity | Malformed signer sets, invalid transition order, sequential or concurrent replay, invalid proofs, transcript mutations, bad partial contributions, and consumed-state reuse fail closed across ECC/PQC DKG, FROST, GG20, and threshold ML-DSA. Generated and concurrent action schedules additionally check the protocol state containers against explicit transition models. | [Threshold protocols](#threshold-protocols) |
+| Byzantine tolerance and recovery | Invalid attributable FROST, GG20, and ECIES contributions identify the responsible peer; an honest quorum continues where the protocol permits retry. Mismatched ML-DSA shares cannot produce a signature. Operator-selected helper consensus reconstructs ECC and ML-DSA histories on damaged peers without restoring destroyed secret material. | [Byzantine peers](#byzantine-peers-and-recovery) |
 | Authentication and transport | Forged or malformed JWTs, missing permissions, TLS downgrade, unknown CAs, hostname mismatch, invalid client certificates, peer impersonation, and unsafe production configuration are rejected. | [Identity and transport](#identity-and-transport) |
 | Intent, policy, and approvals | Authority confusion, typed-intent mutation, policy deletion, incomplete approvals, approval substitution, replay, and nonce races cannot authorize a tested protected operation. | [Authorization and policy](#authorization-and-policy) |
 | Key state and lifecycle | Signed-record tampering, relocation, pointer rollback, unsafe migration, conflicting lifecycle mutations, and invalid promotion state fail closed or preserve the documented identity invariant. Security-sensitive binary records additionally have generative canonicality, binding, and malformed-input coverage. | [State and lifecycle](#state-lifecycle-and-audit) |
@@ -92,6 +92,20 @@ failure contracts are listed in the [exact protocol vector catalog](#exact-proto
 
 ECIES adds participant-set validation, DLEQ verification of partial decryptions,
 and negative ciphertext and tweak coverage outside the 56 signing cases above.
+
+Keeper protocol-order coverage adds seven failure-injection invocations:
+
+| State machine | Reordered transition | Replay | Eight-way race | Reported cases |
+| --- | ---: | ---: | ---: | ---: |
+| ECC DKG | 1 | 0 | 0 | 1 |
+| PQC DKG | 0 | 1 | 1 | 2 |
+| FROST signing | 1 | 0 | 0 | 1 |
+| GG20 signing | 1 | 0 | 0 | 1 |
+| Threshold ML-DSA signing | 0 | 1 | 1 | 2 |
+| **Total** | **3** | **2** | **2** | **7** |
+
+These cases cross the internal peer transport. The race cases require one accepted transition and
+seven rejected duplicates. Each case ends with a normal distributed signature.
 
 ## Research lineage and interpretation
 
@@ -131,14 +145,20 @@ Run the generated and coverage-guided protocol-state layer with:
 ```bash
 ./gradlew :platform-ecc:test \
   --tests 'org.exploit.keeper.platform.ecc.property.ProtocolStateMachineProperties' \
-  --tests 'org.exploit.keeper.platform.ecc.fuzz.SecurityProtocolStateFuzzTest'
+  --tests 'org.exploit.keeper.platform.ecc.fuzz.SecurityProtocolStateFuzzTest' \
+  --tests 'org.exploit.keeper.platform.ecc.fuzz.KeeperProtocolStateFuzzTest'
 ./gradlew :platform-pqc:test \
   --tests 'org.exploit.keeper.platform.pqc.property.MLDSAStateMachineProperties' \
-  --tests 'org.exploit.keeper.platform.pqc.fuzz.MLDSAStateMachineFuzzTest'
+  --tests 'org.exploit.keeper.platform.pqc.fuzz.MLDSAStateMachineFuzzTest' \
+  --tests 'org.exploit.keeper.platform.pqc.fuzz.KeeperMLDSAProtocolStateFuzzTest'
 ./gradlew :test \
   --tests 'org.exploit.keeper.tests.temporary.InMemoryTemporaryMapConcurrencyTest'
 ./gradlew securityFuzz
 ```
+
+`securityFuzz` runs seven coverage-guided campaigns: binary decoding, the existing ECC and ML-DSA
+state containers, keeper-level ECC and ML-DSA protocol transitions, ECC recovery sessions, and PQC
+recovery payloads.
 
 ## Deployment and operational boundaries
 
@@ -175,6 +195,7 @@ whether that contract passes for a given artifact.
 | GG20 MtA and Paillier input (T-7) | Valid transcripts pass on both supported GG20 curves. Small, even, or oversized moduli, invalid generator, zero, non-coprime, or out-of-range ciphertexts, non-coprime biprime witnesses, and mutated or truncated range, biprime, and no-small-factor proof material produce an identifiable abort attributed to the initiator. | [FailureInjectionTests]: `validGg20MtATranscriptsPassOnSupportedCurves`, `gg20MtARejectsMaliciousInput` |
 | Threshold ML-DSA commit/reveal transcript (T-7) | A valid stored-key transcript passes. Changed or truncated commitments and reveals, duplicate, missing, or out-of-range round senders, commitment-opening mismatch, and reuse of consumed round state fail closed as independently reported cases. | [FailureInjectionTests]: `validMLDSASigningTranscriptPasses`, `mldsaSigningTranscriptRejectsMaliciousInput` |
 | Generated protocol-state transitions (T-7) | Valid threshold participant sets are order-independent; omission, duplication, wrong size, and out-of-range mutation fail with the expected contract. FROST nonce pairs and shares remain operation-scoped and one-shot, GG20 MtA values remain per-peer unique and order-independent, and ML-DSA batches and round stores match explicit transition and destruction models across generated action sequences. Concurrent nonce/share/MtA/round-state races have exactly one winner. Session-map close is terminal and revokes each remaining value once; the first concurrency run exposed and fixed post-close state resurrection. | [ProtocolStateMachineProperties]; [SecurityProtocolStateFuzzTest]; [MLDSAStateMachineProperties]; [MLDSAStateMachineFuzzTest]; [InMemoryTemporaryMapConcurrencyTest] |
+| Keeper protocol transition order (T-7) | ECC DKG completion before computation, FROST signing before commitment collection, and GG20 signing before setup are rejected. PQC DKG and ML-DSA signing reject sequential round-1 replay; eight simultaneous round-1 deliveries produce one winner. Generated actions cover these production transition guards and failure rollback. | [FailureInjectionTests]: `keeperProtocolStateRejectsReorderedReplayAndConcurrentTransitions`; [KeeperProtocolStateFuzzTest]; [KeeperMLDSAProtocolStateFuzzTest] |
 | In-flight keeper crash (T-7) | A keeper is restarted after FROST nonce generation, GG20 ephemeral initialization, or ML-DSA round 1. Persistent RocksDB and HSM key state survive, but the process-local session cannot resume and returns `SESSION_NOT_FOUND`. The same session id can then be created and cleared safely, followed by a valid distributed signature. | [FailureInjectionTests]: `inFlightProtocolStateDoesNotSurviveKeeperRestart` |
 | Supported protocol paths | Threshold and mono signing and verification execute across GG20 ECDSA, FROST Schnorr/BIP-340/Taproot, threshold Ed25519, and ML-DSA-44/65/87, including supported tweak paths. ECIES executes with AES-GCM and ChaCha20-Poly1305 on secp256k1 and P-256. | [SignatureTests]: scheme-specific sign/verify tests; [ECIESTests]: `encryptDecryptSuccessful`, `encryptDecryptSuccessfulWithTweak`, `ensureDleqProofPassesAfterRefresh` |
 
@@ -193,6 +214,7 @@ paths are covered in [SignatureTests].
 | ML-DSA quorum share mismatch (T-7) | A quorum assembled from shares belonging to different keys cannot produce a signature. | [FailureInjectionTests]: `mismatchedMLDSAPartySharesCannotProduceSignature` |
 | Corrupted ECIES partial decrypt (T-8) | The DLEQ proof rejects the contribution, attributes the peer, and an honest threshold still decrypts. | [FailureInjectionTests]: `corruptedEciesKeyMaterialOnOnePeerIsRejectedByDleqProof` |
 | Malicious ECIES participant set (T-8) | Omitted local peer, duplicate identifier, undersized set, and configured-range violation are rejected before threshold decryption. | [FailureInjectionTests]: `maliciousCoordinatorCannotInjectInvalidEciesParticipantSet` |
+| Damaged peer reconstruction (T-9, T-13) | In a production-TLS 3-of-5 cluster, two peers with complementary missing, rolled-back, and corrupted ECC/ML-DSA state are rebuilt from three explicit healthy helpers. Helper disagreement fails before writes. Recovery restores metadata, policy, authorities, public side-state, history, owner indexes, and active signing while destroyed generations remain without secret material. A forced mid-transaction failure rolls back, and a prefix-adjacent key remains unchanged. | [RecoveryFailureInjectionTests]: `recoversComplementaryDamageAndHistoryAcrossTwoPeers` |
 
 ### Identity and transport
 
@@ -242,7 +264,7 @@ paths are covered in [SignatureTests].
 | --- | --- | --- |
 | Invalid TLS identity rotation | A mismatched PEM key/certificate update retains the last known good identity. | [ProductionTransportSecurityTests]: `publicPemRotationRetainsLastKnownGoodIdentityWhileFilesMismatch` |
 | JWKS rotation or refresh failure | Rotation accepts the new key and removes the retired key; failed refresh retains the last known good set. | [ProductionTransportSecurityTests]: `jwksRotationAcceptsNewSigningKeyWithoutRestart`, `failedJwksRefreshKeepsLastKnownGoodKeys` |
-| Failure-injection isolation | Development authentication and the failure-injection module are present in the integration artifact and absent from the production test artifact. | `./gradlew artifactIsolationTest` |
+| Optional-module isolation | Development authentication, failure injection, and recovery modules are present in the integration artifact and absent from the production test artifact. | `./gradlew artifactIsolationTest` |
 | Release evidence | Module tests, artifact isolation, container builds, functional suites, and production transport tests execute as one release gate. | `./gradlew releaseGate` |
 
 ### Exact protocol vector catalog
@@ -312,6 +334,7 @@ produces and verifies a normal distributed signature with the same stored key.
 [CoordinatorDisabledTest]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/CoordinatorDisabledTest.kt
 [ECIESTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/ECIESTests.kt
 [FailureInjectionTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/FailureInjectionTests.kt
+[RecoveryFailureInjectionTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/RecoveryFailureInjectionTests.kt
 [FourEyeControlTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/FourEyeControlTests.kt
 [InventoryIndexTest]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/InventoryIndexTest.kt
 [InMemoryTemporaryMapConcurrencyTest]: https://github.com/tkeeper-org/tkeeper/blob/main/src/test/kotlin/org/exploit/keeper/tests/temporary/InMemoryTemporaryMapConcurrencyTest.kt
@@ -322,9 +345,11 @@ produces and verifies a normal distributed signature with the same stored key.
 [LegacyStorageUntrustedRootTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/LegacyStorageUntrustedRootTests.kt
 [MLDSAStateMachineFuzzTest]: https://github.com/tkeeper-org/tkeeper/blob/main/platform-pqc/src/test/kotlin/org/exploit/keeper/platform/pqc/fuzz/MLDSAStateMachineFuzzTest.kt
 [MLDSAStateMachineProperties]: https://github.com/tkeeper-org/tkeeper/blob/main/platform-pqc/src/test/kotlin/org/exploit/keeper/platform/pqc/property/MLDSAStateMachineProperties.kt
+[KeeperMLDSAProtocolStateFuzzTest]: https://github.com/tkeeper-org/tkeeper/blob/main/platform-pqc/src/test/kotlin/org/exploit/keeper/platform/pqc/fuzz/KeeperMLDSAProtocolStateFuzzTest.kt
 [ProductionTransportSecurityTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/ProductionTransportSecurityTests.kt
 [QuorumPromotionTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/QuorumPromotionTests.kt
 [ProtocolStateMachineProperties]: https://github.com/tkeeper-org/tkeeper/blob/main/platform-ecc/src/test/kotlin/org/exploit/keeper/platform/ecc/property/ProtocolStateMachineProperties.kt
+[KeeperProtocolStateFuzzTest]: https://github.com/tkeeper-org/tkeeper/blob/main/platform-ecc/src/test/kotlin/org/exploit/keeper/platform/ecc/fuzz/KeeperProtocolStateFuzzTest.kt
 [SecurityBinaryParserFuzzTest]: https://github.com/tkeeper-org/tkeeper/blob/main/platform-ecc/src/test/kotlin/org/exploit/keeper/platform/ecc/fuzz/SecurityBinaryParserFuzzTest.kt
 [SecurityProtocolStateFuzzTest]: https://github.com/tkeeper-org/tkeeper/blob/main/platform-ecc/src/test/kotlin/org/exploit/keeper/platform/ecc/fuzz/SecurityProtocolStateFuzzTest.kt
 [SecuritySerializationProperties]: https://github.com/tkeeper-org/tkeeper/blob/main/platform-ecc/src/test/kotlin/org/exploit/keeper/platform/ecc/property/SecuritySerializationProperties.kt

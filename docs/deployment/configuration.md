@@ -93,6 +93,7 @@ Common fields:
 | `keeper.peers` | Other peers in the cluster; self is omitted |
 | `keeper.providers.selected` | Seal provider id |
 | `keeper.client.tls` | TLS for peer clients |
+| `keeper.recovery` | Recovery-only runtime mode; defaults to `false` |
 | `keeper.approval.ttl` | Four-eye approval lifetime and persistent nonce replay-retention window |
 | `keeper.session.*` | DKG, FROST, GG20, ML-DSA, ECIES, destroy session limits |
 
@@ -109,6 +110,16 @@ KEEPER_COORDINATOR_ENABLED=false
 ```
 
 Use that for peers that only participate in threshold protocols.
+
+`keeper.recovery=true` is fail-closed maintenance mode. Build the artifact with
+`-Pkeeper.features=recovery` and the required platform selectors. The mode requires the recovery
+feature in the artifact, public TLS, internal mTLS with client authentication, outbound client mTLS,
+and a distinct `tls-spki-sha256` binding for every peer. Normal key operations and readiness are
+blocked until the keeper is restarted with recovery disabled. See
+[Backup and Recovery](backup-and-recovery.md).
+
+After repair, replace the maintenance artifact with a production build that does not include the
+`recovery` feature. Do not use the runtime flag as the only recovery deactivation step.
 
 ## Server TLS
 

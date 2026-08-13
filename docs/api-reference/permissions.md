@@ -40,6 +40,7 @@ tkeeper.key.*.sign
 | `tkeeper.storage.write` | trusted-dealer import |
 | `tkeeper.quorum.promote` | promote mono to threshold |
 | `tkeeper.consistency.fix` | repair threshold state |
+| `tkeeper.recovery` | run share-recovery protocols |
 | `tkeeper.expired.view` | read key-expiration indexes |
 | `tkeeper.compliance.inventory` | read asset inventory |
 | `tkeeper.integrity.rotate` | rotate audit integrity key |
@@ -52,7 +53,7 @@ tkeeper.key.*.sign
 - Give signing services only the key identities they need.
 - Keep lifecycle permissions out of normal signing clients.
 - Keep import permissions highly restricted.
-- Restrict consistency repair and quorum promotion to recovery operators.
+- Restrict consistency repair, share recovery, and quorum promotion to recovery operators.
 - Treat control-plane read permissions as sensitive operational metadata.
 - Keep destroy permissions separate from rotate and refresh.
 - Use negative permissions to carve high-risk identities out of broad grants.
