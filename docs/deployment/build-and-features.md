@@ -26,7 +26,7 @@ Equivalent:
 The jar lands under:
 
 ```text
-build/libs/tkeeper-2.3.2.jar
+build/libs/tkeeper-2.4.0.jar
 ```
 
 TKeeper requires Java 25.
@@ -120,7 +120,7 @@ Build a recovery image with both platform implementations:
 Production image tags:
 
 ```text
-exploit/tkeeper:2.3.2
+exploit/tkeeper:2.4.0
 exploit/tkeeper:latest
 ```
 
@@ -139,7 +139,7 @@ docker run --rm \
   -v "$PWD/config:/etc/tkeeper:ro" \
   -v "$PWD/data:/var/lib/tkeeper" \
   -e KEEPER_CONFIG_LOCATION=/etc/tkeeper \
-  exploit/tkeeper:2.3.2
+  exploit/tkeeper:2.4.0
 ```
 
 ## Integration image
