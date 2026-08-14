@@ -37,6 +37,11 @@ test {
     maxParallelForks = 1
     systemProperty("junit.jupiter.execution.parallel.enabled", "false")
 
+    testLogging {
+        events "failed"
+        exceptionFormat = "full"
+    }
+
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
         doFirst {
             def home = System.getProperty("user.home")
