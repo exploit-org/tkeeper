@@ -1,4 +1,4 @@
-![TKeeper logo](assets/keeper-banner.png)
+![TKeeper logo](assets/tk-bg.png)
 
 <div align="center">
 
