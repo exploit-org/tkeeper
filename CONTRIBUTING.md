@@ -12,14 +12,16 @@ Thanks for contributing to TKeeper. It's a security-critical, distributed system
 ## Reporting a bug (Issues)
 
 Before opening an issue:
+
 - Search existing issues/discussions.
 - Test on the latest release (or `main` if you can).
 
 Include:
+
 - Expected vs actual behavior
 - TKeeper version / commit SHA
-- Minimal reproduction steps (copy-pasteable)
-- Logs/stack traces (don't forget to remove secrets if present)
+- Minimal reproduction steps
+- Logs/stack traces
 - Environment (OS, JDK)
 
 If you can provide a minimal failing test, even better.
@@ -27,17 +29,18 @@ If you can provide a minimal failing test, even better.
 ## Feature requests (Discussions → Issues)
 
 Start in Discussions with:
+
 - The real problem you're solving
 - Proposed API/behavior
 - Compatibility notes (breaking vs non-breaking)
 - Any relevant standards/papers/RFCs
 
-If the direction is agreed, convert to an issue.
+If the direction is agreed, convert it to an issue.
 
 ## Testing expectations
 
-- If your change affects behavior, **add or update an integration test**. See [integration tests](integration-tests)
-- If you're not sure whether something is “behavioral”, assume it is and add the test.
+- If your change affects behavior, **add or update an integration test**. See [integration tests](integration-tests).
+- If you're not sure whether something is behavioral, assume it is and add the test.
 
 ## Code style
 
@@ -48,18 +51,21 @@ If the direction is agreed, convert to an issue.
 
 ## Commit messages
 
-Use clear messages. Conventional Commits are recommended:
-- `fix: ...`
-- `feat: ...`
-- `chore(deps): ...`
-- `test: ...`
+Use short, clear commit messages that describe the change. Prefixes such as `feat:`, `fix:`, or `chore:` are not required.
 
-If changes relate to Java SDK:
-- `fix(sdk): ...`
+Good examples:
+
+- `Fix Java SDK signature validation`
+- `Add integration test for expired keys`
+- `Update dependency versions`
+- `Document key rotation behavior`
+
+Keep each commit focused on one logical change.
 
 ## Pull requests
 
 A PR should include:
+
 - What changed (short summary)
 - Why it changed (rationale)
 - Tests added/updated (or why not)

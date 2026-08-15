@@ -21,3 +21,7 @@ include 'platform-ecc'
 include 'platform-pqc'
 
 include 'features:auth-dev'
+
+include 'features:recovery'
+include 'features:recovery:ecc'
+include 'features:recovery:pqc'

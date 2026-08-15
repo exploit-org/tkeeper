@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'org.exploit'
-version = '2.3.2'
+version = '2.4.0'
 
 repositories {
     mavenCentral()
@@ -26,6 +26,7 @@ dependencies {
     testImplementation 'com.code-intelligence:jazzer-junit:0.30.0'
     testImplementation(project(':'))
     implementation ('org.exploit.anvil:t-mldsa:0.2.1')
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.84'
     compileOnly(project(':'))
 
     ksp "io.micronaut:micronaut-inject-kotlin:4.10.8"
@@ -49,6 +50,21 @@ tasks.register('fuzzMLDSAStateMachine', Test) {
     useJUnitPlatform()
     filter {
         includeTestsMatching 'org.exploit.keeper.platform.pqc.fuzz.MLDSAStateMachineFuzzTest'
+    }
+    environment 'JAZZER_FUZZ', '1'
+    systemProperty 'jazzer.max_duration', providers.gradleProperty('keeper.fuzz.duration').getOrElse('30s')
+}
+
+tasks.register('fuzzKeeperMLDSAProtocols', Test) {
+    group = 'verification'
+    description = 'Runs coverage-guided action sequences against keeper-owned ML-DSA protocol phases.'
+    outputs.upToDateWhen { false }
+
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'org.exploit.keeper.platform.pqc.fuzz.KeeperMLDSAProtocolStateFuzzTest'
     }
     environment 'JAZZER_FUZZ', '1'
     systemProperty 'jazzer.max_duration', providers.gradleProperty('keeper.fuzz.duration').getOrElse('30s')

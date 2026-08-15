@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'org.exploit'
-version = '2.3.2'
+version = '2.4.0'
 
 repositories {
     mavenCentral()
@@ -74,6 +74,21 @@ tasks.register('fuzzProtocolStateMachines', Test) {
     useJUnitPlatform()
     filter {
         includeTestsMatching 'org.exploit.keeper.platform.ecc.fuzz.SecurityProtocolStateFuzzTest'
+    }
+    environment 'JAZZER_FUZZ', '1'
+    systemProperty 'jazzer.max_duration', providers.gradleProperty('keeper.fuzz.duration').getOrElse('30s')
+}
+
+tasks.register('fuzzKeeperProtocolStateMachines', Test) {
+    group = 'verification'
+    description = 'Runs coverage-guided action sequences against keeper-owned ECC protocol phases.'
+    outputs.upToDateWhen { false }
+
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'org.exploit.keeper.platform.ecc.fuzz.KeeperProtocolStateFuzzTest'
     }
     environment 'JAZZER_FUZZ', '1'
     systemProperty 'jazzer.max_duration', providers.gradleProperty('keeper.fuzz.duration').getOrElse('30s')

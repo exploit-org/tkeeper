@@ -27,7 +27,8 @@ Build both required images from the repository root:
 
 This builds:
 
-- `exploit/tkeeper:dev` contains all features plus failure injection for the Compose suites;
+- `exploit/tkeeper:dev` contains default and explicit features, both recovery platform modules,
+  and failure injection for the Compose suites;
 - `exploit/tkeeper:production-it` uses the production UBI Dockerfile and a production-only ECC jar for transport security tests.
 
 Run all functional tests:
@@ -53,14 +54,17 @@ Performance tests are separate and do not use the automatic functional-suite ima
 
 Do not pass `keeper.features` or `keeper.platforms`. The dedicated integration classpath always includes:
 
-- every production feature
-- the explicit opt-in `:features:auth-dev` module
+- every default production feature
+- the explicit opt-in `:features:auth-dev` and `:features:recovery` modules
+- both recovery platform modules
 - `platform-ecc` and `platform-pqc`
 - the test-only `:integration-tests:failure-injection` module
 
-Regular `shadowJar` and `dockerBuild` artifacts do not include failure injection. Never deploy the integration image as a production runtime.
+Regular `shadowJar` and `dockerBuild` artifacts do not include failure injection. Recovery is included
+only when explicitly selected. Never deploy the integration image as a production runtime.
 
-Verify that the production transport test artifact excludes `auth-dev` and failure injection while the integration artifact contains both:
+Verify that the production transport test artifact excludes `auth-dev`, recovery, and failure
+injection while the integration artifact contains all three:
 
 ```bash
 ./gradlew artifactIsolationTest
@@ -73,7 +77,8 @@ The functional suite is split by boundary:
 | `SignatureTests` | ECC and ML-DSA signing and verification |
 | `KeyLifecycleTests` | create, refresh, rotate, and PQC-specific lifecycle behavior |
 | `AuthorityPolicyTests` | typed authority materialization and policy decisions |
-| `FailureInjectionTests` | corruption, sequential and concurrent malicious signing packages, FROST commitment/share/nonce-state inputs, threshold ML-DSA commit/reveal and state-reuse inputs, GG20 Paillier/ZK-proof inputs, in-flight protocol restart checkpoints, demotion, and consistency recovery |
+| `FailureInjectionTests` | corruption, malicious signing packages, transcript mutations, ECC/PQC DKG and FROST/GG20/ML-DSA protocol-order violations, sequential replay, eight-way transition races, in-flight protocol restarts, demotion, and consistency repair |
+| `RecoveryFailureInjectionTests` | production-TLS 3-of-5 ECC/PQC recovery, two differently damaged peers, explicit healthy helpers, mode restarts, full historical state rebuild, destroyed generations, transaction rollback, prefix isolation, and post-recovery signing |
 | `ProductionTransportSecurityTests` | generated PKI, public HTTPS/JWT, HTTPS JWKS rotation, internal mTLS/SPKI, and fail-closed startup variants |
 | `QuorumPromotionTests` | mono-to-threshold promotion |
 | `KeyImportTests` | trusted-dealer import |
@@ -82,6 +87,13 @@ The functional suite is split by boundary:
 | `ECIESTests` | optional ECIES paths |
 
 See the [functional test sources](functional/src/test/kotlin/org/exploit/test/functional/) for the complete set.
+
+Run only the share-recovery scenario:
+
+```bash
+./gradlew :integration-tests:functional:test \
+  --tests 'org.exploit.test.functional.RecoveryFailureInjectionTests'
+```
 
 The corrupted-share Schnorr and ECDSA scenarios make up to ten signing attempts because a 2-of-3 coordinator may select the other healthy peer. Assuming independent 50/50 peer selection, there is still about a 0.1% chance that the corrupted peer is never selected and either test fails; stable latency bias can make the actual probability higher.
 

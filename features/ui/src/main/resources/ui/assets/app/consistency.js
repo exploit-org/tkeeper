@@ -91,6 +91,12 @@ export async function init({ api, Auth, showAlert, setTitle, clearAlerts }) {
             }
         }, 0);
       }
+      else if (verdict === "RECOVER_NEEDED") {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger mb-0 border-0 bg-danger-lt text-dark">
+                <strong>Recovery Required:</strong> Key state is missing from one or more keepers.
+            </div>`;
+      }
       else if (verdict === "MISSING") {
         resultDiv.innerHTML = `
             <div class="alert alert-danger mb-0 border-0 bg-danger-lt text-dark">
