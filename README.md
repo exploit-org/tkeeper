@@ -16,68 +16,140 @@ A TKeeper identity combines:
 - an authority manifest that defines which typed actions the identity can authorize
 - controls for callers, policy, approvals, quorum, lifecycle, and audit
 
-Traditional access control decides whether a caller may reach an API. TKeeper also decides whether the selected identity may authorize the exact requested action.
+While traditional access control decides whether a caller may reach an API, TKeeper also decides whether the selected identity may authorize the exact requested action.
 
-For typed authorities, the enforcement contract is:
-
-```text
-No understood and approved intent -> no cryptographic proof -> no effect.
-```
+For typed authorities, the enforcement contract is simple: \
+**If TKeeper can't understand and approve the action, it won't produce signature.**
 
 ## How it works
 
 ```text
-request
--> governed identity
--> understood intent
--> authority and controls
--> mono or threshold cryptographic operation
--> proof
--> downstream verification
--> effect
+Machine / Agent              TKeeper                             Backend
+───────────────              ───────                             ───────
+
+Requests an action    ────>   Understands the exact intent
+                              Enforces authority and policy
+                              Collects approval / quorum
+                              Produces signature           ────>  Verifies the signature
+                                                                  Executes the action
 ```
 
-TKeeper produces a signature, certificate, or key lifecycle result only after the request passes the identity's controls. The downstream system must verify the expected identity and exact intent before executing the effect.
-
-TKeeper is not a generic secrets manager, business risk engine, or replacement for host and network security. If the same effect can bypass the governed proof, TKeeper cannot enforce that path.
+TKeeper produces a signature/transaction/certificate only after the request passes the identity's controls. The downstream system must enforce signature validation before executing the effect.
 
 ## Use cases
 
-| Use case | What the identity governs |
-| --- | --- |
-| AI agents | typed tool and production actions, spending, signed decisions |
-| Crypto assets | exact EVM and Bitcoin transactions, treasury workflows |
-| Certificates | X.509 issuance and workload identity operations |
-| Internal systems | typed commands, privileged automation, break-glass flows |
+For each use case you can build TKeeper which its own feature modules.
+
+| Use case         | What the identity governs                                     |
+|------------------|---------------------------------------------------------------|
+| AI agents        | typed tool and production actions, spending, signed decisions |
+| Crypto assets    | exact EVM and Bitcoin transactions, treasury workflows        |
+| Certificates     | X.509 issuance and workload identity operations               |
+| Internal systems | typed commands, privileged automation, break-glass flows      |
 
 See [Use Cases](docs/use-cases/README.md).
 
-## Quorum modes
+### Quick example
 
-| Mode | Use when |
-| --- | --- |
-| `mono` | local key material is acceptable, while authority, policy, and audit controls are still required |
-| `threshold` | one compromised node must not be able to authorize as the identity |
+An AI support agent can refund small orders automatically. Larger refunds require human approval.
 
-In threshold mode, key authority is split across peers. A coordinator can start an operation, but peers validate the same intent before contributing. Use threshold mode for high-stakes identities that must not depend on one node.
+```yaml
+id: refund-order
+type: custom
 
-See [Quorum Modes](docs/security-model/quorum-modes.md).
+config:
+  fields:
+    orderId: { type: string }
+    amount: { type: bigint }
+    expiresAt: { type: time }
+
+policy:
+  fallback: DENY
+
+  approvers:
+    support-lead:
+      algorithm: ED25519
+      publicKey64: "..."
+
+  allow:
+    - id: automatic-refund
+      where:
+        - "bigint.lte(amount, '100')"
+        - "!time.after(time.now(), expiresAt)"
+
+    - id: reviewed-refund
+      where:
+        - "bigint.gt(amount, '100')"
+        - "bigint.lte(amount, '1000')"
+        - "!time.after(time.now(), expiresAt)"
+      approvals:
+        threshold: 1
+        approvers: [support-lead]
+```
+
+Now when AI agent asks TKeeper to sign a refund request
+- If refund amount is less or equal `100`, it will approve request and produce signature, that backend must verify before execution.
+- If refund amount is in `100.1000`, TKeeper will require [human approval](docs/security-model/four-eye-control.md) to produce proof.
+- If refund amount is more than `1000`, TKeeper will decline the request.
+
+```json
+{
+  "keyId": "support-agent",
+  "command": {
+    "type": "custom",
+    "authorityId": "refund-order",
+    "artifact": {
+      "scheme": "ECDSA",
+      "hash": "SHA256",
+      "typed": {
+        "orderId": "ord_123",
+        "amount": "<amount>",
+        "expiresAt": "2030-01-02T03:09:05Z"
+      }
+    }
+  }
+}
+```
 
 ## Authorities
 
 Authorities define what a key identity may authorize.
 
-| Authority type | Use |
-| --- | --- |
-| `arbitrary` | raw signing; high-risk, no semantic intent in TKeeper |
-| `custom` | typed JSON commands, internal systems, AI-agent actions |
-| `evm.transaction` | governed EVM transaction signing |
-| `bitcoin.transaction` | governed Bitcoin transaction signing |
-| `x509.tbs-certificate` | governed certificate issuance |
+| Authority type         | Use                                                     |
+|------------------------|---------------------------------------------------------|
+| `arbitrary`            | raw signing; high-risk, no semantic intent in TKeeper   |
+| `custom`               | typed JSON commands, internal systems, AI-agent actions |
+| `evm.transaction`      | governed EVM transaction signing                        |
+| `bitcoin.transaction`  | governed Bitcoin transaction signing                    |
+| `x509.tbs-certificate` | governed certificate issuance                           |
 
 Concrete authorities use digest-pinned authority documents that act as capability manifests. TKeeper materializes the command into an intent, evaluates policy, and signs only when the final decision is `ALLOW`.
+By default, only `custom` and `arbitrary` are available out of box. Other modules can be included during the build.
 
 See [Signing and Authorities](docs/signing-and-authorities/README.md).
+
+## Deployment modes
+
+TKeeper supports 2 deployment modes, one for low-risk and the other for mid-high risk organizations.
+
+### Mono
+TKeeper is deployed as single instance. It is the simplest form designed for small orgs where no high-risk (e.g money transfers) actions are executed.
+
+### Threshold
+TKeeper is deployed as `t` of `n` quorum, where `n` defines total number of TKeeper nodes, `t` defines **compromise tolerance** and `n-t` defines **fault tolerance**.
+
+Simply talking, if you deployed `2-of-3` configuration, it means that:
+
+- While **2** nodes are not compromised, attacker can't produce fake proof, steal key or tamper policies.
+- If **1** node is unavailable (e.g. network error), the system continues to work without interruptions.
+
+This mode is designed for high-risk organizations, as it allows to distribute risks inside/across organizations, prevents silent policy weakening, and even allows control to be shared externally (for example, between a platform and users of a crypto wallet).
+
+> 
+> TKeeper can be first configured in mono mode and then promoted to `t-of-n` quorum.
+> 
+
+See [Quorum Modes](docs/security-model/quorum-modes.md).
 
 ## Documentation
 
@@ -97,10 +169,10 @@ See [Signing and Authorities](docs/signing-and-authorities/README.md).
 
 Cryptographic implementations are selected at build time.
 
-| Platform | Provides |
-| --- | --- |
-| `ecc` | `SECP256K1`, `P256`, `ED25519`, ECDSA, FROST, BIP-340/Taproot, ECIES support |
-| `pqc` | `MLDSA44`, `MLDSA65`, `MLDSA87`, threshold ML-DSA DKG and signing |
+| Platform | Provides                                                                     |
+|----------|------------------------------------------------------------------------------|
+| `ecc`    | `SECP256K1`, `P256`, `ED25519`, ECDSA, FROST, BIP-340/Taproot, ECIES support |
+| `pqc`    | `MLDSA44`, `MLDSA65`, `MLDSA87`, threshold ML-DSA DKG and signing            |
 
 A deployable artifact must include at least one platform.
 
@@ -133,9 +205,7 @@ vectors and executable evidence.
 
 The HTTP contract is described by [openapi.yaml](openapi.yaml).
 
-Java integrations can use [`org.exploit:tkeeper-sdk:2.3.1`](sdk/README.md).
-
-If an SDK helper disagrees with OpenAPI, treat OpenAPI as the source of truth.
+Java integrations can use [`org.exploit:tkeeper-sdk:2.4.0`](sdk/README.md).
 
 ## Verification
 

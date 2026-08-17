@@ -19,7 +19,7 @@ Disable the UI at startup:
 ```bash
 java \
   -Dkeeper.ui.enabled=false \
-  -jar build/libs/tkeeper-2.3.1.jar
+  -jar build/libs/tkeeper-2.4.0.jar
 ```
 
 ## Authentication
