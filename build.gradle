@@ -39,6 +39,7 @@ def featureModules = [
 
 def explicitFeatureModules = [
         'features:auth-dev'          : 'keeper.feature.auth.dev',
+        'features:dry-run'           : 'keeper.feature.dry-run',
         'features:recovery'          : 'keeper.feature.recovery',
 ]
 
@@ -375,6 +376,7 @@ tasks.register('shadowJarProductionTest', com.github.jengelman.gradle.plugins.sh
     doLast {
         def forbidden = [
                 'auth-dev'         : 'org/exploit/keeper/auth/dev/provider/DevAuthProvider.class',
+                'dry-run'          : 'org/exploit/keeper/emulator/controller/DryRunController.class',
                 'failure-injection': 'org/exploit/keeper/module/failure/FailureInjectionController.class',
                 'recovery'         : 'org/exploit/keeper/controller/external/RecoveryController.class',
                 'recovery-ecc'     : 'org/exploit/keeper/module/recovery/ecc/service/ECCRecoveryService.class',
@@ -403,6 +405,7 @@ tasks.register('artifactIsolationTest') {
     doLast {
         def markers = [
                 'auth-dev'         : 'org/exploit/keeper/auth/dev/provider/DevAuthProvider.class',
+                'dry-run'          : 'org/exploit/keeper/emulator/controller/DryRunController.class',
                 'failure-injection': 'org/exploit/keeper/module/failure/FailureInjectionController.class',
                 'recovery'         : 'org/exploit/keeper/controller/external/RecoveryController.class',
                 'recovery-ecc'     : 'org/exploit/keeper/module/recovery/ecc/service/ECCRecoveryService.class',

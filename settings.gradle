@@ -25,3 +25,5 @@ include 'features:auth-dev'
 include 'features:recovery'
 include 'features:recovery:ecc'
 include 'features:recovery:pqc'
+
+include 'features:dry-run'
