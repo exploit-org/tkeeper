@@ -136,12 +136,13 @@ Do not pass `keeper.features` or `keeper.platforms` to `buildTestContainers`. Th
 - every default production feature
 - the explicit recovery feature and both recovery platform modules
 - development authentication
+- dry-run policy evaluation
 - every platform
 - the test-only failure-injection module
 
 The production transport test image uses the production UBI Dockerfile and excludes development
-authentication, recovery, and failure injection. Regular `shadowJar` and `dockerBuild` exclude
-failure injection; recovery is included only when selected.
+authentication, dry run, recovery, and failure injection. Regular `shadowJar` and `dockerBuild`
+exclude failure injection; dry run and recovery are included only when selected.
 
 See [`../../integration-tests/README.md`](../../integration-tests/README.md) for local requirements and Testcontainers setup.
 

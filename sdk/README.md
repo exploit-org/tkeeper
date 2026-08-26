@@ -104,7 +104,7 @@ The short `Generate` constructors that omit `KeySetAuthorities` default to `arbi
 | `destroy()` | generation destruction |
 | `consistency()` | threshold consistency repair |
 | `ecies()` | optional encrypt/decrypt feature |
-| `dryRun()` | optional authority-policy evaluation without execution |
+| [`dryRun()`](../docs/signing-and-authorities/dry-run.md) | optional authority-policy evaluation without execution |
 | `compliance()` | asset inventory |
 | `expire()` | expiration indexes |
 | `audit()` and `integrity()` | audit verification and integrity-key rotation |

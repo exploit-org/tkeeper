@@ -45,6 +45,7 @@ tkeeper.key.*.sign
 | `tkeeper.compliance.inventory` | read asset inventory |
 | `tkeeper.integrity.rotate` | rotate audit integrity key |
 | `tkeeper.audit.log.verify` | verify signed audit log lines |
+| `tkeeper.emulate` | evaluate an authority policy without executing its command |
 | `tkeeper.control.system` | read control-plane system state |
 | `tkeeper.control.sinks` | read control-plane audit sink state |
 
@@ -55,6 +56,7 @@ tkeeper.key.*.sign
 - Keep import permissions highly restricted.
 - Restrict consistency repair, share recovery, and quorum promotion to recovery operators.
 - Treat control-plane read permissions as sensitive operational metadata.
+- Treat dry-run access as sensitive policy metadata; `tkeeper.emulate` is not scoped to a key id.
 - Keep destroy permissions separate from rotate and refresh.
 - Use negative permissions to carve high-risk identities out of broad grants.
 - Review wildcard grants before production.

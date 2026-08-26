@@ -16,6 +16,7 @@ tags:
   - name: Signing
   - name: TrustedDealer
   - name: Quorum
+  - name: DryRun
   - name: ECIES
   - name: Audit
   - name: Inventory
@@ -357,6 +358,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VerifyResult'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /v1/keeper/emulate:
+    post:
+      tags: [DryRun]
+      operationId: emulateAuthorityCommand
+      summary: Evaluate an authority command without executing it
+      description: |
+        Requires the optional `dry-run` feature. Resolves the key authority and evaluates its policy
+        without signing, consuming approvals, or mutating key state. `ALLOW_WITH_REQUIREMENTS`
+        includes every four-eye approval requirement needed by the authority policy.
+      x-permissions:
+        required: [tkeeper.emulate]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Emulate'
+      responses:
+        '200':
+          description: Authority policy evaluation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyEvaluation'
         default:
           $ref: '#/components/responses/ErrorResponse'
 
@@ -819,6 +847,12 @@ components:
   responses:
     ErrorResponse:
       description: Error response
+      headers:
+        WWW-Authenticate:
+          description: Authentication challenge included on `401 Unauthorized` responses.
+          schema:
+            type: string
+            example: TKeeper realm="tkeeper"
       content:
         application/json:
           schema:
@@ -1396,6 +1430,17 @@ components:
         approvals:
           $ref: '#/components/schemas/Approvals'
 
+    Emulate:
+      type: object
+      additionalProperties: false
+      description: Authority-policy evaluation request for the optional dry-run feature.
+      required: [keyId, command]
+      properties:
+        keyId:
+          $ref: '#/components/schemas/KeyId'
+        command:
+          $ref: '#/components/schemas/AuthorityCommand'
+
     Verify:
       type: object
       additionalProperties: false
@@ -1966,7 +2011,21 @@ components:
         approvers:
           type: object
           additionalProperties:
-            $ref: '#/components/schemas/ApproverPublicKey'
+            $ref: '#/components/schemas/PolicyApprover'
+
+    PolicyApprover:
+      type: object
+      additionalProperties: false
+      required: [algorithm, publicKey64, metadata]
+      properties:
+        algorithm:
+          $ref: '#/components/schemas/KeyAlgorithm'
+        publicKey64:
+          $ref: '#/components/schemas/NonEmptyBase64'
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
 
     RuleMatch:
       type: object
