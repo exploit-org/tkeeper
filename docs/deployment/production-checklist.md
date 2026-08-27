@@ -43,6 +43,7 @@
 ## Authorities
 
 - [ ] Use structured authorities for governed identities.
+- [ ] Leave `keeper.authority.arbitrary.enabled` disabled unless raw signing is explicitly required.
 - [ ] Treat `arbitrary` identities as raw-signing identities.
 - [ ] Pin authority OCI references by digest.
 - [ ] Do not mix `arbitrary` with concrete authorities on the same identity.

@@ -99,6 +99,8 @@ Typed command:
 ```
 
 See the [typed authority example](authorities.md#custom-authority-example) for the matching schema, payload, effects, and policy. EVM, Bitcoin, and X.509 commands are documented on their intent-specific pages.
+The exact typed JSON byte encoding and hashing contract is documented in
+[Typed JSON signing material](arbitrary-and-typed.md#typed-json-signing-material).
 
 ## Schemes and algorithms
 

@@ -52,6 +52,8 @@ boot { token = "local-boot-token" }
 keeper {
   database { path = "/tmp/tkeeper/db" }
 
+  authority { arbitrary { enabled = true } }
+
   providers {
     selected = "shamir"
     shamir {

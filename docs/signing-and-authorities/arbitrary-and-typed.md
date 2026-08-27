@@ -3,6 +3,8 @@
 ## `arbitrary`
 
 `arbitrary` is raw signing. TKeeper checks that the key identity allows `arbitrary`, then signs the bytes from the command.
+It is disabled by default and requires `keeper.authority.arbitrary.enabled = true` on every keeper
+in the cluster.
 
 Use it for:
 
@@ -26,6 +28,92 @@ Use it for:
 - workflows where a backend verifies TKeeper proof before execution
 
 Only declared fields are available to policy. The executing backend must not derive additional effects from undeclared fields in the submitted JSON.
+
+## Typed JSON signing material
+
+For a `custom` command, TKeeper signs the submitted `artifact.typed` JSON object. It does not sign
+the authority document, the materialized CEL intent, or the generated `effects` object.
+
+TKeeper converts `artifact.typed` into signing material as follows:
+
+1. Sort every JSON object's field names lexicographically.
+2. Apply the same rule recursively to nested objects, including objects inside arrays.
+3. Preserve array element order.
+4. Preserve scalar JSON values and types, including strings, booleans, numbers, and explicit
+   `null` values.
+5. Serialize the resulting tree as compact UTF-8 JSON with no insignificant whitespace.
+6. Apply the command artifact's `hash` method to those bytes. `NONE` leaves the bytes unchanged;
+   `SHA256`, `SHA512`, and `KECCAK256` produce the corresponding digest.
+7. Pass that byte sequence to the selected signature scheme.
+
+In compact notation:
+
+```text
+canonical = UTF-8(compact-json(sort-object-fields-recursively(artifact.typed)))
+signingMaterial = hash.process(canonical)
+signature = scheme.sign(signingMaterial)
+```
+
+For example, this submitted object:
+
+```json
+{
+  "sequence": 7,
+  "deployment": {
+    "version": "2.4.1",
+    "environment": "production"
+  },
+  "roles": [
+    { "name": "operator", "priority": 1 },
+    { "priority": 2, "name": "auditor" }
+  ]
+}
+```
+
+is serialized for signing as:
+
+```json
+{"deployment":{"environment":"production","version":"2.4.1"},"roles":[{"name":"operator","priority":1},{"name":"auditor","priority":2}],"sequence":7}
+```
+
+With `hash: SHA256`, the expected signing material is:
+
+```text
+a55960ff8a2b7af9338df51db5074e4bf5cd012dafe07cb113bda0d6642c72e1
+```
+
+Object field order and insignificant input whitespace therefore do not change the signing
+material. Array order does. Missing fields remain missing, while an explicitly submitted `null`
+remains present. Authority defaults may affect the materialized policy intent, but they are not
+inserted into the submitted JSON before signing.
+
+### Relationship to RFC 8785/JCS
+
+This encoding is TKeeper-specific and is not
+[RFC 8785 JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785).
+
+Both encodings remove insignificant whitespace, recursively sort object names by their UTF-16
+code-unit values, preserve array order, emit UTF-8, and preserve Unicode strings without applying
+Unicode normalization. Their primitive-value contracts differ:
+
+- JCS restricts input to I-JSON, represents JSON numbers as IEEE-754 double-precision values, and
+  uses ECMAScript's exact primitive serialization rules.
+- TKeeper canonicalizes a parsed Jackson `JsonNode` tree and uses Jackson's compact serialization.
+  It serializes the numeric node type and value produced by Jackson instead of applying JCS's
+  required ECMAScript number-normalization algorithm. Integral values may use arbitrary-precision
+  nodes; floating-point representation depends on the parsed node type.
+- JCS defines validation requirements for duplicate object names and invalid Unicode. TKeeper's
+  canonicalizer receives an already-parsed object tree, so parsing has already resolved the input
+  token stream before canonicalization.
+
+A generic JCS implementation is therefore not a compatible replacement for TKeeper's encoder.
+Producers and verifiers should use the SDK command types and must not independently rewrite numeric
+values or representations before verification.
+
+The outer `keyId`, `authorityId`, command `type`, `scheme`, `hash`, generation, policy decision, and
+effects are not concatenated into the JSON message. They select the key, authorization path, and
+cryptographic processing. Verification must use the same typed payload, scheme, hash method, key,
+generation, and tweak context that the integration expects.
 
 ## Custom authority config
 

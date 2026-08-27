@@ -124,7 +124,9 @@ Authorities define what a key identity may authorize.
 | `x509.tbs-certificate` | governed certificate issuance                           |
 
 Concrete authorities use digest-pinned authority documents that act as capability manifests. TKeeper materializes the command into an intent, evaluates policy, and signs only when the final decision is `ALLOW`.
-By default, only `custom` and `arbitrary` are available out of box. Other modules can be included during the build.
+`custom` is available out of the box. Raw `arbitrary` signing is built in but disabled by default;
+enable `keeper.authority.arbitrary.enabled` only when raw signing is intentional. Other authority
+types can be included during the build.
 
 See [Signing and Authorities](docs/signing-and-authorities/README.md).
 
@@ -192,7 +194,7 @@ See [Build and Features](docs/deployment/build-and-features.md).
 
 ## Security references
 
-**Security assurance:** 364 automated functional scenarios, including 90
+**Security assurance:** 367 automated functional scenarios, including 90
 protocol and corruption failure-injection scenarios plus one 3-of-5 share-recovery scenario, run
 for every pull request and commit to `main`. See
 [Security Assurance](docs/security-model/security-assurance.md) for tested attack

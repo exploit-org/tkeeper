@@ -43,7 +43,9 @@ Rules:
 - every key needs at least one authority
 - use `arbitrary` for raw signing
 - use concrete authorities for policy-checked commands
+- raw `arbitrary` signing requires `keeper.authority.arbitrary.enabled = true`
 - `arbitrary` does not use an OCI reference
+- OCI authority documents cannot declare `type: arbitrary`
 - `arbitrary` cannot be mixed with concrete authorities on the same key
 - non-arbitrary authorities require an OCI reference
 - concrete authorities must be digest-pinned with `@sha256:...`

@@ -91,6 +91,18 @@ services:
     tmpfs:
       - /var/lib/tkeeper:rw,exec,nosuid,size=512m,uid=185,gid=0
 
+  keeper-7:
+    image: exploit/tkeeper:dev
+    ports:
+      - "8080"
+    environment:
+      JAVA_TOOL_OPTIONS: >-
+        -Djava.library.path=/usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
+        --enable-native-access=ALL-UNNAMED
+      LD_LIBRARY_PATH: /usr/local/lib:/usr/lib64:/lib64:/lib:/usr/lib
+    volumes:
+      - ./conf/keeper-7:/etc/tkeeper:ro
+
 volumes:
   keeper-1-data:
   keeper-2-data:

@@ -94,8 +94,18 @@ Common fields:
 | `keeper.providers.selected` | Seal provider id |
 | `keeper.client.tls` | TLS for peer clients |
 | `keeper.recovery` | Recovery-only runtime mode; defaults to `false` |
+| `keeper.authority.arbitrary.enabled` | Enables raw `arbitrary` signing; defaults to `false` |
 | `keeper.approval.ttl` | Four-eye approval lifetime and persistent nonce replay-retention window |
 | `keeper.session.*` | DKG, FROST, GG20, ML-DSA, ECIES, destroy session limits |
+
+Raw `arbitrary` signing must be enabled explicitly and consistently on every keeper in the cluster:
+
+```hocon
+keeper.authority.arbitrary.enabled = true
+```
+
+The equivalent environment variable is `KEEPER_AUTHORITY_ARBITRARY_ENABLED`. Leave the setting
+disabled when every key uses a concrete OCI authority.
 
 Coordinator-only endpoints can be disabled on a node:
 
