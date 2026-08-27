@@ -1,6 +1,6 @@
 # Security Assurance
 
-TKeeper security assurance currently comprises **363 automated functional scenarios across 18 test
+TKeeper security assurance currently comprises **364 automated functional scenarios across 18 test
 classes**, including **90 protocol and corruption failure-injection scenarios** and one 3-of-5
 share-recovery scenario, executed against multi-node Keeper deployments.
 
@@ -10,7 +10,7 @@ transport cluster and a 3-of-5 recovery cluster with per-run PKI, TLS, mTLS, pee
 and SPKI pinning. The transport cluster also exercises JWT and JWKS behavior.
 
 Every pull request targeting `main` and every commit pushed to `main` runs the Release Gate. A
-passing revision completes the module test tasks, all 363 functional scenarios, artifact isolation,
+passing revision completes the module test tasks, all 364 functional scenarios, artifact isolation,
 and both container builds.
 
 > **In short:** TKeeper tests cover production identity and transport,
