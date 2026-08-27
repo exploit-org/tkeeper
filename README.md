@@ -192,7 +192,7 @@ See [Build and Features](docs/deployment/build-and-features.md).
 
 ## Security references
 
-**Security assurance:** 356 automated functional scenarios, including 90
+**Security assurance:** 364 automated functional scenarios, including 90
 protocol and corruption failure-injection scenarios plus one 3-of-5 share-recovery scenario, run
 for every pull request and commit to `main`. See
 [Security Assurance](docs/security-model/security-assurance.md) for tested attack
@@ -205,7 +205,7 @@ vectors and executable evidence.
 
 The HTTP contract is described by [openapi.yaml](openapi.yaml).
 
-Java integrations can use [`org.exploit:tkeeper-sdk:2.4.0`](sdk/README.md).
+Java integrations can use [`org.exploit:tkeeper-sdk:2.4.1`](sdk/README.md).
 
 ## Verification
 

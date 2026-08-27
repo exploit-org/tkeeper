@@ -55,16 +55,16 @@ Performance tests are separate and do not use the automatic functional-suite ima
 Do not pass `keeper.features` or `keeper.platforms`. The dedicated integration classpath always includes:
 
 - every default production feature
-- the explicit opt-in `:features:auth-dev` and `:features:recovery` modules
+- the explicit opt-in `:features:auth-dev`, `:features:dry-run`, and `:features:recovery` modules
 - both recovery platform modules
 - `platform-ecc` and `platform-pqc`
 - the test-only `:integration-tests:failure-injection` module
 
-Regular `shadowJar` and `dockerBuild` artifacts do not include failure injection. Recovery is included
-only when explicitly selected. Never deploy the integration image as a production runtime.
+Regular `shadowJar` and `dockerBuild` artifacts do not include failure injection. Dry run and recovery
+are included only when explicitly selected. Never deploy the integration image as a production runtime.
 
-Verify that the production transport test artifact excludes `auth-dev`, recovery, and failure
-injection while the integration artifact contains all three:
+Verify that the production transport test artifact excludes `auth-dev`, `dry-run`, recovery, and
+failure injection while the integration artifact contains all four:
 
 ```bash
 ./gradlew artifactIsolationTest
@@ -77,6 +77,7 @@ The functional suite is split by boundary:
 | `SignatureTests` | ECC and ML-DSA signing and verification |
 | `KeyLifecycleTests` | create, refresh, rotate, and PQC-specific lifecycle behavior |
 | `AuthorityPolicyTests` | typed authority materialization and policy decisions |
+| `DryRunTests` | opt-in policy evaluation, authentication, and fail-closed request validation |
 | `FailureInjectionTests` | corruption, malicious signing packages, transcript mutations, ECC/PQC DKG and FROST/GG20/ML-DSA protocol-order violations, sequential replay, eight-way transition races, in-flight protocol restarts, demotion, and consistency repair |
 | `RecoveryFailureInjectionTests` | production-TLS 3-of-5 ECC/PQC recovery, two differently damaged peers, explicit healthy helpers, mode restarts, full historical state rebuild, destroyed generations, transaction rollback, prefix isolation, and post-recovery signing |
 | `ProductionTransportSecurityTests` | generated PKI, public HTTPS/JWT, HTTPS JWKS rotation, internal mTLS/SPKI, and fail-closed startup variants |

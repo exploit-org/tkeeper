@@ -4,6 +4,7 @@ Read:
 
 - [OpenAPI](openapi.md)
 - [Java SDK](sdk.md)
+- [Dry Run Policy Evaluation](../signing-and-authorities/dry-run.md)
 - [Errors](errors.md)
 - [Permissions](permissions.md)
 

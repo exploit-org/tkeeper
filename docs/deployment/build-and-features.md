@@ -26,7 +26,7 @@ Equivalent:
 The jar lands under:
 
 ```text
-build/libs/tkeeper-2.4.0.jar
+build/libs/tkeeper-2.4.1.jar
 ```
 
 TKeeper requires Java 25.
@@ -60,6 +60,7 @@ Feature names match child project names. The module `:features:authority-evm` is
 | AWS KMS seal provider | `seal-aws` | any required crypto platform |
 | Google Cloud KMS seal provider | `seal-gcloud` | any required crypto platform |
 | Developer token authentication | `auth-dev` (explicit opt-in, excluded from `all`) | any required crypto platform |
+| Authority policy dry run | `dry-run` (explicit opt-in, excluded from `all`) | any required crypto platform |
 | ML-DSA identities | none | `pqc` |
 | Default production set | `all` | `all` |
 
@@ -76,7 +77,7 @@ recovery module for each selected platform:
 
 The first command includes `:features:recovery` and `:features:recovery:ecc`; the second includes
 `:features:recovery` and `:features:recovery:pqc`; the third includes all three. The platform modules
-are not selected separately. Recovery and `auth-dev` are excluded from `keeper.features=all` and
+are not selected separately. Recovery, `auth-dev`, and `dry-run` are excluded from `keeper.features=all` and
 must be requested explicitly.
 
 Treat this as a maintenance artifact. After recovery, rebuild and redeploy the normal production
@@ -89,6 +90,12 @@ code and routes in the artifact.
 ./gradlew :build -Pkeeper.features=auth-dev -Pkeeper.platforms=ecc
 ```
 
+Build the dry-run endpoint explicitly in the same way:
+
+```bash
+./gradlew :build -Pkeeper.features=dry-run -Pkeeper.platforms=ecc
+```
+
 ## Selection properties
 
 | Scope | Features | Platforms |
@@ -98,7 +105,7 @@ code and routes in the artifact.
 | Select all | `keeper.features.all=true` | `keeper.platforms.all=true` |
 
 Comma-separated selectors accept short names such as `ecies`, `ecc`, and `pqc`. `all` selects every
-default production module in that category. Explicit features such as `recovery` and `auth-dev` are
+default production module in that category. Explicit features such as `recovery`, `auth-dev`, and `dry-run` are
 not included.
 
 ## Docker
@@ -120,7 +127,7 @@ Build a recovery image with both platform implementations:
 Production image tags:
 
 ```text
-exploit/tkeeper:2.4.0
+exploit/tkeeper:2.4.1
 exploit/tkeeper:latest
 ```
 
@@ -139,7 +146,7 @@ docker run --rm \
   -v "$PWD/config:/etc/tkeeper:ro" \
   -v "$PWD/data:/var/lib/tkeeper" \
   -e KEEPER_CONFIG_LOCATION=/etc/tkeeper \
-  exploit/tkeeper:2.4.0
+  exploit/tkeeper:2.4.1
 ```
 
 ## Integration image
@@ -161,8 +168,8 @@ Build both images used by functional integration tests with:
 The test task reuses these images. Re-run the build after changing application code, dependencies, or Dockerfiles.
 
 Do not pass `keeper.features` or `keeper.platforms` to this task. The development integration image
-uses a dedicated classpath containing every default production feature, the explicit `auth-dev` and
-`recovery` features, both recovery platform modules, every platform, and the test-only
+uses a dedicated classpath containing every default production feature, the explicit `auth-dev`,
+`dry-run`, and `recovery` features, both recovery platform modules, every platform, and the test-only
 failure-injection module.
 
 Never deploy either test image as production runtime.

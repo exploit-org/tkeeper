@@ -1,6 +1,6 @@
 # Security Assurance
 
-TKeeper security assurance currently comprises **356 automated functional scenarios across 17 test
+TKeeper security assurance currently comprises **364 automated functional scenarios across 18 test
 classes**, including **90 protocol and corruption failure-injection scenarios** and one 3-of-5
 share-recovery scenario, executed against multi-node Keeper deployments.
 
@@ -10,7 +10,7 @@ transport cluster and a 3-of-5 recovery cluster with per-run PKI, TLS, mTLS, pee
 and SPKI pinning. The transport cluster also exercises JWT and JWKS behavior.
 
 Every pull request targeting `main` and every commit pushed to `main` runs the Release Gate. A
-passing revision completes the module test tasks, all 356 functional scenarios, artifact isolation,
+passing revision completes the module test tasks, all 364 functional scenarios, artifact isolation,
 and both container builds.
 
 > **In short:** TKeeper tests cover production identity and transport,
@@ -233,6 +233,7 @@ paths are covered in [SignatureTests].
 | --- | --- | --- |
 | Authority downgrade or type confusion (T-3, partial T-4) | Raw `arbitrary` authority cannot be mixed with OCI authorities. Empty, duplicate, malformed, missing-reference, reference/id-mismatched, unsupported, command-unattached, and artifact-type-mismatched authorities fail closed. | [AuthorityPolicyTests]: `rejectsAuthorityThatIsNotAllowedForKey`, `rejectsArtifactTypeThatDoesNotMatchAuthorityType`, `rejectsGenerateWithArbitraryMixedWithOciAuthority`, `rejectsDuplicateAuthorityIdsOnGenerate`, `rejectsGenerateWithEmptyAuthorities`, `rejectsGenerateWithInvalidAuthorityId`, `rejectsOciAuthorityWithoutReference`, `rejectsOciReferenceWhoseAuthorityIdDoesNotMatch`, `rejectsUnsupportedAuthorityTypeBeforeCreatingKey`, `verifyRejectsMalformedEvmMaterialWithoutResolvingAuthority` |
 | Typed intent or effect-policy bypass (T-5) | Allowed commands sign while policy violations are denied for custom payments, EVM native/ERC-20 transfer, approval, `transferFrom`, vault operations, Bitcoin spend, and X.509 issuance. Unknown fields, wrong types, wrong principals, and over-limit amounts are exercised. | [AuthorityPolicyTests]: `deniesTypedCommandRejectedByAuthorityPolicy`, `rejectsTypedCommandWithUnknownField`, `rejectsTypedCommandWithWrongFieldType`, `deniesEvmErc20ApprovalWhenAmountExceedsPolicy`, `deniesEvmErc20TransferFromWhenOwnerDoesNotMatchPolicy`, `deniesEvmVaultWithdrawWhenRecipientDoesNotMatchPolicy`, `deniesBitcoinSpendRejectedByAuthorityPolicy`, `deniesX509TbsCertificateRejectedByAuthorityPolicy` |
+| Dry-run policy bypass (T-1, T-3, T-5) | The optional endpoint reports allow, deny, and four-eye-control decisions with approval requirements; it requires authentication, validates key identifiers and existence, and rejects authorities not assigned to the key. | [DryRunTests]: `returnsAllowForAcceptedCommand`, `returnsDenyAsEvaluationResult`, `returnsAllowWithRequirementsForFourEyeControl`, `requiresAuthentication`, `rejectsInvalidKeyId`, `rejectsMissingKey`, `rejectsAuthorityNotAssignedToKey` |
 | Four-eye bypass or incomplete approval group (T-6) | Sign, decrypt, refresh, rotate, and destroy fail without required proofs. Replaced approver sets invalidate old proofs; every matching authority group is required; key and authority requirements are cumulative. | [FourEyeControlTests]: `ensureDecryptRequiresProofs`, `ensureSignRequiresProofs`, `ensureRefreshRequiresProofs`, `ensureOldKeySetNoLongerWorks`, `ensureRotateRequiresProofs`, `authorityPolicyRequiresEveryMatchingApprovalGroup`, `keyAndAuthorityPoliciesShareOneApprovalNonce`, `lenientFourEyeControlAppliesToDestroy` |
 | Approval substitution, replay, or race (T-6) | Changing an approved command invalidates its proof. A consumed approval cannot replay; concurrent submissions yield only one success; consumption survives coordinator restart. | [FourEyeControlTests]: `authorityPolicyBindsProofsAndRejectsReplay`, `approvalNonceIsConsumedAtomically`, `approvalNonceRemainsConsumedAfterCoordinatorRestart` |
 | Single-peer policy tampering (T-3, T-5, T-6) | Mutating the coordinator's authority or deleting its four-eye or expiry policy does not reach threshold. A healthy quorum still accepts a valid command when one non-coordinator peer has missing or swapped authority metadata. | [FailureInjectionTests]: `arbitraryAuthorityInjectedOnOneCoordinatorPeerDoesNotReachThreshold`, `authoritySwappedOnCoordinatorCannotAuthorizeDifferentCommand`, `fourEyePolicyDeletedOnCoordinatorStillRequiresPeerApprovals`, `expiredApplyPolicyClearedOnCoordinatorStillBlocksAtPeers`, `validCommandStillSignsWhenOnePeerRemovedAuthorities`, `validCommandStillSignsWhenOnePeerSwappedAuthorities` |
@@ -264,7 +265,7 @@ paths are covered in [SignatureTests].
 | --- | --- | --- |
 | Invalid TLS identity rotation | A mismatched PEM key/certificate update retains the last known good identity. | [ProductionTransportSecurityTests]: `publicPemRotationRetainsLastKnownGoodIdentityWhileFilesMismatch` |
 | JWKS rotation or refresh failure | Rotation accepts the new key and removes the retired key; failed refresh retains the last known good set. | [ProductionTransportSecurityTests]: `jwksRotationAcceptsNewSigningKeyWithoutRestart`, `failedJwksRefreshKeepsLastKnownGoodKeys` |
-| Optional-module isolation | Development authentication, failure injection, and recovery modules are present in the integration artifact and absent from the production test artifact. | `./gradlew artifactIsolationTest` |
+| Optional-module isolation | Development authentication, dry run, failure injection, and recovery modules are present in the integration artifact and absent from the production test artifact. | `./gradlew artifactIsolationTest` |
 | Release evidence | Module tests, artifact isolation, container builds, functional suites, and production transport tests execute as one release gate. | `./gradlew releaseGate` |
 
 ### Exact protocol vector catalog
@@ -332,6 +333,7 @@ produces and verifies a normal distributed signature with the same stored key.
 [NIST ACVP ML-DSA specification]: https://pages.nist.gov/ACVP/draft-celi-acvp-ml-dsa.html
 [AuthorityPolicyTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/AuthorityPolicyTests.kt
 [CoordinatorDisabledTest]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/CoordinatorDisabledTest.kt
+[DryRunTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/DryRunTests.kt
 [ECIESTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/ECIESTests.kt
 [FailureInjectionTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/FailureInjectionTests.kt
 [RecoveryFailureInjectionTests]: https://github.com/tkeeper-org/tkeeper/blob/main/integration-tests/functional/src/test/kotlin/org/exploit/test/functional/RecoveryFailureInjectionTests.kt

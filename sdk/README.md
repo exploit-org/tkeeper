@@ -10,14 +10,14 @@ Maven:
 <dependency>
   <groupId>org.exploit</groupId>
   <artifactId>tkeeper-sdk</artifactId>
-  <version>2.4.0</version>
+  <version>2.4.1</version>
 </dependency>
 ```
 
 Gradle:
 
 ```groovy
-implementation 'org.exploit:tkeeper-sdk:2.4.0'
+implementation 'org.exploit:tkeeper-sdk:2.4.1'
 ```
 
 ## Client
@@ -104,6 +104,7 @@ The short `Generate` constructors that omit `KeySetAuthorities` default to `arbi
 | `destroy()` | generation destruction |
 | `consistency()` | threshold consistency repair |
 | `ecies()` | optional encrypt/decrypt feature |
+| [`dryRun()`](../docs/signing-and-authorities/dry-run.md) | optional authority-policy evaluation without execution |
 | `compliance()` | asset inventory |
 | `expire()` | expiration indexes |
 | `audit()` and `integrity()` | audit verification and integrity-key rotation |
